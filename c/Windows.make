@@ -12,18 +12,19 @@ NAME=parser
 TOOL_MKDIR = mkdir -p
 TOOL_CC = mingw32-gcc
 TOOL_CP = cp
+TOOL_GCOV = gcov
 
 # Directories
 DIR_SOURCE :=Src/
 DIR_LIBS := Libs/
 DIR_INCLUDES := "Inc/"
-DIR_BUILD := Build/
+DIR_BUILD := Build/$(BUILD)/
 
 SOURCES = $(call rwildcard, $(DIR_SOURCE),*.c)
-
-DIRS_OBJECTS = $(addprefix $(DIR_BUILD), $(call uniq, $(sort $(dir $(SOURCES)))))
 OBJECTS = $(SOURCES:%.c=%.o)
+COVERS = $(SOURCES:%.c=%.gcda)
 DEPS=
+DIRS_OBJECTS = $(addprefix $(DIR_BUILD),$(call uniq, $(sort $(dir $(SOURCES)))))
 
 # Compilation
 ARTIFACT=
@@ -31,7 +32,7 @@ CFLAGS=
 LDFLAGS=
 
 # Compiler flags
-ifeq ($(BUILD),debug)
+ifeq ($(BUILD),Debug)
 	CFLAGS += -I$(DIR_INCLUDES)
 	CFLAGS += -g
 	CFLAGS += -Wall
@@ -39,21 +40,35 @@ ifeq ($(BUILD),debug)
 	LDFLAGS += -lm
 	ARTIFACT := $(DIR_BUILD)$(NAME)_debug.exe
 
-else ifeq ($(BUILD),run)
+else ifeq ($(BUILD),Run)
 	CFLAGS += -I$(DIR_INCLUDES)
 	CFLAGS += -O0
 	LDFLAGS += -L"$(DIR_LIBS)"
 	LDFLAGS += -lm
 	ARTIFACT := $(DIR_BUILD)$(NAME).exe
+else ifeq ($(BUILD),Test)
+	CFLAGS += -I$(DIR_INCLUDES)
+	CFLAGS += -O0
+	CFLAGS += -ftest-coverage
+	CFLAGS += -fprofile-arcs
+	LDFLAGS += -L"$(DIR_LIBS)"
+	LDFLAGS += -lm
+	LDFLAGS += -lgcov --coverage
+	ARTIFACT := $(DIR_BUILD)$(NAME).exe
 endif
+
+
 
 # Switches
 clean:
 	@echo "-- Cleaning up --"
 	rm -rvf $(DIR_BUILD)*
 
-all: $(ARTIFACT)
+build: $(ARTIFACT)
 
+cover: 
+	./$(ARTIFACT) Inputs/sdn3pd.s19
+	$(TOOL_GCOV) $(addprefix $(DIR_BUILD),$(COVERS))
 
 # Prepare Build Folder
 $(DIRS_OBJECTS): $(LIBS)

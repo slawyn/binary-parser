@@ -5,6 +5,7 @@
 # Prerequisites
 *.d
 */Inputs/*
+*.gcov
 
 # Object files
 *.o

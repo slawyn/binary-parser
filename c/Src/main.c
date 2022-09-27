@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
    printf("Version: 0.1\nAuthor: Alexander Malyugin\n");
 
    if (argc > 1)
-     {
+   {
       vMemoryInit(&xMemory);
       i32Status = i32FileLoad(argv[1], &xMemory);
       vMemoryPrint(&xMemory);
