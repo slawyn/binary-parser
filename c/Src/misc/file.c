@@ -13,9 +13,9 @@
 #define LINE_MALLOC_MAX    (size_t)128
 
 /*****************************************************************************
- * @param ppui8LineBuffer
- * @param xReadMax
- * @param pxFileHandle
+ * @param ppui8LineBuffer Pointer to String
+ * @param xReadMax Max characters that can be read
+ * @param pxFileHandle File Handle
  ******************************************************************************/
 size_t xGetLine(uint8_t **ppui8LineBuffer, const size_t xReadMax, FILE *pxFileHandle)
 {
@@ -66,6 +66,7 @@ size_t xGetLine(uint8_t **ppui8LineBuffer, const size_t xReadMax, FILE *pxFileHa
 
 /*****************************************************************************
  * @param sFileFullPath filename with full path
+ * @param pxMemory Memory Pointer
  ******************************************************************************/
 int32_t i32FileLoad(char *sFileFullPath, Memory_t *pxMemory)
 {

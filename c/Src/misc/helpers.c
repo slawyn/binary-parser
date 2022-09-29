@@ -31,7 +31,7 @@ int32_t i32Log(const char *format, ...)
 }
 
 /*****************************************************************************
- * @param cHex hex character
+ * @param cHex Hex character
  ******************************************************************************/
 uint32_t ui32ConvertHexNibbleToUint(char cHex)
 {
@@ -52,18 +52,27 @@ uint32_t ui32ConvertHexNibbleToUint(char cHex)
    return(ui32Result);
 }
 
+/*****************************************************************************
+ * @param sHexNibbles String of Nibbles
+ ******************************************************************************/
 uint8_t ui32ConvertHexStringToByte(char *sHexNibbles)
 {
    uint8_t ui8Result = ((ui32ConvertHexNibbleToUint(sHexNibbles[0]) << 4) | ui32ConvertHexNibbleToUint(sHexNibbles[1]));
    return(ui8Result);
 }
 
+/*****************************************************************************
+ * @param sHexNibbles String of Nibbles
+ ******************************************************************************/
 uint16_t ui32ConvertHexStringToWord(char *sHexNibbles)
 {
    uint16_t ui16Result = (ui32ConvertHexStringToByte(&sHexNibbles[0]) << 8 | ui32ConvertHexStringToByte(&sHexNibbles[2]));
    return(ui16Result);
 }
 
+/*****************************************************************************
+ * @param sHexNibbles String of Nibbles
+ ******************************************************************************/
 uint32_t ui32ConvertHexStringToDword(char *sHexNibbles)
 {
    uint32_t ui32Result = (ui32ConvertHexStringToWord(&sHexNibbles[0]) << 16 | ui32ConvertHexStringToWord(&sHexNibbles[4]));
@@ -71,7 +80,7 @@ uint32_t ui32ConvertHexStringToDword(char *sHexNibbles)
 }
 
 /*****************************************************************************
- * @param cHex hex character
+ * @param cHex Hex character
  ******************************************************************************/
 void vConvertHexStringToByteBuffer(char *sHexNibbles, uint8_t *pui8Buffer, uint8_t ui8Size)
 {

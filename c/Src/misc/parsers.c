@@ -5,7 +5,7 @@
 #include "misc/helpers.h"
 
 
-
+#define MAX_BUFFER_SIZE             (128)
 #define BYTE_NIBBLES                (2)
 
 // Size and offsets are for bytes not nibbles
@@ -58,6 +58,13 @@
 // Sx + ByteCount + Checksum
 #define S19_MIN_SZ                  (S19_S_SZ + S19_BYTE_COUNT_SZ + S19_ADDRESS2_SZ + S19_CHECKSUM_SZ)
 
+uint8_t rui8DataBuffer[MAX_BUFFER_SIZE];
+
+/***************************************************************
+* @param sRec .hex Records
+* @param xSize Length of line
+* @param pxMemory Pointer to Memory
+***************************************************************/
 int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
 {
    uint32_t ui32Temp;
@@ -113,9 +120,19 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    switch (ui8RecordType)
    {
    case HEX_RT_DATA:
-      pui8Buffer = malloc(ui8ByteCount);
-      vConvertHexStringToByteBuffer(&sRec[0], pui8Buffer, (ui8ByteCount >> 1));
-      i32MemoryblockInit(pxMemory, ui16Address, (ui8ByteCount >> 1), pui8Buffer);
+      if (MAX_BUFFER_SIZE < (ui8ByteCount >> 1))
+      {
+         i32Log("Hex::Error data too long at %x", ui32Temp);
+      }
+      else
+      {
+         vConvertHexStringToByteBuffer(&sRec[0], rui8DataBuffer, (ui8ByteCount >> 1));
+      }
+
+      if (i32MemoryAdd(pxMemory, ui16Address, (ui8ByteCount >> 1), rui8DataBuffer))
+      {
+         i32Log("Hex::Problem creating block at %x", ui16Address);
+      }
       break;
 
    case HEX_RT_EOF:
@@ -175,8 +192,10 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
 }
 
 /***************************************************************
- * @param sRec
- ******************************************************************************/
+* @param sRec .s19 Records
+* @param xSize Length of line
+* @param pxMemory Pointer to Memory
+***************************************************************/
 int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
 {
    // Fields:
@@ -266,12 +285,21 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
 
          // Byte series
          ui8ByteCount -= (S19_DATA_BYTE0_OFFSET);
+         if (MAX_BUFFER_SIZE < (ui8ByteCount >> 1))
+         {
+            i32Log("Hex::Error data too long at %x", ui32Temp);
+         }
+         else
+         {
+            vConvertHexStringToByteBuffer(&sRec[S19_DATA_BYTE0_OFFSET], rui8DataBuffer, (ui8ByteCount >> 1));
+         }
 
-         pui8Buffer = malloc(xSize);
-         vConvertHexStringToByteBuffer(&sRec[S19_DATA_BYTE0_OFFSET], pui8Buffer, (ui8ByteCount >> 1));
 
          // Create block
-         i32MemoryblockInit(pxMemory, ui32Temp, (ui8ByteCount >> 1), pui8Buffer);
+         if (i32MemoryAdd(pxMemory, ui32Temp, (ui8ByteCount >> 1), rui8DataBuffer))
+         {
+            i32Log("Hex::Error creating block at %x", ui32Temp);
+         }
       }
       break;
 
@@ -291,11 +319,19 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
 
          // Byte series
          ui8ByteCount -= S19_DATA_BYTE1_OFFSET;
-         pui8Buffer    = malloc(xSize);
-         vConvertHexStringToByteBuffer(&sRec[S19_DATA_BYTE1_OFFSET], pui8Buffer, (ui8ByteCount >> 1));
-
+         if (MAX_BUFFER_SIZE < (ui8ByteCount >> 1))
+         {
+            i32Log("S19::Error data too long at %x", ui32Temp);
+         }
+         else
+         {
+            vConvertHexStringToByteBuffer(&sRec[S19_DATA_BYTE1_OFFSET], rui8DataBuffer, (ui8ByteCount >> 1));
+         }
          // Create block
-         i32MemoryblockInit(pxMemory, ui32Temp, (ui8ByteCount >> 1), pui8Buffer);
+         if (i32MemoryAdd(pxMemory, ui32Temp, (ui8ByteCount >> 1), rui8DataBuffer))
+         {
+            i32Log("S19::Problem creating block at %x", ui32Temp);
+         }
       }
       break;
 
@@ -316,11 +352,19 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
 
          // Byte series
          ui8ByteCount -= S19_DATA_BYTE2_OFFSET;
-         pui8Buffer    = malloc(xSize);
-         vConvertHexStringToByteBuffer(&sRec[S19_DATA_BYTE2_OFFSET], pui8Buffer, (ui8ByteCount >> 1));
-
+         if (MAX_BUFFER_SIZE < (ui8ByteCount >> 1))
+         {
+            i32Log("S19::Error data too long at %x", ui32Temp);
+         }
+         else
+         {
+            vConvertHexStringToByteBuffer(&sRec[S19_DATA_BYTE2_OFFSET], pui8Buffer, (ui8ByteCount >> 1));
+         }
          // Create block
-         i32MemoryblockInit(pxMemory, ui32Temp, (ui8ByteCount >> 1), pui8Buffer);
+         if (i32MemoryAdd(pxMemory, ui32Temp, (ui8ByteCount >> 1), rui8DataBuffer))
+         {
+            i32Log("S19::Problem creating block at %x", ui32Temp);
+         }
       }
       break;
 
