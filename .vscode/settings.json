@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "types.h": "c",
-        "helpers.h": "c"
+        "helpers.h": "c",
+        "config.h": "c"
     }
 }

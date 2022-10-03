@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <windows.h>
 
+#include "config.h"
 #include "types.h"
 #include "misc/memory.h"
 #include "misc/helpers.h"
 #include "misc/parsers.h"
-
 
 
 /*****************************************************************************
@@ -46,7 +45,7 @@ uint32_t ui32ConvertHexNibbleToUint(char cHex)
    }
    else
    {
-      i32Log("Error: Unknown Hex %c", cHex);
+      LogNormal("Error: Unknown Hex %c", cHex);
       ui32Result = 0;
    }
    return(ui32Result);

@@ -17,7 +17,7 @@ TOOL_GCOV = gcov
 # Directories
 DIR_SOURCE :=Src/
 DIR_LIBS := Libs/
-DIR_INCLUDES := "Inc/"
+DIR_INCLUDES := Inc/
 DIR_BUILD := Build/$(BUILD)/
 
 SOURCES = $(call rwildcard, $(DIR_SOURCE),*.c)
@@ -27,9 +27,11 @@ DEPS=
 DIRS_OBJECTS = $(addprefix $(DIR_BUILD),$(call uniq, $(sort $(dir $(SOURCES)))))
 
 # Compilation
+CONF_BUILD_DATE =$$(date +'%Y%m%d')
+
 ARTIFACT=
-CFLAGS=
-LDFLAGS=
+CFLAGS=-DBUILD_DATE=$(CONF_BUILD_DATE) 
+LDFLAGS =
 
 # Compiler flags
 ifeq ($(BUILD),Debug)
@@ -47,6 +49,7 @@ else ifeq ($(BUILD),Run)
 	LDFLAGS += -lm
 	ARTIFACT := $(DIR_BUILD)$(NAME).exe
 else ifeq ($(BUILD),Test)
+	CFLAGS += -DLOG_TEST
 	CFLAGS += -I$(DIR_INCLUDES)
 	CFLAGS += -O0
 	CFLAGS += -ftest-coverage

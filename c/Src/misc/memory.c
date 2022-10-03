@@ -2,9 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
 #include "types.h"
 #include "misc/helpers.h"
 #include "misc/memory.h"
+
 
 /***************************************************************
 * @param pxMemory Pointer to Memory
@@ -27,7 +29,7 @@ void vMemoryPrint(Memory_t *pxMemory)
    Memoryblock_t *pxMemoryblock;
 
    // Print total count
-   printf("\nMemory:[%-d]", pxMemory->ui32BlockCount);
+   printf("Memory:[%-d]", pxMemory->ui32BlockCount);
 
    // Print contents
    pxMemoryblock = pxMemory->pxMemoryblockHead;
@@ -133,7 +135,7 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
       pxMemoryblock = pxMemoryCreateBlock(pxMemory, ui32FullBlockAddress, ui32BufferSize, rui8Buffer);
       pxMemory->pxMemoryblockHead = pxMemoryblock;
       pxMemory->pxMemoryblockTail = pxMemoryblock;
-      i32Log("**head** %x %x", ui32FullBlockAddress, pxMemoryblock->ui32BlockAddress);
+      LogTest("memory::MemoryAdd: Creating Head** of %x at %x", ui32FullBlockAddress, pxMemoryblock->ui32BlockAddress);
    }
    else
    {
@@ -143,20 +145,20 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
       pxMemoryblockBackward = pxMemory->pxMemoryblockTail;
       while (pxMemoryblockForward->pxMemoryblockNext != NULL)
       {
-         if (ui32FullBlockAddress <= pxMemoryblockForward->ui32BlockAddress)
+         if (ui32FullBlockAddress >= pxMemoryblockForward->pxMemoryblockNext->ui32BlockAddress)
          {
-            break;
+            pxMemoryblockForward = pxMemoryblockForward->pxMemoryblockNext;
          }
          else
          {
-            pxMemoryblockForward = pxMemoryblockForward->pxMemoryblockNext;
+            break;
          }
       }
 
       // Block preceeding new memory region
       if (pxMemoryblockForward->ui32BlockAddress <= ui32FullBlockAddress)
       {
-         i32Log("**after** %x %x", ui32FullBlockAddress, pxMemoryblockForward->ui32BlockAddress);
+         LogTest("memory::MemoryAdd: Searching inside** at %x with previous %x", ui32FullBlockAddress, pxMemoryblockForward->ui32BlockAddress);
 
 
          // Previous memory overlaps, then copy over
@@ -168,13 +170,14 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
             // No new block needed, region is absorbed by previous block
             if (i32MemoryOverlap > ui32BufferSize)
             {
-               i32Log("test-0 %d", ui32BufferSize);
+               LogTest("memory::MemoryAdd: Overlap-0** of %d", ui32BufferSize);
                memcpy(&pxMemoryblockForward->pui8Buffer[pxMemoryblockForward->ui32BlockSize - ui32BufferSize], rui8Buffer, ui32BufferSize);
+               ui32BufferSize = 0;
             }
             // Partial copy over previous block
             else
             {
-               i32Log("test-1 %d %d", i32MemoryOverlap, pxMemoryblockForward->ui32BlockSize - i32MemoryOverlap);
+               LogTest("memory::MemoryAdd: Overlap-1** of %d at %d", i32MemoryOverlap, pxMemoryblockForward->ui32BlockSize - i32MemoryOverlap);
                memcpy(&pxMemoryblockForward->pui8Buffer[pxMemoryblockForward->ui32BlockSize - i32MemoryOverlap], rui8Buffer, i32MemoryOverlap);
                ui32FullBlockAddress += i32MemoryOverlap;
                ui32BufferSize       -= i32MemoryOverlap;
@@ -187,10 +190,10 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
             // Next memory region overlaps
             if (pxMemoryblockForward->pxMemoryblockNext != NULL)
             {
-               i32Log("test-2 %x %x", ui32FullBlockAddress, pxMemoryblockForward->ui32BlockAddress);
                i32MemoryOverlap = (ui32FullBlockAddress + ui32BufferSize) - pxMemoryblockForward->pxMemoryblockNext->ui32BlockAddress;
                if (i32MemoryOverlap > 0)
                {
+                  LogTest("memory::MemoryAdd: Overlap-3** at %x with previous %x of %d", ui32FullBlockAddress, pxMemoryblockForward->ui32BlockAddress, i32MemoryOverlap);
                   ui32BufferSize -= i32MemoryOverlap;
                }
 
@@ -199,18 +202,18 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
                pxMemoryblock->pxMemoryblockNext        = pxMemoryblockForward->pxMemoryblockNext;
                pxMemoryblockForward->pxMemoryblockNext = pxMemoryblock;
 
-               i32Log("test-3");
+               LogTest("memory::MemoryAdd: Creating Block-0** of %d", ui32BufferSize);
 
                // Copy recursively forward
                if (i32MemoryOverlap > 0)
                {
-                  i32Log("recursive-1 %x %d", pxMemoryblockForward->ui32BlockAddress, ui32BufferSize);
+                  LogTest("memory::MemoryAdd: Recursive-1** %x %d", pxMemoryblockForward->ui32BlockAddress, ui32BufferSize);
                   i32Error = i32MemoryAdd(pxMemory, pxMemoryblockForward->pxMemoryblockNext->ui32BlockAddress, i32MemoryOverlap, &rui8Buffer[ui32BufferSize]);
                }
             }
             else
             {
-               i32Log("test-4");
+               LogTest("memory::MemoryAdd: Creating Block-1** of %d", ui32BufferSize);
 
                // Create block
                pxMemoryblock = pxMemoryCreateBlock(pxMemory, ui32FullBlockAddress, ui32BufferSize, rui8Buffer);
@@ -221,11 +224,11 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
       }
       else
       {
-         i32Log("**before** %x %x", ui32FullBlockAddress, pxMemoryblockForward->ui32BlockAddress);
-
+         LogTest("memory::MemoryAdd: Searching outside** at %x with previous %x", ui32FullBlockAddress, pxMemoryblockForward->ui32BlockAddress);
          i32MemoryOverlap = (ui32FullBlockAddress + ui32BufferSize) - pxMemoryblockForward->ui32BlockAddress;
          if (i32MemoryOverlap > 0)
          {
+            LogTest("memory::MemoryAdd:Overlap-4** of %x", i32MemoryOverlap);
             ui32BufferSize -= i32MemoryOverlap;
          }
 
@@ -236,13 +239,13 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
          // Copy recursively forward
          if (i32MemoryOverlap > 0)
          {
-            i32Log("recursive-2 %x %d", pxMemoryblockForward->ui32BlockAddress, ui32BufferSize);
+            LogTest("memory::MemoryAdd:Recursive-2** at %x of %d", pxMemoryblockForward->ui32BlockAddress, ui32BufferSize);
             i32Error = i32MemoryAdd(pxMemory, pxMemoryblockForward->ui32BlockAddress, i32MemoryOverlap, &rui8Buffer[ui32BufferSize]);
          }
       }
 
 
-      i32Log("run");
+      LogTest("memory::MemoryAdd: Done**");
 
       /*
        * // Searching backward
