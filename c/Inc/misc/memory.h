@@ -24,5 +24,6 @@ Memory_t;
 extern void vMemoryInit(Memory_t *pxMemory);
 extern void vMemoryPrint(Memory_t *pxMemory);
 extern int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui32Buffersize, uint8_t *pui8Buffer);
+extern int32_t i32MemoryCopy(Memory_t *pxMemory, uint32_t ui32SourceAddress, uint32_t ui32DestinationAddress, int32_t i32SizeToCopy);
 
 #endif
