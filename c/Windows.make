@@ -18,7 +18,7 @@ TOOL_GCOV = gcov
 DIR_SOURCE :=Src/
 DIR_LIBS := Libs/
 DIR_INCLUDES := Inc/
-DIR_BUILD := Build/$(BUILD)/
+DIR_BUILD := Build/$(FLAVOR)/
 
 SOURCES = $(call rwildcard, $(DIR_SOURCE),*.c)
 OBJECTS = $(SOURCES:%.c=%.o)
@@ -34,7 +34,7 @@ CFLAGS=-DBUILD_DATE=$(CONF_BUILD_DATE)
 LDFLAGS =
 
 # Compiler flags
-ifeq ($(BUILD),Debug)
+ifeq ($(FLAVOR),Debug)
 	CFLAGS += -I$(DIR_INCLUDES)
 	CFLAGS += -g
 	CFLAGS += -Wall
@@ -42,13 +42,14 @@ ifeq ($(BUILD),Debug)
 	LDFLAGS += -lm
 	ARTIFACT := $(DIR_BUILD)$(NAME)_debug.exe
 
-else ifeq ($(BUILD),Run)
+else ifeq ($(FLAVOR),Run)
 	CFLAGS += -I$(DIR_INCLUDES)
 	CFLAGS += -O0
 	LDFLAGS += -L"$(DIR_LIBS)"
 	LDFLAGS += -lm
 	ARTIFACT := $(DIR_BUILD)$(NAME).exe
-else ifeq ($(BUILD),Test)
+else ifeq ($(FLAVOR),Test)
+	CFLAGS += -g
 	CFLAGS += -DLOG_TEST
 	CFLAGS += -I$(DIR_INCLUDES)
 	CFLAGS += -O0
