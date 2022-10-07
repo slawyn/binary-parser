@@ -15,6 +15,7 @@
             "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",
+            "preLaunchTask": "build-test",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -25,6 +26,9 @@
                     "description": "Set Disassembly Flavor to Intel",
                     "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
+                },
+                {
+                    "text": "set output-radix 16"
                 }
             ]
         }
