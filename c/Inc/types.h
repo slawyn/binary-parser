@@ -20,4 +20,6 @@ typedef enum
 #define TRUE     1
 #define FALSE    0
 
+#define SIZEOF(x)    sizeof(x) / sizeof(x[0])
+
 #endif

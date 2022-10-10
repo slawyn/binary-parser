@@ -6,34 +6,40 @@
 uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 
-NAME=parser
+NAME=binary-parser
+NAME_ENTRY = main.c
 
-# Tools
+#########################
+# 		Tools			#
+#########################
 TOOL_MKDIR = mkdir -p
 TOOL_CC = mingw32-gcc
 TOOL_CP = cp
 TOOL_GCOV = gcov
 
+
+#########################
+# 		Base Config		#
+#########################
 # Directories
 DIR_SOURCE :=Src/
 DIR_LIBS := Libs/
 DIR_INCLUDES := Inc/
 DIR_BUILD := Build/$(FLAVOR)/
 
-SOURCES = $(call rwildcard, $(DIR_SOURCE),*.c)
-OBJECTS = $(SOURCES:%.c=%.o)
-COVERS = $(SOURCES:%.c=%.gcda)
+FILES_SOURCES = $(call rwildcard, $(DIR_SOURCE),*.c)
 DEPS=
-DIRS_OBJECTS = $(addprefix $(DIR_BUILD),$(call uniq, $(sort $(dir $(SOURCES)))))
+
 
 # Compilation
 CONF_BUILD_DATE =$$(date +'%Y%m%d')
-
-ARTIFACT=
 CFLAGS=-DBUILD_DATE=$(CONF_BUILD_DATE) 
 LDFLAGS =
 
-# Compiler flags
+
+#########################
+# 		FLAVORS			#
+#########################
 ifeq ($(FLAVOR),Debug)
 	CFLAGS += -I$(DIR_INCLUDES)
 	CFLAGS += -g
@@ -58,12 +64,22 @@ else ifeq ($(FLAVOR),Test)
 	LDFLAGS += -L"$(DIR_LIBS)"
 	LDFLAGS += -lm
 	LDFLAGS += -lgcov --coverage
-	ARTIFACT := $(DIR_BUILD)$(NAME).exe
+
+	COVERS = $(FILES_SOURCES:%.c=%.gcda)
+
+	FILES_SOURCES := $(filter-out $(wildcard */$(NAME_ENTRY)), $(FILES_SOURCES))
+	FILES_SOURCES += $(call rwildcard, Tests/,$(TEST_FILE).c)
+
+	ARTIFACT := $(DIR_BUILD)$(TEST_FILE).exe
 endif
 
+# All Objects
+FILES_OBJECTS = $(FILES_SOURCES:%.c=%.o)
+DIRS_OBJECTS = $(addprefix $(DIR_BUILD),$(call uniq, $(sort $(dir $(FILES_SOURCES)))))
 
-
-# Switches
+#########################
+# 		Commands		#
+#########################
 clean:
 	@echo "-- Cleaning up --"
 	rm -rvf $(DIR_BUILD)*
@@ -74,17 +90,21 @@ cover:
 	./$(ARTIFACT) Inputs/sdn3pd.s19
 	$(TOOL_GCOV) $(addprefix $(DIR_BUILD),$(COVERS))
 
-# Prepare Build Folder
+#########################
+# 		Building		#
+#########################
+
+# Create Build Folders
 $(DIRS_OBJECTS): $(LIBS)
 	@echo "-- Creating Directories --"
 	${TOOL_MKDIR} $(DIRS_OBJECTS)
 
-# Link artefact
-$(ARTIFACT): $(DIRS_OBJECTS) $(LIBS) $(OBJECTS)
+# Link Objects to Artefact
+$(ARTIFACT): $(DIRS_OBJECTS) $(FILES_OBJECTS)
 	@echo "-- Creating Exe $(ARTIFACT) --"
-	${TOOL_CC} ${LDFLAGS} -o $@ $(addprefix $(DIR_BUILD),$(OBJECTS))
+	${TOOL_CC} ${LDFLAGS} -o $@ $(addprefix $(DIR_BUILD),$(FILES_OBJECTS))
 
-# Generate an Objects
+# Generate Objects for Linking
 %.o: %.c
 	@echo "-- Creating Object $@ --"
 	$(TOOL_CC) $(CFLAGS) -c $< -o $(DIR_BUILD)$@
