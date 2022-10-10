@@ -161,65 +161,37 @@ void vMemoryPrint(Memory_t *pxMemory)
 
 /***************************************************************
 * @param pxMemory Pointer to Memory
-* @param ui32SourceStartAddress Source Address
-* @param ui32DestinationStartAddress Destination Address
-* @param ui32SizeToCopy Size to Copy
+* @param ui32RegionStartingAddress Starting Address
+* @param ui32RegionEndingAddress Ending Address
+* @return Status
 ***************************************************************/
-int32_t i32MemoryCopy(Memory_t *pxMemory, uint32_t ui32SourceStartAddress, uint32_t ui32DestinationStartAddress, int32_t i32SizeToCopy)
+int32_t i32MemoryDeleteRegion(Memory_t *pxMemory, uint32_t ui32RegionStartingAddress, uint32_t ui32RegionEndingAddress)
 {
    Memoryblock_t *pxMemoryblock;
    Memoryblock_t *pxMemoryTempblock;
-
-   uint32_t ui32SourceEndAddress      = ui32SourceStartAddress + i32SizeToCopy;
-   uint32_t ui32DestinationEndAddress = ui32DestinationStartAddress + i32SizeToCopy;
-   int32_t  i32Offset = 0;
-   uint32_t ui32TempSize;
-   int32_t  i32MemoryOverlap;
-   uint8_t  ui8Done = FALSE;
-   int8_t   i8Error = 0;
-
-   // Invalid Pointers
-   if (pxMemory->pxMemoryblockHead == NULL || pxMemory->pxMemoryblockTail == NULL)
-   {
-      LogTest("memory::i32MemoryCopy: Error:Head or Tail NULL");
-      return(-1);
-   }
-
-   // Size is overlapping
-   if (ui32DestinationStartAddress > ui32SourceStartAddress)
-   {
-      i32Offset = ui32DestinationStartAddress - ui32SourceStartAddress;
-   }
-   else
-   {
-      i32Offset = ui32SourceStartAddress - ui32DestinationStartAddress;
-   }
-
-   // Space between source and destination regions is smaller than copy size
-   if (i32Offset < i32SizeToCopy)
-   {
-      LogTest("memory::i32MemoryCopy: Error:Regions overlap");
-      return(-2);
-   }
+   uint8_t        ui8Done = FALSE;
+   int8_t         i8Error = 0;
+   int32_t        i32MemoryOverlap;
 
    // Free Destination blocks
    //-----------------------------------------
    pxMemoryblock = pxMemory->pxMemoryblockHead;
+
    while (!ui8Done && !i8Error)
    {
       // Preserve pointer to next for traversing
       pxMemoryTempblock = pxMemoryblock->pxMemoryblockNext;
 
       // Split the first intersecting block in the destination region
-      if (((pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) >= ui32DestinationStartAddress))
+      if (((pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) >= ui32RegionStartingAddress))
       {
-         LogTest("memory::i32MemoryCopy: Traversing Block at %x", pxMemoryblock->ui32BlockAddress);
-         if (pxMemoryblock->ui32BlockAddress < ui32DestinationStartAddress)
+         LogTest("memory::i32MemoryDeleteRegion: Traversing Block at %x", pxMemoryblock->ui32BlockAddress);
+         if (pxMemoryblock->ui32BlockAddress < ui32RegionStartingAddress)
          {
-            i32MemoryOverlap = (pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) - ui32DestinationStartAddress;
+            i32MemoryOverlap = (pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) - ui32RegionStartingAddress;
             if (i32MemoryOverlap > 0)
             {
-               LogTest("memory::i32MemoryCopy: Splitting-0 Destination Block at %x", pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize - i32MemoryOverlap);
+               LogTest("memory::i32MemoryDeleteRegion: Splitting-0 Destination Block at %x", pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize - i32MemoryOverlap);
 
                // Create new buffer
                uint8_t *pui8SplitBuffer = malloc((pxMemoryblock->ui32BlockSize - i32MemoryOverlap));
@@ -231,22 +203,22 @@ int32_t i32MemoryCopy(Memory_t *pxMemory, uint32_t ui32SourceStartAddress, uint3
                pxMemoryblock->ui32BlockSize -= i32MemoryOverlap;
 
                // Buffer outside of range, create new block
-               if ((ui32DestinationStartAddress + i32MemoryOverlap) >= ui32DestinationEndAddress)
+               if ((ui32RegionStartingAddress + i32MemoryOverlap) >= ui32RegionEndingAddress)
                {
-                  LogTest("memory::i32MemoryCopy: Adding-0 Destination Block at %x of %d bytes", ui32DestinationStartAddress, i32MemoryOverlap);
-                  i8Error = i32MemoryAdd(pxMemory, ui32DestinationStartAddress, i32MemoryOverlap, pui8TempBuffer);
+                  LogTest("memory::i32MemoryDeleteRegion: Adding-0 Destination Block at %x of %d bytes", ui32RegionEndingAddress, i32MemoryOverlap);
+                  i8Error = i32MemoryAdd(pxMemory, ui32RegionStartingAddress, i32MemoryOverlap, pui8TempBuffer);
                }
 
                // Free old buffer
                free(pui8TempBuffer);
             }
          }
-         else if (pxMemoryblock->ui32BlockAddress < ui32DestinationEndAddress)
+         else if (pxMemoryblock->ui32BlockAddress < ui32RegionEndingAddress)
          {
-            i32MemoryOverlap = (pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) - ui32DestinationEndAddress;
+            i32MemoryOverlap = (pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) - ui32RegionEndingAddress;
             if (i32MemoryOverlap > 0)
             {
-               LogTest("memory::i32MemoryCopy: Splitting-1 Destination Block at %x", pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize - i32MemoryOverlap);
+               LogTest("memory::i32MemoryDeleteRegion: Splitting-1 Destination Block at %x", pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize - i32MemoryOverlap);
 
                // Create new buffer
                uint8_t *pui8SplitBuffer = malloc(i32MemoryOverlap);
@@ -263,7 +235,7 @@ int32_t i32MemoryCopy(Memory_t *pxMemory, uint32_t ui32SourceStartAddress, uint3
             }
             else
             {
-               LogTest("memory::i32MemoryCopy: Destroying-1 Destination Block at %x", pxMemoryblock->ui32BlockAddress);
+               LogTest("memory::i32MemoryDeleteRegion: Destroying-1 Destination Block at %x", pxMemoryblock->ui32BlockAddress);
                i8Error = i32MemoryDestroyBlock(pxMemory, pxMemoryblock);
             }
          }
@@ -284,11 +256,60 @@ int32_t i32MemoryCopy(Memory_t *pxMemory, uint32_t ui32SourceStartAddress, uint3
          pxMemoryblock = pxMemoryTempblock;
       }
    }
+}
+
+/***************************************************************
+* @param pxMemory Pointer to Memory
+* @param ui32SourceStartAddress Source Address
+* @param ui32DestinationStartAddress Destination Address
+* @param i32RegionSize Size to Copy
+***************************************************************/
+int32_t i32MemoryCopyRegion(Memory_t *pxMemory, uint32_t ui32SourceStartAddress, uint32_t ui32DestinationStartAddress, int32_t i32RegionSize)
+{
+   Memoryblock_t *pxMemoryblock;
+   Memoryblock_t *pxMemoryTempblock;
+
+   uint32_t ui32SourceEndAddress      = ui32SourceStartAddress + i32RegionSize;
+   uint32_t ui32DestinationEndAddress = ui32DestinationStartAddress + i32RegionSize;
+   int32_t  i32Offset = 0;
+   uint32_t ui32TempSize;
+   int32_t  i32MemoryOverlap;
+   uint8_t  ui8Done = FALSE;
+   int8_t   i8Error = 0;
+
+   // Invalid Pointers
+   if (pxMemory->pxMemoryblockHead == NULL || pxMemory->pxMemoryblockTail == NULL)
+   {
+      LogTest("memory::i32MemoryCopyRegion: Error:Head or Tail NULL");
+      return(-1);
+   }
+
+   // Size is overlapping
+   if (ui32DestinationStartAddress > ui32SourceStartAddress)
+   {
+      i32Offset = ui32DestinationStartAddress - ui32SourceStartAddress;
+   }
+   else
+   {
+      i32Offset = ui32SourceStartAddress - ui32DestinationStartAddress;
+   }
+
+   // Space between source and destination regions is smaller than copy size
+   if (i32Offset < i32RegionSize)
+   {
+      LogTest("memory::i32MemoryCopyRegion: Error:Regions overlap");
+      return(-2);
+   }
+
+   // Free Destination Region
+   //--------------------------
+   i8Error = i32MemoryDeleteRegion(pxMemory, ui32DestinationStartAddress, ui32DestinationEndAddress);
+
 
    // Copy blocks
    //-----------------------------------------
    ui8Done       = FALSE;
-   pxMemoryblock = pxMemoryFindStartingBlock(pxMemory, ui32SourceStartAddress);
+   pxMemoryblock = pxMemory->pxMemoryblockHead;
    while (!ui8Done && !i8Error)
    {
       // Preserve pointer to next for traversing
@@ -303,7 +324,7 @@ int32_t i32MemoryCopy(Memory_t *pxMemory, uint32_t ui32SourceStartAddress, uint3
             i32MemoryOverlap = (pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) - ui32SourceStartAddress;
             if (i32MemoryOverlap > 0)
             {
-               LogTest("memory::i32MemoryCopy: D#Splitting-0 Source Block at %x", pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize - i32MemoryOverlap);
+               LogTest("memory::i32MemoryCopyRegion: D#Splitting-0 Source Block at %x", pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize - i32MemoryOverlap);
 
                // Assign new buffer
                pxMemoryblock->ui32BlockSize -= i32MemoryOverlap;
@@ -311,7 +332,7 @@ int32_t i32MemoryCopy(Memory_t *pxMemory, uint32_t ui32SourceStartAddress, uint3
                // Buffer outside of range, create new block
                if ((ui32SourceStartAddress + i32MemoryOverlap) >= ui32SourceEndAddress)
                {
-                  LogTest("memory::i32MemoryCopy: D#Adding-0 Source Block at %x of %d bytes", ui32SourceStartAddress, i32MemoryOverlap);
+                  LogTest("memory::i32MemoryCopyRegion: D#Adding-0 Source Block at %x of %d bytes", ui32SourceStartAddress, i32MemoryOverlap);
                   i8Error = i32MemoryAdd(pxMemory, ui32SourceStartAddress, i32MemoryOverlap, (pxMemoryblock->pui8Buffer + pxMemoryblock->ui32BlockSize));
                }
 
@@ -327,7 +348,7 @@ int32_t i32MemoryCopy(Memory_t *pxMemory, uint32_t ui32SourceStartAddress, uint3
                ui32TempSize = (pxMemoryblock->ui32BlockSize - i32MemoryOverlap);
             }
 
-            LogTest("memory::i32MemoryCopy: D#Adding-1 Destination Block at %x of %d", pxMemoryblock->ui32BlockAddress + i32Offset, ui32TempSize);
+            LogTest("memory::i32MemoryCopyRegion: D#Adding-1 Destination Block at %x of %d", pxMemoryblock->ui32BlockAddress + i32Offset, ui32TempSize);
             i8Error = i32MemoryAdd(pxMemory, pxMemoryblock->ui32BlockAddress + i32Offset, ui32TempSize, pxMemoryblock->pui8Buffer);
          }
          else
@@ -350,7 +371,6 @@ int32_t i32MemoryCopy(Memory_t *pxMemory, uint32_t ui32SourceStartAddress, uint3
          pxMemoryblock = pxMemoryTempblock;
       }
    }
-
 
    return(i8Error);
 }
