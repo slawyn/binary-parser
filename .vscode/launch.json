@@ -5,17 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) [Test] Launch",
+            "name": "(gdb) [test-memory] Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/c/Build/Test/parser.exe",
+            "program": "${workspaceFolder}/c/Build/Test/test-memory.exe",
             "args": [],
             "stopAtEntry": true,
             "cwd": "${fileDirname}",
             "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",
-            "preLaunchTask": "build-test",
+            "preLaunchTask": "build-test-memory",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build-test",
+            "label": "build-test-memory",
             "type": "shell",
             "command": "make",
             "options": {
@@ -14,7 +14,8 @@
                 "-f",
                 "Windows.make",
                 "FLAVOR=Test",
-                "build"
+                "build",
+                "TEST_FILE=test-memory"
             ],
             "group": "build",
             "presentation": {

@@ -2,7 +2,7 @@
 # make        # compile all binary
 # make clean  # remove ALL binaries and objects
 # NB! Do not put spaces after commas
-.PHONY = all clean
+.PHONY = all clean build cover
 uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 
@@ -71,6 +71,8 @@ else ifeq ($(FLAVOR),Test)
 	FILES_SOURCES += $(call rwildcard, Tests/,$(TEST_FILE).c)
 
 	ARTIFACT := $(DIR_BUILD)$(TEST_FILE).exe
+
+
 endif
 
 # All Objects
@@ -87,8 +89,9 @@ clean:
 build: $(ARTIFACT)
 
 cover: 
-	./$(ARTIFACT) Inputs/sdn3pd.s19
-	$(TOOL_GCOV) $(addprefix $(DIR_BUILD),$(COVERS))
+	#export GCOV_PREFIX_STRIP=1 && export GCOV_PREFIX=$(DIR_BUILD) &&
+	./$(ARTIFACT)
+    $(TOOL_GCOV) -f $(addprefix $(DIR_BUILD),$(COVERS))
 
 #########################
 # 		Building		#
