@@ -28,7 +28,7 @@ typedef struct
 } Dump_t;
 
 
-extern void vMemoryInit(Memory_t *pxMemory);
+extern void vMemoryInitialize(Memory_t *pxMemory);
 extern void vMemoryPrint(Memory_t *pxMemory);
 
 extern Dump_t *pxMemoryGenerateDump(Memory_t *pxMemory, uint8_t ui8FreeByte);

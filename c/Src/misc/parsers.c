@@ -80,7 +80,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    // Check min length
    if ((sRec[HEX_LINESTART_IDX] == HEX_HEAD_LINESTART) && (xSize < (HEX_DATA_BYTE0_IDX + S19_CHECKSUM_SZ)))
    {
-      i32Log("Hex::Error: Not a Hex record %s", sRec);
+      i32Log("parsers::i32HexParse: Error: Not a Hex record %s", sRec);
       return(-1);
    }
    ui8ByteCount  = ui32ConvertHexStringToByte(&sRec[HEX_BYTE_COUNT_IDX]) * 2;
@@ -90,14 +90,14 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    // Check type
    if (ui8RecordType > HEX_RT_START_LIN_ADR)
    {
-      i32Log("Hex::Not a know record type %x", ui8RecordType);
+      i32Log("parsers::i32HexParse: Not a know record type %x", ui8RecordType);
       return(-1);
    }
 
    // Check Data length
    if ((xSize - HEX_DATA_BYTE0_IDX) < (ui8ByteCount + HEX_CHECKSUM_SZ))
    {
-      i32Log("Hex::Error: Data is shorter than byte count %d %s", (ui8ByteCount) >> 1, sRec);
+      i32Log("parsers::i32HexParse: Error: Data is shorter than byte count %d %s", (ui8ByteCount) >> 1, sRec);
       return(-1);
    }
 
@@ -112,7 +112,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    ui32Temp    = ui32ConvertHexStringToByte(&sRec[ui8ByteIndex]);
    if (ui8Checksum != (uint8_t)ui32Temp)
    {
-      i32Log("Hex::Error: Checksum calculated=%x expected=%x count=%d", ui8Checksum, ui32Temp, ui8ByteCount);
+      i32Log("parsers::i32HexParse: Error: Checksum calculated=%x expected=%x count=%d", ui8Checksum, ui32Temp, ui8ByteCount);
       return(-2);
    }
 
@@ -123,7 +123,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case HEX_RT_DATA:
       if (MAX_BUFFER_SIZE < (ui8ByteCount >> 1))
       {
-         i32Log("Hex::Error data too long at %x", ui32Temp);
+         i32Log("parsers::i32HexParse: Error data too long at %x", ui32Temp);
       }
       else
       {
@@ -132,18 +132,18 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
 
       if (i32MemoryAdd(pxMemory, ui16Address, (ui8ByteCount >> 1), rui8DataBuffer))
       {
-         i32Log("Hex::Problem creating block at %x", ui16Address);
+         i32Log("parsers::i32HexParse: Problem creating block at %x", ui16Address);
       }
       break;
 
    case HEX_RT_EOF:
-      i32Log("Hex::End Of File");
+      i32Log("parsers::i32HexParse: End Of File");
       break;
 
    case HEX_RT_EXT_SEG_ADR:
       if ((ui8ByteCount) <= (HEX_DATA_ADDR_2BYTE_SZ))
       {
-         i32Log("Hex::02:Error: Record size");
+         i32Log("parsers::i32HexParse: 02:Error: Record size");
          return(-2);
       }
       pxMemory->ui32BaseAddress = ui32ConvertHexStringToWord(&sRec[0]);
@@ -152,11 +152,11 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case HEX_RT_START_SEG_ADR:
       if ((ui8ByteCount) <= (HEX_DATA_ADDR_4BYTE_SZ))
       {
-         i32Log("Hex::03:Error: Record size");
+         i32Log("parsers::i32HexParse: 03:Error: Record size");
          return(-2);
       }
       // ui32BaseAddress = ui32ConvertHexStringToDword(&sRec[0]);
-      i32Log("Hex::03:Warning: Unimplemented!");
+      i32Log("parsers::i32HexParse: 03:Warning: Unimplemented!");
       return(-3);
 
       break;
@@ -164,7 +164,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case HEX_RT_EXT_LIN_ADR:
       if ((ui8ByteCount) <= (HEX_DATA_ADDR_2BYTE_SZ))
       {
-         i32Log("Hex::04:Error: Record size");
+         i32Log("parsers::i32HexParse: 04:Error: Record size");
          return(-2);
       }
       pxMemory->ui32BaseAddress = ui32ConvertHexStringToWord(&sRec[0]);
@@ -173,18 +173,18 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case HEX_RT_START_LIN_ADR:
       if ((ui8ByteCount) <= (HEX_DATA_ADDR_4BYTE_SZ))
       {
-         i32Log("Hex::05:Warning: Record size");
+         i32Log("parsers::i32HexParse: 05:Warning: Record size");
          return(-2);
       }
 
-      i32Log("Hex::05:Error: Unimplemented!");
+      i32Log("parsers::i32HexParse: 05:Error: Unimplemented!");
       return(-3);
 
       // ui32BaseAddress = ui32ConvertHexStringToDword(&sRec[0]);
       break;
 
    default:
-      i32Log("Hex::Unimplemented[%x] %s", ui8RecordType, sRec);
+      i32Log("parsers::i32HexParse: Unimplemented[%x] %s", ui8RecordType, sRec);
       break;
    }
 
@@ -214,7 +214,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    // Check if it is an s-record
    if ((xSize < S19_MIN_SZ) && (sRec[S19_S_IDX] == S19_HEADER_SRECORD))
    {
-      i32Log("S19::Error: Not a S19 record %s", sRec);
+      i32Log("parsers::i32S19Parse: Error: Not a S19 record %s", sRec);
       return(-1);
    }
    // Check if the type is known
@@ -222,7 +222,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    cRecordType = sRec[S19_TYPE_IDX];
    if (cRecordType > S19_HEADER_S9 || cRecordType < S19_HEADER_S0)
    {
-      i32Log("S19::Error: Not a known S19 type of record %c %s", cRecordType, sRec);
+      i32Log("parsers::i32S19Parse: Error: Not a known S19 type of record %c %s", cRecordType, sRec);
       return(-2);
    }
    else
@@ -237,7 +237,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    ui8ByteCount = ui8ByteCount * 2;
    if (xSize < ui8ByteCount)
    {
-      i32Log("S19::Error: Line is shorter than byte count %d %s", ui8ByteCount, sRec);
+      i32Log("parsers::i32S19Parse: Error: Line is shorter than byte count %d %s", ui8ByteCount, sRec);
       return(-1);
    }
 
@@ -252,7 +252,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    ui32Temp    = ui32ConvertHexStringToByte(&sRec[(ui8ByteIndex)]);
    if (ui8Checksum != (uint8_t)ui32Temp)
    {
-      i32Log("S19::Error: Checksum calculated=%x expected=%x bytecount=%d", ui8Checksum, ui32Temp, (ui8ByteCount >> 1));
+      i32Log("parsers::i32S19Parse: Error: Checksum calculated=%x expected=%x bytecount=%d", ui8Checksum, ui32Temp, (ui8ByteCount >> 1));
       return(-2);
    }
 
@@ -264,18 +264,18 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case S19_HEADER_S0:
       if ((ui8ByteCount) <= (S19_DATA_BYTE0_OFFSET))
       {
-         i32Log("S19::S0:Error: Record size");
+         i32Log("parsers::i32S19Parse: S0:Error: Record size");
          return(-2);
       }
 
-      i32Log("S19::Header:%s", &sRec[S19_DATA_BYTE0_OFFSET]);
+      i32Log("parsers::i32S19Parse: Header:%s", &sRec[S19_DATA_BYTE0_OFFSET]);
       break;
 
    // Data
    case S19_HEADER_S1:
       if (ui8ByteCount <= (S19_DATA_BYTE0_OFFSET))
       {
-         i32Log("S19::S1:Error: Record size");
+         i32Log("parsers::i32S19Parse: S1:Error: Record size");
          return(-2);
       }
       else
@@ -288,7 +288,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
          ui8ByteCount -= (S19_DATA_BYTE0_OFFSET);
          if (MAX_BUFFER_SIZE < (ui8ByteCount >> 1))
          {
-            i32Log("Hex::Error data too long at %x", ui32Temp);
+            i32Log("parsers::i32S19Parse: Error data too long at %x", ui32Temp);
          }
          else
          {
@@ -299,7 +299,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
          // Create block
          if (i32MemoryAdd(pxMemory, ui32Temp, (ui8ByteCount >> 1), rui8DataBuffer))
          {
-            i32Log("Hex::Error creating block at %x", ui32Temp);
+            i32Log("parsers::i32S19Parse: Error creating block at %x", ui32Temp);
          }
       }
       break;
@@ -308,7 +308,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case S19_HEADER_S2:
       if (ui8ByteCount <= (S19_DATA_BYTE1_OFFSET))
       {
-         i32Log("S19::S2:Error: Record size");
+         i32Log("parsers::i32S19Parse: S2:Error: Record size");
          return(-2);
       }
       else
@@ -322,7 +322,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
          ui8ByteCount -= S19_DATA_BYTE1_OFFSET;
          if (MAX_BUFFER_SIZE < (ui8ByteCount >> 1))
          {
-            i32Log("S19::Error data too long at %x", ui32Temp);
+            i32Log("parsers::i32S19Parse: Error data too long at %x", ui32Temp);
          }
          else
          {
@@ -331,7 +331,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
          // Create block
          if (i32MemoryAdd(pxMemory, ui32Temp, (ui8ByteCount >> 1), rui8DataBuffer))
          {
-            i32Log("S19::Problem creating block at %x", ui32Temp);
+            i32Log("parsers::i32S19Parse: Problem creating block at %x", ui32Temp);
          }
       }
       break;
@@ -340,7 +340,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case S19_HEADER_S3:
       if (ui8ByteCount <= (S19_DATA_BYTE2_OFFSET))
       {
-         i32Log("S19::S3:Error: Record size");
+         i32Log("parsers::i32S19Parse: S3:Error: Record size");
          return(-2);
       }
       else
@@ -355,7 +355,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
          ui8ByteCount -= S19_DATA_BYTE2_OFFSET;
          if (MAX_BUFFER_SIZE < (ui8ByteCount >> 1))
          {
-            i32Log("S19::Error data too long at %x", ui32Temp);
+            i32Log("parsers::i32S19Parse: Error data too long at %x", ui32Temp);
          }
          else
          {
@@ -364,7 +364,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
          // Create block
          if (i32MemoryAdd(pxMemory, ui32Temp, (ui8ByteCount >> 1), rui8DataBuffer))
          {
-            i32Log("S19::Problem creating block at %x", ui32Temp);
+            i32Log("parsers::i32S19Parse: Problem creating block at %x", ui32Temp);
          }
       }
       break;
@@ -377,13 +377,13 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case S19_HEADER_S5:
       if (ui8ByteCount <= (S19_ADDRESS_BYTE1_OFFSET))
       {
-         i32Log("S19::S5:Error: Record size");
+         i32Log("parsers::i32S19Parse: S5:Error: Record size");
       }
       else
       {
          ui32Temp  = ui32ConvertHexStringToByte(&sRec[S19_ADDRESS_BYTE0_OFFSET]) << 8;
          ui32Temp |= ui32ConvertHexStringToByte(&sRec[S19_ADDRESS_BYTE1_OFFSET]);
-         i32Log("S19::Count:%d", ui32Temp);
+         i32Log("parsers::i32S19Parse: Count:%d", ui32Temp);
       }
       break;
 
@@ -391,14 +391,14 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case S19_HEADER_S6:
       if (ui8ByteCount <= (S19_DATA_BYTE0_OFFSET))
       {
-         i32Log("S19::S6:Error: Record size");
+         i32Log("parsers::i32S19Parse: S6:Error: Record size");
       }
       else
       {
          ui32Temp  = ui32ConvertHexStringToByte(&sRec[S19_ADDRESS_BYTE0_OFFSET]) << 16;
          ui32Temp |= ui32ConvertHexStringToByte(&sRec[S19_ADDRESS_BYTE1_OFFSET]) << 8;
          ui32Temp |= ui32ConvertHexStringToByte(&sRec[S19_DATA_BYTE0_OFFSET]);
-         i32Log("S19::S6:Count:%d", ui32Temp);
+         i32Log("parsers::i32S19Parse: S6:Count:%d", ui32Temp);
       }
       break;
 
@@ -406,7 +406,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case S19_HEADER_S7:
       if (ui8ByteCount <= (S19_DATA_BYTE1_OFFSET))
       {
-         i32Log("S19::S7:Error: Record size");
+         i32Log("parsers::i32S19Parse: S7:Error: Record size");
       }
       else
       {
@@ -421,7 +421,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case S19_HEADER_S8:
       if (ui8ByteCount <= (S19_DATA_BYTE0_OFFSET))
       {
-         i32Log("S19::S8:Error: Record size");
+         i32Log("parsers::i32S19Parse: S8:Error: Record size");
       }
       else
       {
@@ -435,7 +435,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    case S19_HEADER_S9:
       if (ui8ByteCount < (S19_DATA_BYTE0_OFFSET))
       {
-         i32Log("S19::S9:Error: Record size");
+         i32Log("parsers::i32S19Parse: S9:Error: Record size");
       }
       else
       {

@@ -77,7 +77,7 @@ int32_t i32FileLoad(char *sFileFullPath, Memory_t *pxMemory)
    pxFile = fopen(sFileFullPath, "r");
    if (pxFile == NULL)
    {
-      i32Log("Error: Could not open file %s\n", sFileFullPath);
+      i32Log("file::i32FileLoad: Error: Could not open file %s\n", sFileFullPath);
       return(-1);
    }
    else
@@ -96,7 +96,7 @@ int32_t i32FileLoad(char *sFileFullPath, Memory_t *pxMemory)
          else
          {
             eFiletype = UNKNOWN;
-            i32Log("Warning: Unknown Format");
+            i32Log("file::i32FileLoad: Warning: Unknown Format");
          }
 
          int32_t  i32LineCount = 0;
@@ -135,12 +135,12 @@ int32_t i32FileLoad(char *sFileFullPath, Memory_t *pxMemory)
             }
             else if (xLineSize == 0)
             {
-               i32Log("End of file");
+               i32Log("file::i32FileLoad: End of file");
                break;
             }
             else
             {
-               i32Log("Error: Could not load file");
+               i32Log("file::i32FileLoad: Error: Could not load file");
                break;
             }
          } while (1);
@@ -148,7 +148,7 @@ int32_t i32FileLoad(char *sFileFullPath, Memory_t *pxMemory)
       }
       else
       {
-         i32Log("Error: Filename is too short %s", sFileFullPath);
+         i32Log("file::i32FileLoad: Error: Filename is too short %s", sFileFullPath);
          return(-2);
       }
    }

@@ -45,7 +45,7 @@ uint32_t ui32ConvertHexNibbleToUint(char cHex)
    }
    else
    {
-      LogNormal("Error: Unknown Hex %c", cHex);
+      LogNormal("helpers::ui32ConvertHexNibbleToUint: Error: Unknown Hex %c", cHex);
       ui32Result = 0;
    }
    return(ui32Result);

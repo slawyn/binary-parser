@@ -17,7 +17,7 @@ static Memoryblock_t * pxMemoryCreateBlock(Memory_t *pxMemory, Memoryblock_t *px
 /***************************************************************
  * @param pxMemory Pointer to Memory
  **************************************************************/
-void vMemoryInit(Memory_t *pxMemory)
+void vMemoryInitialize(Memory_t *pxMemory)
 {
    pxMemory->ui32BlockCount    = 0;
    pxMemory->ui32BaseAddress   = 0;

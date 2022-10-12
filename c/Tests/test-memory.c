@@ -92,16 +92,16 @@ uint8_t rui8DumpAddTest9[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0
                                0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                                0xff, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
 
-Dump_t rxDumpAddResults[] = { { 0x100, sizeof(rui8DumpAddTest0), rui8DumpAddTest0 },    //0
-                              { 0x100, sizeof(rui8DumpAddTest1), rui8DumpAddTest1 },    //1
-                              { 0x100, sizeof(rui8DumpAddTest2), rui8DumpAddTest2 },    //2
-                              { 0x100, sizeof(rui8DumpAddTest3), rui8DumpAddTest3 },    //3
-                              { 0x100, sizeof(rui8DumpAddTest4), rui8DumpAddTest4 },    //4
-                              {  0xa0, sizeof(rui8DumpAddTest5), rui8DumpAddTest5 },    //5
-                              {  0xa0, sizeof(rui8DumpAddTest6), rui8DumpAddTest6 },    //6
-                              {  0xa0, sizeof(rui8DumpAddTest7), rui8DumpAddTest7 },    //7
-                              {  0xa0, sizeof(rui8DumpAddTest8), rui8DumpAddTest8 },    //8
-                              {  0xa0, sizeof(rui8DumpAddTest9), rui8DumpAddTest9 }, }; //9
+Dump_t rxDumpAddExpected[] = { { 0x100, sizeof(rui8DumpAddTest0), rui8DumpAddTest0 },    //0
+                               { 0x100, sizeof(rui8DumpAddTest1), rui8DumpAddTest1 },    //1
+                               { 0x100, sizeof(rui8DumpAddTest2), rui8DumpAddTest2 },    //2
+                               { 0x100, sizeof(rui8DumpAddTest3), rui8DumpAddTest3 },    //3
+                               { 0x100, sizeof(rui8DumpAddTest4), rui8DumpAddTest4 },    //4
+                               {  0xa0, sizeof(rui8DumpAddTest5), rui8DumpAddTest5 },    //5
+                               {  0xa0, sizeof(rui8DumpAddTest6), rui8DumpAddTest6 },    //6
+                               {  0xa0, sizeof(rui8DumpAddTest7), rui8DumpAddTest7 },    //7
+                               {  0xa0, sizeof(rui8DumpAddTest8), rui8DumpAddTest8 },    //8
+                               {  0xa0, sizeof(rui8DumpAddTest9), rui8DumpAddTest9 }, }; //9
 
 uint8_t rui8TestArray[]                  = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
 uint8_t rui8TestArrayZeroes[]            = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
@@ -127,8 +127,8 @@ uint8_t rui8DumpCopyTest0[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 
                                 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
                                 0xff, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
 
-TestCopyMemory_t rxMemoryCopyTests[] = { { 0x100, 0x110, 15 } };
-Dump_t           rxDumpCopyResults[] = { { 0xa0, sizeof(rui8DumpCopyTest0), rui8DumpCopyTest0 } }; //0
+TestCopyMemory_t rxMemoryCopyTests[]  = { { 0x100, 0x110, 15 } };
+Dump_t           rxDumpCopyExpected[] = { { 0xa0, sizeof(rui8DumpCopyTest0), rui8DumpCopyTest0 } }; //0
 
 /*****************************************************************************
  * @param count Test count
@@ -139,7 +139,7 @@ void vTestMemory(Memory_t *pxMemory)
    uint8_t ui8Error = FALSE;
 
    LogTest("main::vTestMemory: Testing Commenced..\n");
-   vMemoryInit(pxMemory);
+   vMemoryInitialize(pxMemory);
 
    // Add test
    //------------------------------------------------------------------------------------------------------
@@ -150,7 +150,7 @@ void vTestMemory(Memory_t *pxMemory)
 
       // Generate Dump
       Dump_t *pxDump = pxMemoryGenerateDump(pxMemory, FB);
-      if (i32MemoryCompareDump(&rxDumpAddResults[ui32LoopIndex], pxDump))
+      if (i32MemoryCompareDump(&rxDumpAddExpected[ui32LoopIndex], pxDump))
       {
          ui8Error = TRUE;
       }
@@ -177,7 +177,7 @@ void vTestMemory(Memory_t *pxMemory)
 
       // Generate Dump
       Dump_t *pxDump = pxMemoryGenerateDump(pxMemory, FB);
-      if (i32MemoryCompareDump(&rxDumpCopyResults[ui32LoopIndex], pxDump))
+      if (i32MemoryCompareDump(&rxDumpCopyExpected[ui32LoopIndex], pxDump))
       {
          ui8Error = TRUE;
       }

@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 
    if (argc > 1)
    {
-      vMemoryInit(&xMemory);
+      vMemoryInitialize(&xMemory);
       i32Status = i32FileLoad(argv[1], &xMemory);
       vMemoryPrint(&xMemory);
    }

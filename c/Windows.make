@@ -91,10 +91,10 @@ build: $(ARTIFACT)
 cover: 
 	#export GCOV_PREFIX_STRIP=1 && export GCOV_PREFIX=$(DIR_BUILD) &&
 	./$(ARTIFACT)
-    $(TOOL_GCOV) -f $(addprefix $(DIR_BUILD),$(COVERS))
+	$(TOOL_GCOV) $(addprefix $(DIR_BUILD),$(COVERS))
 
 #########################
-# 		Building		#
+# 	Building Rules	    #
 #########################
 
 # Create Build Folders
