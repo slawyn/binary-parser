@@ -65,6 +65,13 @@ uint8_t rui8DataBuffer[MAX_BUFFER_SIZE];
 * @param sRec .hex Records
 * @param xSize Length of line
 * @param pxMemory Pointer to Memory
+* @return         -1: Error unknown format
+*                 -2: Error unknown record
+*                 -3: Error data length
+*                 -4: Error checksum
+*                 -5: Error record length
+*                 -6: Error unimplemented
+*                  0: OK
 ***************************************************************/
 int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
 {
@@ -91,14 +98,14 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    if (ui8RecordType > HEX_RT_START_LIN_ADR)
    {
       i32Log("parsers::i32HexParse: Not a know record type %x", ui8RecordType);
-      return(-1);
+      return(-2);
    }
 
    // Check Data length
    if ((xSize - HEX_DATA_BYTE0_IDX) < (ui8ByteCount + HEX_CHECKSUM_SZ))
    {
       i32Log("parsers::i32HexParse: Error: Data is shorter than byte count %d %s", (ui8ByteCount) >> 1, sRec);
-      return(-1);
+      return(-3);
    }
 
    // Validate checksum
@@ -113,7 +120,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    if (ui8Checksum != (uint8_t)ui32Temp)
    {
       i32Log("parsers::i32HexParse: Error: Checksum calculated=%x expected=%x count=%d", ui8Checksum, ui32Temp, ui8ByteCount);
-      return(-2);
+      return(-4);
    }
 
    // Parse Hex-Record
@@ -144,7 +151,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
       if ((ui8ByteCount) <= (HEX_DATA_ADDR_2BYTE_SZ))
       {
          i32Log("parsers::i32HexParse: 02:Error: Record size");
-         return(-2);
+         return(-5);
       }
       pxMemory->ui32BaseAddress = ui32ConvertHexStringToWord(&sRec[0]);
       break;
@@ -153,11 +160,11 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
       if ((ui8ByteCount) <= (HEX_DATA_ADDR_4BYTE_SZ))
       {
          i32Log("parsers::i32HexParse: 03:Error: Record size");
-         return(-2);
+         return(-5);
       }
       // ui32BaseAddress = ui32ConvertHexStringToDword(&sRec[0]);
       i32Log("parsers::i32HexParse: 03:Warning: Unimplemented!");
-      return(-3);
+      return(-6);
 
       break;
 
@@ -165,7 +172,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
       if ((ui8ByteCount) <= (HEX_DATA_ADDR_2BYTE_SZ))
       {
          i32Log("parsers::i32HexParse: 04:Error: Record size");
-         return(-2);
+         return(-5);
       }
       pxMemory->ui32BaseAddress = ui32ConvertHexStringToWord(&sRec[0]);
       break;
@@ -174,11 +181,11 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
       if ((ui8ByteCount) <= (HEX_DATA_ADDR_4BYTE_SZ))
       {
          i32Log("parsers::i32HexParse: 05:Warning: Record size");
-         return(-2);
+         return(-5);
       }
 
       i32Log("parsers::i32HexParse: 05:Error: Unimplemented!");
-      return(-3);
+      return(-6);
 
       // ui32BaseAddress = ui32ConvertHexStringToDword(&sRec[0]);
       break;
@@ -196,6 +203,12 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
 * @param sRec .s19 Records
 * @param xSize Length of line
 * @param pxMemory Pointer to Memory
+* @return         -1: Error unknown format
+*                 -2: Error unknown record
+*                 -3: Error data length
+*                 -4: Error checksum
+*                 -5: Error record length
+*                  0: OK
 ***************************************************************/
 int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
 {
@@ -238,7 +251,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    if (xSize < ui8ByteCount)
    {
       i32Log("parsers::i32S19Parse: Error: Line is shorter than byte count %d %s", ui8ByteCount, sRec);
-      return(-1);
+      return(-3);
    }
 
    // Check checksum
@@ -253,7 +266,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    if (ui8Checksum != (uint8_t)ui32Temp)
    {
       i32Log("parsers::i32S19Parse: Error: Checksum calculated=%x expected=%x bytecount=%d", ui8Checksum, ui32Temp, (ui8ByteCount >> 1));
-      return(-2);
+      return(-4);
    }
 
    // Trim and Parse S-Record
@@ -265,7 +278,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
       if ((ui8ByteCount) <= (S19_DATA_BYTE0_OFFSET))
       {
          i32Log("parsers::i32S19Parse: S0:Error: Record size");
-         return(-2);
+         return(-5);
       }
 
       i32Log("parsers::i32S19Parse: Header:%s", &sRec[S19_DATA_BYTE0_OFFSET]);
@@ -276,7 +289,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
       if (ui8ByteCount <= (S19_DATA_BYTE0_OFFSET))
       {
          i32Log("parsers::i32S19Parse: S1:Error: Record size");
-         return(-2);
+         return(-5);
       }
       else
       {
@@ -309,7 +322,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
       if (ui8ByteCount <= (S19_DATA_BYTE1_OFFSET))
       {
          i32Log("parsers::i32S19Parse: S2:Error: Record size");
-         return(-2);
+         return(-5);
       }
       else
       {
@@ -341,7 +354,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
       if (ui8ByteCount <= (S19_DATA_BYTE2_OFFSET))
       {
          i32Log("parsers::i32S19Parse: S3:Error: Record size");
-         return(-2);
+         return(-5);
       }
       else
       {
@@ -445,5 +458,5 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
       break;
    }
 
-   return(-1);
+   return(0);
 }

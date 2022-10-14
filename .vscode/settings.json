@@ -2,6 +2,7 @@
     "files.associations": {
         "types.h": "c",
         "helpers.h": "c",
-        "config.h": "c"
+        "config.h": "c",
+        "string.h": "c"
     }
 }

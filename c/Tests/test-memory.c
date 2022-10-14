@@ -6,6 +6,7 @@
 #include "misc/memory.h"
 #include "misc/file.h"
 #include "misc/helpers.h"
+#include "misc/dump.h"
 
 
 typedef struct
@@ -150,7 +151,7 @@ void vTestMemory(Memory_t *pxMemory)
 
       // Generate Dump
       Dump_t *pxDump = pxMemoryGenerateDump(pxMemory, FB);
-      if (i32MemoryCompareDump(&rxDumpAddExpected[ui32LoopIndex], pxDump))
+      if (i32DumpCompare(&rxDumpAddExpected[ui32LoopIndex], pxDump))
       {
          ui8Error = TRUE;
       }
@@ -177,7 +178,7 @@ void vTestMemory(Memory_t *pxMemory)
 
       // Generate Dump
       Dump_t *pxDump = pxMemoryGenerateDump(pxMemory, FB);
-      if (i32MemoryCompareDump(&rxDumpCopyExpected[ui32LoopIndex], pxDump))
+      if (i32DumpCompare(&rxDumpCopyExpected[ui32LoopIndex], pxDump))
       {
          ui8Error = TRUE;
       }
