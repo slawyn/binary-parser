@@ -1,8 +1,8 @@
 # Usage:
-# make        # compile all binary
+# make all     # compile all binary
 # make clean  # remove ALL binaries and objects
 # NB! Do not put spaces after commas
-.PHONY = all clean build cover
+.PHONY = clean build test
 uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 
@@ -26,10 +26,10 @@ DIR_SOURCE :=Src/
 DIR_LIBS := Libs/
 DIR_INCLUDES := Inc/
 DIR_BUILD := Build/$(FLAVOR)/
+DIR_DEPS := Deps/
+DIR_TESTS :=Tests/
 
 FILES_SOURCES = $(call rwildcard, $(DIR_SOURCE),*.c)
-DEPS=
-
 
 # Compilation
 CONF_BUILD_DATE =$$(date +'%Y%m%d')
@@ -54,6 +54,7 @@ else ifeq ($(FLAVOR),Run)
 	LDFLAGS += -L"$(DIR_LIBS)"
 	LDFLAGS += -lm
 	ARTIFACT := $(DIR_BUILD)$(NAME).exe
+
 else ifeq ($(FLAVOR),Test)
 	CFLAGS += -g
 	CFLAGS += -DLOG_TEST
@@ -65,13 +66,14 @@ else ifeq ($(FLAVOR),Test)
 	LDFLAGS += -lm
 	LDFLAGS += -lgcov --coverage
 
+	# Files to run cover for
 	COVERS = $(FILES_SOURCES:%.c=%.gcda)
 
+	# Select Test Target
 	FILES_SOURCES := $(filter-out $(wildcard */$(NAME_ENTRY)), $(FILES_SOURCES))
-	FILES_SOURCES += $(call rwildcard, Tests/,$(TEST_FILE).c)
+	FILES_SOURCES += $(call rwildcard, $(DIR_TESTS),$(TEST_TARGET).c)
 
-	ARTIFACT := $(DIR_BUILD)$(TEST_FILE).exe
-
+	ARTIFACT := $(DIR_BUILD)$(TEST_TARGET).exe
 
 endif
 
@@ -88,7 +90,9 @@ clean:
 
 build: $(ARTIFACT)
 
-cover: 
+all: clean build
+
+test: 
 	#export GCOV_PREFIX_STRIP=1 && export GCOV_PREFIX=$(DIR_BUILD) &&
 	./$(ARTIFACT)
 	$(TOOL_GCOV) $(addprefix $(DIR_BUILD),$(COVERS))
