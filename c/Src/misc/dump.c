@@ -7,6 +7,57 @@
 #include "misc/memory.h"
 #include "misc/dump.h"
 
+/***************************************************************
+* @param ui32BaseAddress Base of the dump
+* @param ui32Size Size of Data
+***************************************************************/
+Dump_t *pxDumpCreate(uint32_t ui32BaseAddress, uint32_t ui32Size)
+{
+   Dump_t *pxDump = NULL;
+
+   // Create Dump with Size
+   if (ui32Size > 0)
+   {
+      pxDump = malloc(sizeof(Dump_t));
+      if (pxDump != NULL)
+      {
+         pxDump->pui8Data        = malloc(ui32Size);
+         pxDump->ui32BaseAddress = ui32BaseAddress;
+         pxDump->ui32Size        = ui32Size;
+
+         // No Dump without buffer
+         if (pxDump->pui8Data == NULL)
+         {
+            free(pxDump);
+            pxDump = NULL;
+         }
+      }
+   }
+
+   return(pxDump);
+}
+
+/***************************************************************
+* @param ui32BaseAddress Base of the dump
+* @param ui32Size Size of Data
+***************************************************************/
+int32_t i32DumpDestroy(Dump_t *pxDump)
+{
+   int32_t i32Status = (-1);
+   if (pxDump != NULL)
+   {
+      // Double check
+      if ((pxDump->ui32Size > 0) && (pxDump->pui8Data != NULL))
+      {
+         i32Status = 0;
+      }
+
+      // At last Release Memory
+      free(pxDump);
+   }
+
+   return(i32Status);
+}
 
 /***************************************************************
  * @param pxMemory Pointer to Memory
@@ -55,7 +106,7 @@ int32_t i32DumpCompare(Dump_t *pxOriginalDump, Dump_t *pxSecondaryDump)
 * @param ui8FreeByte Fill Byte between the blocks
 * @return Pointer to Dump struct
 ***************************************************************/
-Dump_t * pxMemoryGenerateDump(Memory_t *pxMemory, uint8_t ui8FreeByte)
+Dump_t * pxDumpGenerateFromMemory(Memory_t *pxMemory, uint8_t ui8FreeByte)
 {
    Memoryblock_t *pxMemoryblock;
    uint32_t       ui32DumpSize = ui32MemoryGetTotalSize(pxMemory);

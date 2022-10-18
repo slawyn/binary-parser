@@ -31,9 +31,13 @@ DIR_TESTS :=Tests/
 
 FILES_SOURCES = $(call rwildcard, $(DIR_SOURCE),*.c)
 
-# Compilation
+# Shared Compiler Flags
 CONF_BUILD_DATE =$$(date +'%Y%m%d')
-CFLAGS=-DBUILD_DATE=$(CONF_BUILD_DATE) 
+CFLAGS = -DBUILD_DATE=$(CONF_BUILD_DATE) 
+CFLAGS += -I$(DIR_INCLUDES)
+CFLAGS += -Wall
+
+# Shared Linker Flags
 LDFLAGS =
 
 
@@ -41,24 +45,21 @@ LDFLAGS =
 # 		FLAVORS			#
 #########################
 ifeq ($(FLAVOR),Debug)
-	CFLAGS += -I$(DIR_INCLUDES)
+	ARTIFACT := $(DIR_BUILD)$(NAME).exe
 	CFLAGS += -g
-	CFLAGS += -Wall
 	LDFLAGS += -L"$(DIR_LIBS)"
 	LDFLAGS += -lm
-	ARTIFACT := $(DIR_BUILD)$(NAME)_debug.exe
 
 else ifeq ($(FLAVOR),Run)
-	CFLAGS += -I$(DIR_INCLUDES)
+	ARTIFACT := $(DIR_BUILD)$(NAME).exe
 	CFLAGS += -O0
 	LDFLAGS += -L"$(DIR_LIBS)"
 	LDFLAGS += -lm
-	ARTIFACT := $(DIR_BUILD)$(NAME).exe
 
 else ifeq ($(FLAVOR),Test)
+	ARTIFACT := $(DIR_BUILD)$(TEST_TARGET).exe
 	CFLAGS += -g
 	CFLAGS += -DLOG_TEST
-	CFLAGS += -I$(DIR_INCLUDES)
 	CFLAGS += -O0
 	CFLAGS += -ftest-coverage
 	CFLAGS += -fprofile-arcs
@@ -69,11 +70,14 @@ else ifeq ($(FLAVOR),Test)
 	# Files to run cover for
 	COVERS = $(FILES_SOURCES:%.c=%.gcda)
 
-	# Select Test Target
+	# Set Target
+	FILES_UNITY := $(DIR_DEPS)/Unity-master/src
 	FILES_SOURCES := $(filter-out $(wildcard */$(NAME_ENTRY)), $(FILES_SOURCES))
 	FILES_SOURCES += $(call rwildcard, $(DIR_TESTS),$(TEST_TARGET).c)
 
-	ARTIFACT := $(DIR_BUILD)$(TEST_TARGET).exe
+	# Add Dependencies
+	FILES_SOURCES += $(call rwildcard, $(FILES_UNITY),*.c)
+	CFLAGS += -I$(FILES_UNITY)
 
 endif
 
@@ -103,17 +107,17 @@ test:
 
 # Create Build Folders
 $(DIRS_OBJECTS): $(LIBS)
-	@echo "-- Creating Directories --"
+	@echo "[Creating Directories]"
 	${TOOL_MKDIR} $(DIRS_OBJECTS)
 
 # Link Objects to Artefact
 $(ARTIFACT): $(DIRS_OBJECTS) $(FILES_OBJECTS)
-	@echo "-- Creating Exe $(ARTIFACT) --"
+	@echo "[$(ARTIFACT)]"
 	${TOOL_CC} ${LDFLAGS} -o $@ $(addprefix $(DIR_BUILD),$(FILES_OBJECTS))
 
 # Generate Objects for Linking
 %.o: %.c
-	@echo "-- Creating Object $@ --"
+	@echo "[$@]"
 	$(TOOL_CC) $(CFLAGS) -c $< -o $(DIR_BUILD)$@
 
 

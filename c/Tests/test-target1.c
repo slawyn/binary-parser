@@ -1,3 +1,22 @@
+/*=======Test Runner Used To Run Each Test Below=====*/
+#define RUN_TEST(TestFunc, TestLineNum)          \
+   {                                             \
+      Unity.CurrentTestName       = #TestFunc;   \
+      Unity.CurrentTestLineNumber = TestLineNum; \
+      Unity.NumberOfTests++;                     \
+      if (TEST_PROTECT())                        \
+      {                                          \
+         setUp();                                \
+         TestFunc();                             \
+      }                                          \
+      if (TEST_PROTECT())                        \
+      {                                          \
+         tearDown();                             \
+      }                                          \
+      UnityConcludeTest();                       \
+   }
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -7,6 +26,11 @@
 #include "misc/file.h"
 #include "misc/helpers.h"
 #include "misc/dump.h"
+
+/* Unity */
+#include "unity_config.h"
+#include "unity.h"
+
 
 
 typedef struct
@@ -131,26 +155,45 @@ uint8_t rui8DumpCopyTest0[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 
 TestCopyMemory_t rxMemoryCopyTests[]  = { { 0x100, 0x110, 15 } };
 Dump_t           rxDumpCopyExpected[] = { { 0xa0, sizeof(rui8DumpCopyTest0), rui8DumpCopyTest0 } }; //0
 
+
+Dump_t *rpxDumpTest[2];
+
+/*****************************************************************************
+ * @brief Unity Setup and Teardowns
+ ******************************************************************************/
+void setUp(void)
+{
+}
+
+void tearDown(void)
+{
+}
+
 /*****************************************************************************
  * @param count Test count
  * @param
  ******************************************************************************/
-void vTestMemory(Memory_t *pxMemory)
+void test_DumpIsEmpty()
 {
-   uint8_t ui8Error = FALSE;
+   Dump_t *testDump = pxDumpCreate(0, 0);
+}
 
-   LogTest("main::vTestMemory: Testing Commenced..\n");
-   vMemoryInitialize(pxMemory);
+void othertest()
+{
+   Memory_t xMemory;
+   uint8_t  ui8Error = FALSE;
 
-   // Add test
-   //------------------------------------------------------------------------------------------------------
+   vMemoryInitialize(&xMemory);
+
+// Add test
+//------------------------------------------------------------------------------------------------------
    for (uint32_t ui32LoopIndex = 0; ui32LoopIndex < SIZEOF(rxMemoryAddTests) && !ui8Error; ++ui32LoopIndex)
    {
       LogTest("main::vTestMemory: Test-Add[%d]: Writing %d bytes at %x", ui32LoopIndex, rxMemoryAddTests[ui32LoopIndex].ui32Size, rxMemoryAddTests[ui32LoopIndex].ui32DestinationAddress);
-      i32MemoryAdd(pxMemory, rxMemoryAddTests[ui32LoopIndex].ui32DestinationAddress, rxMemoryAddTests[ui32LoopIndex].ui32Size, rxMemoryAddTests[ui32LoopIndex].pui8Data);
+      i32MemoryAdd(&xMemory, rxMemoryAddTests[ui32LoopIndex].ui32DestinationAddress, rxMemoryAddTests[ui32LoopIndex].ui32Size, rxMemoryAddTests[ui32LoopIndex].pui8Data);
 
       // Generate Dump
-      Dump_t *pxDump = pxMemoryGenerateDump(pxMemory, FB);
+      Dump_t *pxDump = pxDumpGenerateFromMemory(&xMemory, FB);
       if (i32DumpCompare(&rxDumpAddExpected[ui32LoopIndex], pxDump))
       {
          ui8Error = TRUE;
@@ -166,18 +209,18 @@ void vTestMemory(Memory_t *pxMemory)
          LogTest("main::vTestMemory: Test-Add[%d] OK!", ui32LoopIndex);
       }
 
-      vMemoryPrint(pxMemory);
+      vMemoryPrint(&xMemory);
    }
 
-   // Copy test
-   //------------------------------------------------------------------------------------------------------
+// Copy test
+//------------------------------------------------------------------------------------------------------
    for (uint32_t ui32LoopIndex = 0; ui32LoopIndex < SIZEOF(rxMemoryCopyTests) && !ui8Error; ++ui32LoopIndex)
    {
       LogTest("main::vTestMemory: Test-Copy[%d]: Copying %d bytes from %x to %x", ui32LoopIndex, rxMemoryCopyTests[ui32LoopIndex].ui32Size, rxMemoryCopyTests[ui32LoopIndex].ui32SourceAddress, rxMemoryCopyTests[ui32LoopIndex].ui32DestinationAddress);
-      i32MemoryCopyRegion(pxMemory, rxMemoryCopyTests[ui32LoopIndex].ui32SourceAddress, rxMemoryCopyTests[ui32LoopIndex].ui32DestinationAddress, rxMemoryCopyTests[ui32LoopIndex].ui32Size);
+      i32MemoryCopyRegion(&xMemory, rxMemoryCopyTests[ui32LoopIndex].ui32SourceAddress, rxMemoryCopyTests[ui32LoopIndex].ui32DestinationAddress, rxMemoryCopyTests[ui32LoopIndex].ui32Size);
 
       // Generate Dump
-      Dump_t *pxDump = pxMemoryGenerateDump(pxMemory, FB);
+      Dump_t *pxDump = pxDumpGenerateFromMemory(&xMemory, FB);
       if (i32DumpCompare(&rxDumpCopyExpected[ui32LoopIndex], pxDump))
       {
          ui8Error = TRUE;
@@ -193,7 +236,7 @@ void vTestMemory(Memory_t *pxMemory)
          LogTest("main::vTestMemory: Test-Copy[%d] OK!", ui32LoopIndex);
       }
 
-      vMemoryPrint(pxMemory);
+      vMemoryPrint(&xMemory);
    }
 
    LogTest("main::vTestMemory: Testing Finished!\n");
@@ -205,10 +248,8 @@ void vTestMemory(Memory_t *pxMemory)
  ******************************************************************************/
 int main(int argc, char *argv[])
 {
-   int32_t  i32Status = 0;
-   Memory_t xMemory;
+   UnityBegin("test-target1.c");
+   RUN_TEST(test_DumpIsEmpty, 0);
 
-   // Run Test
-   vTestMemory(&xMemory);
-   return(i32Status);
+   return(UnityEnd());
 }
