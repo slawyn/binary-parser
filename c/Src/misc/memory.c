@@ -28,63 +28,6 @@ void vMemoryInitialize(Memory_t *pxMemory)
 
 /***************************************************************
 * @param pxMemory Pointer to Memory
-* @param ui32Address Destination Address
-* *************************************************************/
-static Memoryblock_t *pxMemoryFindBlock(Memory_t *pxMemory, uint32_t ui32Address)
-{
-   uint8_t        ui8Found              = FALSE;
-   Memoryblock_t *pxMemoryblockForward  = pxMemory->pxMemoryblockHead;
-   Memoryblock_t *pxMemoryblockBackward = pxMemory->pxMemoryblockTail;
-   Memoryblock_t *pxMemoryblockResult   = NULL;
-
-   while (!ui8Found)
-   {
-      // Looking for block forward
-      if (pxMemoryblockForward != NULL)
-      {
-         if ((ui32Address >= pxMemoryblockForward->ui32BlockAddress) &&
-             ((ui32Address <= (pxMemoryblockForward->ui32BlockAddress + pxMemoryblockForward->ui32BlockSize))))
-         {
-            pxMemoryblockResult = pxMemoryblockForward;
-            ui8Found            = TRUE;
-         }
-         else
-         {
-            pxMemoryblockForward = pxMemoryblockForward->pxMemoryblockNext;
-         }
-      }
-      else
-      {
-         pxMemoryblockResult = pxMemoryblockForward;
-         ui8Found            = TRUE;
-      }
-
-      // Looking for block backward
-      if (pxMemoryblockBackward != NULL)
-      {
-         if ((ui32Address >= pxMemoryblockBackward->ui32BlockAddress) &&
-             ((ui32Address <= (pxMemoryblockBackward->ui32BlockAddress + pxMemoryblockBackward->ui32BlockSize))))
-         {
-            pxMemoryblockResult = pxMemoryblockBackward;
-            ui8Found            = TRUE;
-         }
-         else
-         {
-            pxMemoryblockBackward = pxMemoryblockBackward->pxMemoryblockPrevious;
-         }
-      }
-      else
-      {
-         pxMemoryblockResult = pxMemoryblockBackward;
-         ui8Found            = TRUE;
-      }
-   }
-
-   return(pxMemoryblockResult);
-}
-
-/***************************************************************
-* @param pxMemory Pointer to Memory
 * @return Size of Memory
 ***************************************************************/
 uint32_t ui32MemoryGetTotalSize(Memory_t *pxMemory)
@@ -439,7 +382,6 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
 {
    Memoryblock_t *pxMemoryblock;
    Memoryblock_t *pxMemoryblockTraversee;
-   uint8_t        ui8Found             = 0;
    uint32_t       ui32FullBlockAddress = (ui32BlockAddress + pxMemory->ui32BaseAddress);
    int32_t        i32MemoryOverlap     = 0;
    int32_t        i32FreeSpace         = 0;

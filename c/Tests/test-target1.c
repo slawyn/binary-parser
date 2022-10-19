@@ -170,12 +170,36 @@ void tearDown(void)
 }
 
 /*****************************************************************************
- * @param count Test count
- * @param
+ * @brief Tests for NULL creation
  ******************************************************************************/
-void test_DumpIsEmpty()
+void test_DumpIsNULL()
 {
    Dump_t *testDump = pxDumpCreate(0, 0);
+   TEST_ASSERT(testDump == NULL);
+}
+
+/*****************************************************************************
+ * @brief Tests for failed deallocation
+ ******************************************************************************/
+void test_DumpNotDeallocated()
+{
+   int32_t status = i32DumpDestroy(NULL);
+   TEST_ASSERT(status != 0);
+}
+
+/*****************************************************************************
+ * @brief Tests for successful allocation
+ ******************************************************************************/
+void test_DumpCreatedAndDestroyed()
+{
+   #define TSIZE    1
+   #define TADDR    100
+   Dump_t *testDump = pxDumpCreate(TADDR, TSIZE);
+   TEST_ASSERT(testDump != NULL);
+   TEST_ASSERT(testDump->ui32Size == TSIZE);
+   TEST_ASSERT(testDump->ui32BaseAddress == TADDR);
+   int32_t status = i32DumpDestroy(testDump);
+   TEST_ASSERT(status == 0);
 }
 
 void othertest()
@@ -249,7 +273,9 @@ void othertest()
 int main(int argc, char *argv[])
 {
    UnityBegin("test-target1.c");
-   RUN_TEST(test_DumpIsEmpty, 0);
+   RUN_TEST(test_DumpIsNULL, 0);
+   RUN_TEST(test_DumpNotDeallocated, 0);
+   RUN_TEST(test_DumpCreatedAndDestroyed, 0);
 
    return(UnityEnd());
 }

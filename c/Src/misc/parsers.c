@@ -77,7 +77,6 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
 {
    uint32_t ui32Temp;
    uint16_t ui16Address;
-   uint8_t *pui8Buffer = NULL;
 
    uint8_t ui8ByteCount;
    uint8_t ui8RecordType;

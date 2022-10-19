@@ -12,7 +12,7 @@
 #define BUILD_VERSION    "0.1"
 #define BUILD_AUTHOR     "Alexander Malyugin"
 #ifndef BUILD_DATE
-#define BUILD_DATE       19910519
+   #define BUILD_DATE    19910519
 #endif
 
 /*****************************************************************************
