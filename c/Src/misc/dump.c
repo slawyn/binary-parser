@@ -8,6 +8,22 @@
 #include "misc/dump.h"
 
 /***************************************************************
+ * @param pxOriginalDump Pointer to Original Dump Comparee
+ * @param ui32Size Size of Data
+ * @param pui8Data Pointer to Data
+ * @return -1: different addresses
+ *         -2: different sizes
+ *         -3: different data
+ *          0: dumps are equal
+ **************************************************************/
+int32_t i32DumpAddBuffer(Dump_t *pxDump, uint32_t ui32Size, const uint8_t *pui8Data)
+{
+   memcpy(pxDump->pui8Data + pxDump->ui32Offset, pui8Data, ui32Size);
+   pxDump->ui32Offset += ui32Size;
+   return(0);
+}
+
+/***************************************************************
 * @param ui32BaseAddress Base of the dump
 * @param ui32Size Size of Data
 ***************************************************************/
@@ -24,6 +40,7 @@ Dump_t *pxDumpCreate(uint32_t ui32BaseAddress, uint32_t ui32Size)
          pxDump->pui8Data        = malloc(ui32Size);
          pxDump->ui32BaseAddress = ui32BaseAddress;
          pxDump->ui32Size        = ui32Size;
+         pxDump->ui32Offset      = 0;
 
          // No Dump without buffer
          if (pxDump->pui8Data == NULL)
@@ -60,10 +77,8 @@ int32_t i32DumpDestroy(Dump_t *pxDump)
 }
 
 /***************************************************************
- * @param pxMemory Pointer to Memory
- * @param ui32DestinationAddress Destination Address
- * @param ui32Size Size of Data
- * @param pui8Data Poiinter to Data
+ * @param pxOriginalDump Pointer to Original Dump Comparee
+ * @param pxSecondaryDump Pointer to Second Dump Comparee
  * @return -1: different addresses
  *         -2: different sizes
  *         -3: different data
