@@ -27,10 +27,11 @@
 #include "misc/file.h"
 #include "misc/helpers.h"
 #include "misc/dump.h"
+#include "misc/memory-converter.h"
 
 /* Unity */
-#include "unity_config.h"
-#include "unity.h"
+#include "unity_config.h "
+#include "unity.h "
 
 
 
@@ -209,7 +210,7 @@ void test03_DumpCreatedAndDestroyed()
 }
 
 /*****************************************************************************
- * @brief Tests for successful allocation
+ * @brief Tests for successfull filling
  ******************************************************************************/
 void test04_DumpIsFilled()
 {
@@ -229,7 +230,7 @@ void test04_DumpIsFilled()
 }
 
 /*****************************************************************************
- * @brief Tests for successful allocation
+ * @brief Tests for successful multi-step filling
  ******************************************************************************/
 void test05_DumpIsFilledMultiple()
 {
@@ -260,68 +261,145 @@ void test05_DumpIsFilledMultiple()
    TEST_ASSERT(status == 0);
 }
 
-void othertest()
+/*****************************************************************************
+ * @brief Tests for failed comparison
+ ******************************************************************************/
+void test06_DumpsAreDifferent()
 {
-   Memory_t xMemory;
-   uint8_t  ui8Error = FALSE;
+   #define TARRA06x    array_rising
 
-   vMemoryInitialize(&xMemory);
+   #define TSIZE061    sizeof(TARRA06x)
+   #define TSIZE062    sizeof(TARRA06x)
+   #define TSIZE063    (sizeof(TARRA06x) - 1)
+   #define TSIZE064    TSIZE063
+   #define TSIZE065    TSIZE063
 
-// Add test
-//------------------------------------------------------------------------------------------------------
-   for (uint32_t ui32LoopIndex = 0; ui32LoopIndex < SIZEOF(rxMemoryAddTests) && !ui8Error; ++ui32LoopIndex)
+   #define TADDR061    100
+   #define TADDR062    (TADDR061 + 1)
+   #define TADDR063    TADDR061
+   #define TADDR064    TADDR061
+   #define TADDR065    TADDR061
+
+   Dump_t *testDump1 = pxDumpCreate(TADDR061, TSIZE061);
+   Dump_t *testDump2 = pxDumpCreate(TADDR062, TSIZE062);
+   Dump_t *testDump3 = pxDumpCreate(TADDR063, TSIZE063);
+   Dump_t *testDump4 = pxDumpCreate(TADDR064, TSIZE064);
+   Dump_t *testDump5 = pxDumpCreate(TADDR065, TSIZE065);
+
+   TEST_ASSERT(testDump1 != NULL);
+   TEST_ASSERT(testDump2 != NULL);
+   TEST_ASSERT(testDump3 != NULL);
+   TEST_ASSERT(testDump4 != NULL);
+   TEST_ASSERT(testDump5 != NULL);
+
+   int32_t status_add1 = i32DumpAddBuffer(testDump1, TSIZE061, TARRA06x);
+   TEST_ASSERT(status_add1 == 0);
+
+   int32_t status_add2 = i32DumpAddBuffer(testDump2, TSIZE062, TARRA06x);
+   TEST_ASSERT(status_add2 == 0);
+
+   int32_t status_add3 = i32DumpAddBuffer(testDump3, TSIZE063, TARRA06x);
+   TEST_ASSERT(status_add3 == 0);
+
+   int32_t status_add4 = i32DumpAddBuffer(testDump4, TSIZE064, TARRA06x);
+   TEST_ASSERT(status_add4 == 0);
+
+   int32_t status_add5 = i32DumpAddBuffer(testDump5, testDump4->ui32Size, testDump4->pui8Data);
+   testDump5->pui8Data[testDump5->ui32Size - 1] = testDump5->pui8Data[0];
+   TEST_ASSERT(status_add5 == 0);
+
+   int32_t status_compx = i32DumpCompare(testDump1, testDump1);
+   TEST_ASSERT(status_compx == 0);
+
+   int32_t status_comp1 = i32DumpCompare(testDump1, testDump2);
+   TEST_ASSERT(status_comp1 == 0);
+
+   int32_t status_comp2 = i32DumpCompare(testDump1, testDump3);
+   TEST_ASSERT(status_comp2 != 0);
+
+   int32_t status_comp3 = i32DumpCompare(testDump1, testDump4);
+   TEST_ASSERT(status_comp3 != 0);
+
+   int32_t status_comp4 = i32DumpCompare(testDump4, testDump5);
+   TEST_ASSERT(status_comp4 != 0);
+
+   int32_t status_dest_null1 = i32DumpCompare(testDump3, NULL);
+   TEST_ASSERT(status_dest_null1 != 0);
+
+   int32_t status_dest_null2 = i32DumpCompare(NULL, testDump4);
+   TEST_ASSERT(status_dest_null2 != 0);
+
+   int32_t status_dest_null3 = i32DumpCompare(NULL, NULL);
+   TEST_ASSERT(status_dest_null3 != 0);
+
+   int32_t status_dest1 = i32DumpDestroy(testDump1);
+   TEST_ASSERT(status_dest1 == 0);
+
+   int32_t status_dest2 = i32DumpDestroy(testDump2);
+   TEST_ASSERT(status_dest2 == 0);
+
+   int32_t status_dest3 = i32DumpDestroy(testDump3);
+   TEST_ASSERT(status_dest3 == 0);
+
+   int32_t status_dest4 = i32DumpDestroy(testDump4);
+   TEST_ASSERT(status_dest4 == 0);
+
+   int32_t status_dest5 = i32DumpDestroy(testDump5);
+   TEST_ASSERT(status_dest5 == 0);
+
+   int32_t status_destx = i32DumpDestroy(testDump1);
+   TEST_ASSERT(status_destx != 0);
+}
+
+/*****************************************************************************
+ * @brief Tests for successful comparison
+ ******************************************************************************/
+void test07_DumpsAreEqual()
+{
+   #define TARRA07x    array_rising
+
+   #define TSIZE071    sizeof(TARRA07x)
+   #define TSIZE072    sizeof(TARRA07x)
+
+   #define TADDR071    10000
+   #define TADDR072    10000
+
+   Dump_t * testDump1 = pxDumpCreate(TADDR071, TSIZE071);
+   Dump_t *testDump2 = pxDumpCreate(TADDR072, TSIZE072);
+
+   TEST_ASSERT(testDump1 != NULL);
+   TEST_ASSERT(testDump2 != NULL);
+
+   int32_t status_add1 = i32DumpAddBuffer(testDump1, TSIZE061, TARRA06x);
+   TEST_ASSERT(status_add1 == 0);
+
+   for (int i = 0; i < TSIZE062; ++i)
    {
-      LogTest("main::vTestMemory: Test-Add[%d]: Writing %d bytes at %x", ui32LoopIndex, rxMemoryAddTests[ui32LoopIndex].ui32Size, rxMemoryAddTests[ui32LoopIndex].ui32DestinationAddress);
-      i32MemoryAdd(&xMemory, rxMemoryAddTests[ui32LoopIndex].ui32DestinationAddress, rxMemoryAddTests[ui32LoopIndex].ui32Size, rxMemoryAddTests[ui32LoopIndex].pui8Data);
-
-      // Generate Dump
-      Dump_t *pxDump = pxDumpGenerateFromMemory(&xMemory, FB);
-      if (i32DumpCompare(&rxDumpAddExpected[ui32LoopIndex], pxDump))
-      {
-         ui8Error = TRUE;
-      }
-
-      //
-      if (ui8Error)
-      {
-         LogTest("main::vTestMemory: Test-Add[%d] NOK!", ui32LoopIndex);
-      }
-      else
-      {
-         LogTest("main::vTestMemory: Test-Add[%d] OK!", ui32LoopIndex);
-      }
-
-      vMemoryPrint(&xMemory);
+      int32_t status_add2 = i32DumpAddBuffer(testDump2, 1, &TARRA06x[i]);
+      TEST_ASSERT(status_add2 == 0);
    }
 
-// Copy test
-//------------------------------------------------------------------------------------------------------
-   for (uint32_t ui32LoopIndex = 0; ui32LoopIndex < SIZEOF(rxMemoryCopyTests) && !ui8Error; ++ui32LoopIndex)
-   {
-      LogTest("main::vTestMemory: Test-Copy[%d]: Copying %d bytes from %x to %x", ui32LoopIndex, rxMemoryCopyTests[ui32LoopIndex].ui32Size, rxMemoryCopyTests[ui32LoopIndex].ui32SourceAddress, rxMemoryCopyTests[ui32LoopIndex].ui32DestinationAddress);
-      i32MemoryCopyRegion(&xMemory, rxMemoryCopyTests[ui32LoopIndex].ui32SourceAddress, rxMemoryCopyTests[ui32LoopIndex].ui32DestinationAddress, rxMemoryCopyTests[ui32LoopIndex].ui32Size);
+   int32_t status_compx = i32DumpCompare(testDump1, testDump2);
+   TEST_ASSERT(status_compx == 0);
 
-      // Generate Dump
-      Dump_t *pxDump = pxDumpGenerateFromMemory(&xMemory, FB);
-      if (i32DumpCompare(&rxDumpCopyExpected[ui32LoopIndex], pxDump))
-      {
-         ui8Error = TRUE;
-      }
+   int32_t status_dest1 = i32DumpDestroy(testDump1);
+   TEST_ASSERT(status_dest1 == 0);
+
+   int32_t status_dest2 = i32DumpDestroy(testDump2);
+   TEST_ASSERT(status_dest2 == 0);
+}
+
+/*****************************************************************************
+ * @brief Tests for successful comparison
+ ******************************************************************************/
+void test0x_MemoryisGeneratingEqualDumps()
+{
+   uint8_t  freebyte = 0xAA;
+   Memory_t memory;
+   vMemoryInitialize(&memory);
 
 
-      if (ui8Error)
-      {
-         LogTest("main::vTestMemory: Test-Copy[%d] NOK!", ui32LoopIndex);
-      }
-      else
-      {
-         LogTest("main::vTestMemory: Test-Copy[%d] OK!", ui32LoopIndex);
-      }
-
-      vMemoryPrint(&xMemory);
-   }
-
-   LogTest("main::vTestMemory: Testing Finished!\n");
+   Dump_t *dump = pxConvertMemoryToDump(&memory, freebyte);
 }
 
 /*****************************************************************************
@@ -330,12 +408,14 @@ void othertest()
  ******************************************************************************/
 int main(int argc, char *argv[])
 {
-   UnityBegin("test-target1.c");
+   UnityBegin(__FILE__);
    RUN_TEST(test01_DumpIsNULL, 0);
    RUN_TEST(test02_DumpNotDeallocated, 0);
    RUN_TEST(test03_DumpCreatedAndDestroyed, 0);
    RUN_TEST(test04_DumpIsFilled, 0);
    RUN_TEST(test05_DumpIsFilledMultiple, 0);
+   RUN_TEST(test06_DumpsAreDifferent, 0);
+   RUN_TEST(test07_DumpsAreEqual, 0)
 
    return(UnityEnd());
 }

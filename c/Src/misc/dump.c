@@ -4,7 +4,6 @@
 #include "config.h"
 #include "types.h"
 #include "misc/helpers.h"
-#include "misc/memory.h"
 #include "misc/dump.h"
 
 /***************************************************************
@@ -32,22 +31,22 @@ Dump_t *pxDumpCreate(uint32_t ui32BaseAddress, uint32_t ui32Size)
    Dump_t *pxDump = NULL;
 
    // Create Dump with Size
-   if (ui32Size > 0)
+
+   pxDump = malloc(sizeof(Dump_t));
+   if (NULL != pxDump)
    {
-      pxDump = malloc(sizeof(Dump_t));
-      if (pxDump != NULL)
+      // No Dump without buffer
+      pxDump->pui8Data = malloc(ui32Size);
+      if ((0 == ui32Size) || NULL == pxDump->pui8Data)
       {
-         pxDump->pui8Data        = malloc(ui32Size);
+         free(pxDump);
+         pxDump = NULL;
+      }
+      else
+      {
          pxDump->ui32BaseAddress = ui32BaseAddress;
          pxDump->ui32Size        = ui32Size;
          pxDump->ui32Offset      = 0;
-
-         // No Dump without buffer
-         if (pxDump->pui8Data == NULL)
-         {
-            free(pxDump);
-            pxDump = NULL;
-         }
       }
    }
 
@@ -66,7 +65,9 @@ int32_t i32DumpDestroy(Dump_t *pxDump)
       // Double check
       if ((pxDump->ui32Size > 0) && (pxDump->pui8Data != NULL))
       {
-         i32Status = 0;
+         pxDump->pui8Data = NULL;
+         pxDump->ui32Size = 0;
+         i32Status        = 0;
       }
 
       // At last Release Memory
@@ -86,18 +87,22 @@ int32_t i32DumpDestroy(Dump_t *pxDump)
  **************************************************************/
 int32_t i32DumpCompare(Dump_t *pxOriginalDump, Dump_t *pxSecondaryDump)
 {
-   uint8_t  i8Comparison = 0;
-   uint32_t ui32Size     = pxOriginalDump->ui32Size;
-   if (pxOriginalDump->ui32BaseAddress != pxSecondaryDump->ui32BaseAddress)
+   uint8_t  i8Comparison;
+   uint32_t ui32Size;
+   if ((pxOriginalDump == NULL) || (pxSecondaryDump == NULL))
    {
-      LogTest("memory::i32MemoryCompareDump: Error! Dump different Base Addrresses %d %d", (pxOriginalDump->ui32BaseAddress), pxSecondaryDump->ui32BaseAddress);
+      LogError(__BASE_FILE__ "::i32DumpCompare:: Error! NULL Pointer");
       i8Comparison = -1;
    }
-
-   if (pxOriginalDump->ui32Size != pxSecondaryDump->ui32Size)
+   else
    {
-      LogTest("memory::i32MemoryCompareDump: Error! Dump different sizes %d %d", (pxOriginalDump->ui32Size), pxSecondaryDump->ui32Size);
-      i8Comparison = -2;
+      i8Comparison = 0;
+      ui32Size     = pxOriginalDump->ui32Size;
+      if (pxOriginalDump->ui32Size != pxSecondaryDump->ui32Size)
+      {
+         LogDebug(__BASE_FILE__ "::i32DumpCompare:: Warning! Dump different sizes %d %d", (pxOriginalDump->ui32Size), pxSecondaryDump->ui32Size);
+         i8Comparison = -3;
+      }
    }
 
    // Continue of there is no error
@@ -107,55 +112,11 @@ int32_t i32DumpCompare(Dump_t *pxOriginalDump, Dump_t *pxSecondaryDump)
       {
          if (pxOriginalDump->pui8Data[ui32ArrayIndex] != pxSecondaryDump->pui8Data[ui32ArrayIndex])
          {
-            LogTest("memory::i32MemoryCompareDump: Error! Dump different at %x %x %x", (pxOriginalDump->ui32BaseAddress + ui32ArrayIndex), pxOriginalDump->pui8Data[ui32ArrayIndex], pxSecondaryDump->pui8Data[ui32ArrayIndex]);
-            i8Comparison = -3;
+            i8Comparison = -4;
+            break;
          }
       }
    }
 
    return(i8Comparison);
-}
-
-/***************************************************************
-* @param pxMemory Pointer to Memory
-* @param ui8FreeByte Fill Byte between the blocks
-* @return Pointer to Dump struct
-***************************************************************/
-Dump_t * pxDumpGenerateFromMemory(Memory_t *pxMemory, uint8_t ui8FreeByte)
-{
-   Memoryblock_t *pxMemoryblock;
-   uint32_t       ui32DumpSize = ui32MemoryGetTotalSize(pxMemory);
-
-
-   Dump_t *pxDump = NULL;
-   if (ui32DumpSize > 0)
-   {
-      pxDump = malloc(sizeof(Dump_t));
-
-      // Update base if 0
-      if (pxMemory->ui32BaseAddress == 0 && (pxMemory->pxMemoryblockHead != NULL))
-      {
-         pxDump->ui32BaseAddress = pxMemory->pxMemoryblockHead->ui32BlockAddress;
-      }
-      else
-      {
-         pxDump->ui32BaseAddress = pxMemory->ui32BaseAddress;
-      }
-
-      pxDump->ui32Size = ui32DumpSize;
-      pxDump->pui8Data = malloc(ui32DumpSize);
-
-      // Fill with ui8Freebyte
-      memset(pxDump->pui8Data, ui8FreeByte, ui32DumpSize);
-
-      // Copy into memory
-      pxMemoryblock = pxMemory->pxMemoryblockHead;
-      while (pxMemoryblock != NULL)
-      {
-         memcpy(pxDump->pui8Data + (pxMemoryblock->ui32BlockAddress - pxDump->ui32BaseAddress), pxMemoryblock->pui8Buffer, pxMemoryblock->ui32BlockSize);
-         pxMemoryblock = pxMemoryblock->pxMemoryblockNext;
-      }
-   }
-
-   return(pxDump);
 }

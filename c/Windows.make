@@ -1,15 +1,26 @@
 # Usage:
-# make all     # compile all binary
-# make clean  # remove ALL binaries and objects
+# make all     	-compile all binary
+# make clean  	-remove ALL binaries and objects
 # NB! Do not put spaces after commas
+
+#########################
+# 	Miscellaneous		#
+#########################
 .PHONY = clean build test
 uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfile_dir := $(dir $(mkfile_path))
 
+
+
+#########################
+# 		Project			#
+#########################
+
 NAME=binary-parser
 NAME_ENTRY = main.c
+NAME_CONFIG = config.h
 
 #########################
 # 		Tools			#
@@ -61,9 +72,10 @@ else ifeq ($(FLAVOR),Run)
 	LDFLAGS += -lm
 
 else ifeq ($(FLAVOR),Test)
-	ARTIFACT := $(DIR_BUILD)$(TEST_TARGET).exe
+	NAME = test-$(TEST_TARGET)
+	ARTIFACT := $(DIR_BUILD)$(NAME).exe
 	CFLAGS += -g
-	CFLAGS += -DLOG_TEST
+	CFLAGS += -DLOG_DEBUG
 	CFLAGS += -O0
 	CFLAGS += -ftest-coverage
 	CFLAGS += -fprofile-arcs
@@ -71,18 +83,22 @@ else ifeq ($(FLAVOR),Test)
 	LDFLAGS += -lm
 	LDFLAGS += -lgcov --coverage
 
-	# Files to run cover for
-	COVERS := $(FILES_SOURCES:%.c=%.gcda)
 
-	# Filter out the main and set new target
+	# Filter out the main 
 	FILES_SOURCES := $(filter-out $(call rwildcard, $(DIR_SOURCE),*$(NAME_ENTRY)),$(FILES_SOURCES))
-	FILES_SOURCES += $(call rwildcard, $(DIR_TESTS),$(TEST_TARGET).c)
+
+	# Set new target
+	FILE_UNIT_TEST = $(call rwildcard, $(DIR_TESTS),$(NAME).c)
+	FILE_TARGET =  $(call rwildcard, $(DIR_SOURCE),$(TEST_TARGET).c)
+	FILES_SOURCES += $(FILE_UNIT_TEST)
+
+	# Files to run cover for
+	COVERS := $(FILE_TARGET:%.c=%.gcda)
 
 	# Include Testing Dependencies
 	FILES_UNITY := $(DIR_DEPS)Unity-master/src
 	FILES_SOURCES += $(call rwildcard, $(FILES_UNITY),*.c)
 	CFLAGS += -I$(FILES_UNITY)
-
 
 endif
 

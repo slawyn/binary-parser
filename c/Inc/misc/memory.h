@@ -22,6 +22,7 @@ Memory_t;
 
 
 extern void vMemoryInitialize(Memory_t *pxMemory);
+int32_t i32MemoryDeinitialize(Memory_t *pxMemory);
 extern void vMemoryPrint(Memory_t *pxMemory);
 extern uint32_t ui32MemoryGetTotalSize(Memory_t *pxMemory);
 extern int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui32Buffersize, uint8_t *pui8Buffer);
