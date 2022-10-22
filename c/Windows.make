@@ -120,7 +120,7 @@ all: clean build
 
 test: 
 	#export GCOV_PREFIX_STRIP=1 && export GCOV_PREFIX=$(DIR_BUILD)
-	
+	@echo "[RUNNING $(ARTIFACT)]"
 	./$(ARTIFACT)
 	$(TOOL_GCOV) $(addprefix $(DIR_BUILD),$(COVERS)) -p
 	mv *gcov $(DIR_BUILD)
@@ -132,17 +132,17 @@ test:
 
 # Create Build Folders
 $(DIRS_OBJECTS): $(LIBS)
-	@echo "[Creating Directories]"
+	@echo "[CREATING Directories]"
 	${TOOL_MKDIR} $(DIRS_OBJECTS)
 
 # Link Objects to Artefact
 $(ARTIFACT): $(DIRS_OBJECTS) $(FILES_OBJECTS)
-	@echo "[$(ARTIFACT)]"
+	@echo "[LINKING $(ARTIFACT)]"
 	${TOOL_CC} ${LDFLAGS} -o $@ $(addprefix $(DIR_BUILD),$(FILES_OBJECTS))
 
 # Generate Objects for Linking
 %.o: %.c
-	@echo "[$@]"
+	@echo "[BUILDING $@]"
 	$(TOOL_CC) $(CFLAGS) -c $< -o $(DIR_BUILD)$@
 
 

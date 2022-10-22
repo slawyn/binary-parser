@@ -12,7 +12,7 @@
 
 /* Private Functions*/
 static int32_t i32MemoryDestroyBlock(Memory_t *pxMemory, Memoryblock_t *pxMemoryblock);
-static Memoryblock_t * pxMemoryCreateBlock(Memory_t *pxMemory, Memoryblock_t *pxBlockNext, Memoryblock_t *pxBlockPrevious, uint32_t ui32BlockAddress, uint32_t ui32BufferSize, uint8_t rui8Buffer[]);
+static Memoryblock_t * pxMemoryCreateBlock(Memory_t *pxMemory, Memoryblock_t *pxBlockNext, Memoryblock_t *pxBlockPrevious, uint32_t ui32BlockAddress, uint32_t ui32BufferSize, uint8_t const rui8Buffer[]);
 
 
 /***************************************************************
@@ -326,7 +326,7 @@ int32_t i32MemoryCopyRegion(Memory_t *pxMemory, uint32_t ui32SourceStartAddress,
  * @param ui32BufferSize Byte Count
  * @param rui8Buffer Buffer Pointer
  **************************************************************/
-static Memoryblock_t * pxMemoryCreateBlock(Memory_t *pxMemory, Memoryblock_t *pxBlockPrevious, Memoryblock_t *pxBlockNext, uint32_t ui32BlockAddress, uint32_t ui32BufferSize, uint8_t rui8Buffer[])
+static Memoryblock_t * pxMemoryCreateBlock(Memory_t *pxMemory, Memoryblock_t *pxBlockPrevious, Memoryblock_t *pxBlockNext, uint32_t ui32BlockAddress, uint32_t ui32BufferSize, uint8_t const rui8Buffer[])
 {
    Memoryblock_t *pxMemoryblock;
    pxMemoryblock = (Memoryblock_t *)malloc(sizeof(Memoryblock_t));
@@ -413,7 +413,7 @@ static int32_t i32MemoryDestroyBlock(Memory_t *pxMemory, Memoryblock_t *pxMemory
 * @param ui32BufferSize Byte Count
 * @param rui8Buffer Buffer Pointer
 **************************************************************/
-int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui32BufferSize, uint8_t rui8Buffer[])
+int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui32BufferSize, uint8_t const rui8Buffer[])
 {
    Memoryblock_t *pxMemoryblock;
    Memoryblock_t *pxMemoryblockTraversee;

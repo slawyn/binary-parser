@@ -51,8 +51,8 @@ typedef struct
 
 #define FB    (0xFE)
 
-const uint8_t array_rising[]  = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
-const uint8_t array_falling[] = { 0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 };
+uint8_t const array_rising[]  = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+uint8_t const array_falling[] = { 0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 };
 
 // Add
 uint8_t rui8DumpAddTest0[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
@@ -175,15 +175,82 @@ void tearDown(void)
 }
 
 /*****************************************************************************
- * @brief Tests for successful comparison
+ * @brief Tests for successful instatiation
  ******************************************************************************/
-void test01_MemoryisEmpty()
+void test01_MemoryisInitialized()
 {
+   #define TADDR01    100
+   #define TARR01     array_falling
+   #define TSIZE01    sizeof(array_falling)
+
    Memory_t memory;
    vMemoryInitialize(&memory);
 
+   TEST_ASSERT(memory.pxMemoryblockHead == NULL);
+   TEST_ASSERT(memory.pxMemoryblockTail == NULL);
+   TEST_ASSERT(memory.ui32BaseAddress == 0);
+   TEST_ASSERT(memory.ui32BlockCount == 0);
+
+   int32_t i32statusadd1 = i32MemoryAdd(&memory, TADDR01, TSIZE01, TARR01);
+   TEST_ASSERT(i32statusadd1 == 0);
+   TEST_ASSERT(memory.pxMemoryblockHead != NULL);
+   TEST_ASSERT(memory.pxMemoryblockTail != NULL);
+   TEST_ASSERT(memory.ui32BaseAddress == 0);
+   TEST_ASSERT(memory.ui32BlockCount == 1);
+
    int32_t i32status = i32MemoryDeinitialize(&memory);
    TEST_ASSERT(i32status == 0);
+   TEST_ASSERT(memory.pxMemoryblockHead == NULL);
+   TEST_ASSERT(memory.pxMemoryblockTail == NULL);
+   TEST_ASSERT(memory.ui32BaseAddress == 0);
+   TEST_ASSERT(memory.ui32BlockCount == 0);
+
+   #undef TADDR01
+   #undef TARR01
+   #undef TSIZE01
+}
+
+/*****************************************************************************
+ * @brief Tests for failed deinitialization
+ ******************************************************************************/
+void test02_MemoryHasFailedDeinitialization()
+{
+   #define TADDR02     100
+   #define TARR02      array_falling
+   #define TSIZE02     sizeof(array_falling)
+   #define TADDR02x    (TADDR02 + TSIZE02)
+   #define TARR02x     array_falling
+   #define TSIZE02x    sizeof(array_falling)
+
+   Memory_t memory;
+   vMemoryInitialize(&memory);
+
+
+   int32_t i32statusadd1 = i32MemoryAdd(&memory, TADDR02, TSIZE02, TARR02);
+   TEST_ASSERT(i32statusadd1 == 0);
+
+   int32_t i32statusadd2 = i32MemoryAdd(&memory, TADDR02x, TSIZE02x, TARR02x);
+   TEST_ASSERT(i32statusadd2 == 0);
+
+   TEST_ASSERT(memory.pxMemoryblockHead != NULL);
+   TEST_ASSERT(memory.pxMemoryblockTail != NULL);
+   TEST_ASSERT(memory.ui32BaseAddress == 0);
+   TEST_ASSERT(memory.ui32BlockCount == 2);
+
+   // remove memory leak
+   free(memory.pxMemoryblockHead->pxMemoryblockNext->pui8Buffer);
+   free(memory.pxMemoryblockHead->pxMemoryblockNext);
+   memory.pxMemoryblockHead->pxMemoryblockNext = NULL;
+
+   int32_t i32status = i32MemoryDeinitialize(&memory);
+   TEST_ASSERT(i32status != 0);
+
+   #undef TADDR02
+   #undef TARR02
+   #undef TSIZE02
+   #undef TADDR02x
+   #undef TARR02x
+   #undef TSIZE02x
 }
 
 /*****************************************************************************
@@ -269,9 +336,9 @@ void othertest()
  ******************************************************************************/
 int main(int argc, char *argv[])
 {
-   UnityBegin("test - target1.c ");
-   RUN_TEST(test01_MemoryisEmpty, 0);
-
+   UnityBegin(__BASE_FILE__);
+   RUN_TEST(test01_MemoryisInitialized, 0);
+   RUN_TEST(test02_MemoryHasFailedDeinitialization, 0);
 
    return(UnityEnd());
 }

@@ -199,6 +199,7 @@ void test03_DumpCreatedAndDestroyed()
 {
    #define TSIZE03    1
    #define TADDR03    100
+
    Dump_t *testDump = pxDumpCreate(TADDR03, TSIZE03);
    TEST_ASSERT(testDump != NULL);
    TEST_ASSERT(testDump->ui32Size == TSIZE03);
@@ -207,6 +208,9 @@ void test03_DumpCreatedAndDestroyed()
    TEST_ASSERT(testDump->ui32Offset == 0);
    int32_t status = i32DumpDestroy(testDump);
    TEST_ASSERT(status == 0);
+
+   #undef TSIZE03
+   #undef TADDR03
 }
 
 /*****************************************************************************
@@ -227,6 +231,10 @@ void test04_DumpIsFilled()
 
    int32_t status = i32DumpDestroy(testDump);
    TEST_ASSERT(status == 0);
+
+   #undef TARRA04
+   #undef TSIZE04
+   #undef TADDR04
 }
 
 /*****************************************************************************
@@ -236,11 +244,11 @@ void test05_DumpIsFilledMultiple()
 {
    #define TARRA051    array_rising
    #define TARRA052    array_falling
-
    #define TSIZE051    sizeof(TARRA051)
    #define TSIZE052    sizeof(TARRA052)
    #define TSIZE05x    (TSIZE051 + TSIZE052)
    #define TADDR05x    0
+
    uint8_t array_total[TSIZE05x];
 
    Dump_t *testDump = pxDumpCreate(TADDR05x, TSIZE05x);
@@ -259,6 +267,13 @@ void test05_DumpIsFilledMultiple()
 
    int32_t status = i32DumpDestroy(testDump);
    TEST_ASSERT(status == 0);
+
+   #undef TARRA051
+   #undef TARRA052
+   #undef TSIZE051
+   #undef TSIZE052
+   #undef TSIZE05x
+   #undef TADDR05x
 }
 
 /*****************************************************************************
@@ -267,13 +282,11 @@ void test05_DumpIsFilledMultiple()
 void test06_DumpsAreDifferent()
 {
    #define TARRA06x    array_rising
-
    #define TSIZE061    sizeof(TARRA06x)
    #define TSIZE062    sizeof(TARRA06x)
    #define TSIZE063    (sizeof(TARRA06x) - 1)
    #define TSIZE064    TSIZE063
    #define TSIZE065    TSIZE063
-
    #define TADDR061    100
    #define TADDR062    (TADDR061 + 1)
    #define TADDR063    TADDR061
@@ -349,6 +362,18 @@ void test06_DumpsAreDifferent()
 
    int32_t status_destx = i32DumpDestroy(testDump1);
    TEST_ASSERT(status_destx != 0);
+
+   #undef TARRA06x array_rising
+   #undef TSIZE061
+   #undef TSIZE062
+   #undef TSIZE063
+   #undef TSIZE064
+   #undef TSIZE065
+   #undef TADDR061
+   #undef TADDR062
+   #undef TADDR063
+   #undef TADDR064
+   #undef TADDR065
 }
 
 /*****************************************************************************
@@ -357,10 +382,8 @@ void test06_DumpsAreDifferent()
 void test07_DumpsAreEqual()
 {
    #define TARRA07x    array_rising
-
    #define TSIZE071    sizeof(TARRA07x)
    #define TSIZE072    sizeof(TARRA07x)
-
    #define TADDR071    10000
    #define TADDR072    10000
 
@@ -370,12 +393,12 @@ void test07_DumpsAreEqual()
    TEST_ASSERT(testDump1 != NULL);
    TEST_ASSERT(testDump2 != NULL);
 
-   int32_t status_add1 = i32DumpAddBuffer(testDump1, TSIZE061, TARRA06x);
+   int32_t status_add1 = i32DumpAddBuffer(testDump1, TSIZE071, TARRA07x);
    TEST_ASSERT(status_add1 == 0);
 
-   for (int i = 0; i < TSIZE062; ++i)
+   for (int i = 0; i < TSIZE072; ++i)
    {
-      int32_t status_add2 = i32DumpAddBuffer(testDump2, 1, &TARRA06x[i]);
+      int32_t status_add2 = i32DumpAddBuffer(testDump2, 1, &TARRA07x[i]);
       TEST_ASSERT(status_add2 == 0);
    }
 
@@ -387,6 +410,12 @@ void test07_DumpsAreEqual()
 
    int32_t status_dest2 = i32DumpDestroy(testDump2);
    TEST_ASSERT(status_dest2 == 0);
+
+   #undef TARRA07x
+   #undef TSIZE071
+   #undef TSIZE072
+   #undef TADDR071
+   #undef TADDR072
 }
 
 /*****************************************************************************
