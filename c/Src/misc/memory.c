@@ -60,7 +60,6 @@ int32_t i32MemoryDeinitialize(Memory_t *pxMemory)
    // Reset memory
    if (!i32Status)
    {
-      pxMemory->ui32BlockCount    = 0;
       pxMemory->ui32BaseAddress   = 0;
       pxMemory->pxMemoryblockTail = NULL;
       pxMemory->pxMemoryblockHead = NULL;
@@ -83,118 +82,93 @@ int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary
    Memoryblock_t *pxMemoryblockOriginal;
    Memoryblock_t *pxMemoryblockSecondary;
    int32_t        i32Status = 0;
+
    if (pxMemorySecondary == NULL || pxMemoryOriginal == NULL)
    {
       i32Status = -1;
    }
    else
    {
-      uint32_t ui32SizeOriginal  = ui32MemoryGetTotalSize(pxMemoryOriginal);
-      uint32_t ui32SizeSecondary = ui32MemoryGetTotalSize(pxMemorySecondary);
+      uint32_t ui32Index1 = 0;
+      uint32_t ui32Index2 = 0;
+      pxMemoryblockOriginal  = pxMemoryOriginal->pxMemoryblockHead;
+      pxMemoryblockSecondary = pxMemorySecondary->pxMemoryblockHead;
 
-      if (ui32SizeOriginal != ui32SizeSecondary)
+      while (!i32Status && pxMemoryblockOriginal != NULL && pxMemoryblockSecondary != NULL)
       {
-         i32Status = -2;
+         // One is lagging behind
+         if ((pxMemoryblockOriginal->ui32BlockAddress + ui32Index1) > (pxMemoryblockSecondary->ui32BlockAddress + ui32Index2))
+         {
+            if (ui8Freebyte != pxMemoryblockSecondary->pui8Buffer[ui32Index2++])
+            {
+               i32Status = -4;
+            }
+         }
+         // The other is lagging behind
+         else if ((pxMemoryblockOriginal->ui32BlockAddress + ui32Index1) < (pxMemoryblockSecondary->ui32BlockAddress + ui32Index2))
+         {
+            if (ui8Freebyte != pxMemoryblockOriginal->pui8Buffer[ui32Index1++])
+            {
+               i32Status = -3;
+            }
+         }
+         // At equal addresses
+         else if (pxMemoryblockOriginal->pui8Buffer[ui32Index1] == pxMemoryblockSecondary->pui8Buffer[ui32Index2])
+         {
+            ++ui32Index1;
+            ++ui32Index2;
+         }
+         else
+         {
+            i32Status = -5;
+         }
+
+         // Switch Original here to next block
+         if (ui32Index1 >= pxMemoryblockOriginal->ui32BlockSize)
+         {
+            pxMemoryblockOriginal = pxMemoryblockOriginal->pxMemoryblockNext;
+            ui32Index1            = 0;
+         }
+
+         // Switch Secondary here to next block
+         if (ui32Index2 >= pxMemoryblockSecondary->ui32BlockSize)
+         {
+            pxMemoryblockSecondary = pxMemoryblockSecondary->pxMemoryblockNext;
+            ui32Index2             = 0;
+         }
       }
-      else
+
+      // Compare the rest against free bytes
+      while (!i32Status && pxMemoryblockOriginal != NULL)
       {
-         uint32_t ui32Index1 = 0;
-         uint32_t ui32Index2 = 0;
-         pxMemoryblockOriginal  = pxMemoryOriginal->pxMemoryblockHead;
-         pxMemoryblockSecondary = pxMemorySecondary->pxMemoryblockHead;
-
-         while (!i32Status && pxMemoryblockOriginal != NULL && pxMemoryblockSecondary != NULL)
+         // Switch Original here to next block
+         if (ui32Index1 >= pxMemoryblockOriginal->ui32BlockSize)
          {
-            // One is lagging behind
-            if ((pxMemoryblockOriginal->ui32BlockAddress + ui32Index1) > (pxMemoryblockSecondary->ui32BlockAddress + ui32Index2))
-            {
-               if (pxMemoryblockSecondary->pui8Buffer[ui32Index2] == ui8Freebyte)
-               {
-                  ++ui32Index2;
-               }
-               else
-               {
-                  i32Status = -4;
-               }
-            }
-            // The other is lagging behind
-            else if ((pxMemoryblockOriginal->ui32BlockAddress + ui32Index1) < (pxMemoryblockSecondary->ui32BlockAddress + ui32Index2))
-            {
-               if (pxMemoryblockOriginal->pui8Buffer[ui32Index1] == ui8Freebyte)
-               {
-                  ++ui32Index2;
-               }
-               else
-               {
-                  i32Status = -3;
-               }
-            }
-            // At equal addresses
-            else if (pxMemoryblockOriginal->pui8Buffer[ui32Index1] == pxMemoryblockSecondary->pui8Buffer[ui32Index2])
-            {
-               ++ui32Index1;
-               ++ui32Index2;
-            }
-            else
-            {
-               i32Status = -5;
-            }
-
-            // Switch Original here to next block
-            if (ui32Index1 >= pxMemoryblockOriginal->ui32BlockSize)
-            {
-               pxMemoryblockOriginal = pxMemoryblockOriginal->pxMemoryblockNext;
-               ui32Index1            = 0;
-            }
-
-            // Switch Secondary here to next block
-            if (ui32Index2 >= pxMemoryblockSecondary->ui32BlockSize)
-            {
-               pxMemoryblockSecondary = pxMemoryblockSecondary->pxMemoryblockNext;
-               ui32Index2             = 0;
-            }
+            pxMemoryblockOriginal = pxMemoryblockOriginal->pxMemoryblockNext;
+            ui32Index1            = 0;
          }
-
-         // Compare the rest against free bytes
-         while (!i32Status && pxMemoryblockOriginal != NULL)
+         else if (pxMemoryblockOriginal->pui8Buffer[ui32Index1++] != ui8Freebyte)
          {
-            if (pxMemoryblockOriginal->pui8Buffer[ui32Index1] == ui8Freebyte)
-            {
-               ++ui32Index1;
-            }
-            else
-            {
-               i32Status = -6;
-            }
-
-            // Switch Original here to next block
-            if (ui32Index1 > pxMemoryblockOriginal->ui32BlockSize)
-            {
-               pxMemoryblockOriginal = pxMemoryblockOriginal->pxMemoryblockNext;
-               ui32Index1            = 0;
-            }
+            i32Status = -6;
          }
+      }
 
-         while (!i32Status && pxMemoryblockSecondary != NULL)
+
+      while (!i32Status && pxMemoryblockSecondary != NULL)
+      {
+         // Switch Original here to next block
+         if (ui32Index2 >= pxMemoryblockSecondary->ui32BlockSize)
          {
-            if (pxMemoryblockSecondary->pui8Buffer[ui32Index2] == ui8Freebyte)
-            {
-               ++ui32Index2;
-            }
-            else
-            {
-               i32Status = -7;
-            }
-
-            // Switch Original here to next block
-            if (ui32Index2 > pxMemoryblockSecondary->ui32BlockSize)
-            {
-               pxMemoryblockOriginal = pxMemoryblockSecondary->pxMemoryblockNext;
-               ui32Index2            = 0;
-            }
+            pxMemoryblockSecondary = pxMemoryblockSecondary->pxMemoryblockNext;
+            ui32Index2             = 0;
+         }
+         else if (pxMemoryblockSecondary->pui8Buffer[ui32Index2++] != ui8Freebyte)
+         {
+            i32Status = -7;
          }
       }
    }
+
    return(i32Status);
 }
 
@@ -205,21 +179,17 @@ int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary
 uint32_t ui32MemoryGetTotalSize(Memory_t *pxMemory)
 {
    uint32_t ui32Size;
-
-   if (pxMemory->pxMemoryblockHead != NULL)
+   if (pxMemory->pxMemoryblockHead == NULL)
    {
-      if ((pxMemory->pxMemoryblockHead != pxMemory->pxMemoryblockTail))
-      {
-         ui32Size = (pxMemory->pxMemoryblockTail->ui32BlockAddress - pxMemory->pxMemoryblockHead->ui32BlockAddress) + pxMemory->pxMemoryblockTail->ui32BlockSize;
-      }
-      else
-      {
-         ui32Size = pxMemory->pxMemoryblockHead->ui32BlockSize;
-      }
+      ui32Size = 0;
+   }
+   else if ((pxMemory->pxMemoryblockHead != pxMemory->pxMemoryblockTail))
+   {
+      ui32Size = (pxMemory->pxMemoryblockTail->ui32BlockAddress - pxMemory->pxMemoryblockHead->ui32BlockAddress) + pxMemory->pxMemoryblockTail->ui32BlockSize;
    }
    else
    {
-      ui32Size = 0;
+      ui32Size = pxMemory->pxMemoryblockHead->ui32BlockSize;
    }
 
    return(ui32Size);
@@ -236,12 +206,14 @@ int32_t i32MemoryPrint(Memory_t *pxMemory)
    int32_t        i32Status = 0;
 
 
-   if (pxMemory != NULL)
+   if (pxMemory == NULL)
    {
-      // Print total count
-      printf("Memory:[%-d]", pxMemory->ui32BlockCount);
-
+      i32Status = -1;
+   }
+   else
+   {
       // Print contents
+      printf("Memory:[%-d]", pxMemory->ui32BlockCount);
       pxMemoryblock = pxMemory->pxMemoryblockHead;
       for (ui32BlockIndex = 0; ui32BlockIndex < pxMemory->ui32BlockCount; ++ui32BlockIndex)
       {
@@ -254,10 +226,7 @@ int32_t i32MemoryPrint(Memory_t *pxMemory)
       }
       printf("\n");
    }
-   else
-   {
-      i32Status = -1;
-   }
+
    return(i32Status);
 }
 
@@ -270,7 +239,6 @@ int32_t i32MemoryPrint(Memory_t *pxMemory)
 int32_t i32MemoryDeleteRegion(Memory_t *pxMemory, uint32_t ui32RegionStartingAddress, uint32_t ui32RegionEndingAddress)
 {
    Memoryblock_t *pxMemoryblock;
-
    Memoryblock_t *pxMemoryTempblock;
    uint8_t        ui8Done = FALSE;
    int8_t         i8Error = 0;
@@ -279,7 +247,6 @@ int32_t i32MemoryDeleteRegion(Memory_t *pxMemory, uint32_t ui32RegionStartingAdd
    // Free Destination blocks
    //-----------------------------------------
    pxMemoryblock = pxMemory->pxMemoryblockHead;
-
    while (!ui8Done && !i8Error)
    {
       // Preserve pointer to next for traversing
@@ -410,7 +377,6 @@ int32_t i32MemoryCopyRegion(Memory_t *pxMemory, uint32_t ui32SourceStartAddress,
    //--------------------------
    i8Error = i32MemoryDeleteRegion(pxMemory, ui32DestinationStartAddress, ui32DestinationEndAddress);
 
-
    // Copy blocks
    //-----------------------------------------
    ui8Done       = FALSE;
@@ -484,45 +450,44 @@ int32_t i32MemoryCopyRegion(Memory_t *pxMemory, uint32_t ui32SourceStartAddress,
  **************************************************************/
 static Memoryblock_t * pxMemoryblockCreate(Memory_t *pxMemory, Memoryblock_t *pxBlockPrevious, Memoryblock_t *pxBlockNext, uint32_t ui32BlockAddress, uint32_t ui32BufferSize, uint8_t const rui8Buffer[])
 {
-   Memoryblock_t *pxMemoryblock;
-   pxMemoryblock = (Memoryblock_t *)malloc(sizeof(Memoryblock_t));
-   if (pxMemoryblock == NULL)
+   Memoryblock_t *pxMemoryblock = (Memoryblock_t *)malloc(sizeof(Memoryblock_t));
+
+   if (ui32BufferSize > 0 || pxMemoryblock != NULL)
    {
-      return(NULL);
+      pxMemoryblock->pui8Buffer = malloc(ui32BufferSize);
    }
 
-   uint8_t *pui8Buffer = malloc(ui32BufferSize);
-   if (pui8Buffer == NULL)
+   // Continue if buffer was allocated
+   if (pxMemoryblock->pui8Buffer == NULL)
    {
       free(pxMemoryblock);
-      return(NULL);
+      pxMemoryblock = NULL;
    }
    else
    {
-      memcpy(pui8Buffer, rui8Buffer, ui32BufferSize);
+      // Init block
+      memcpy(pxMemoryblock->pui8Buffer, rui8Buffer, ui32BufferSize);
+      pxMemoryblock->ui32BlockAddress      = ui32BlockAddress;
+      pxMemoryblock->ui32BlockSize         = ui32BufferSize;
+      pxMemoryblock->pxMemoryblockNext     = NULL;
+      pxMemoryblock->pxMemoryblockPrevious = NULL;
+
+      // Connect blocks
+      if (pxBlockNext != NULL)
+      {
+         pxMemoryblock->pxMemoryblockNext   = pxBlockNext;
+         pxBlockNext->pxMemoryblockPrevious = pxMemoryblock;
+      }
+
+      if (pxBlockPrevious != NULL)
+      {
+         pxMemoryblock->pxMemoryblockPrevious = pxBlockPrevious;
+         pxBlockPrevious->pxMemoryblockNext   = pxMemoryblock;
+      }
+
+      ++pxMemory->ui32BlockCount;
    }
 
-   // Init block
-   pxMemoryblock->ui32BlockAddress      = ui32BlockAddress;
-   pxMemoryblock->ui32BlockSize         = ui32BufferSize;
-   pxMemoryblock->pui8Buffer            = pui8Buffer;
-   pxMemoryblock->pxMemoryblockNext     = NULL;
-   pxMemoryblock->pxMemoryblockPrevious = NULL;
-
-   // Connect blocks
-   if (pxBlockNext != NULL)
-   {
-      pxMemoryblock->pxMemoryblockNext   = pxBlockNext;
-      pxBlockNext->pxMemoryblockPrevious = pxMemoryblock;
-   }
-
-   if (pxBlockPrevious != NULL)
-   {
-      pxMemoryblock->pxMemoryblockPrevious = pxBlockPrevious;
-      pxBlockPrevious->pxMemoryblockNext   = pxMemoryblock;
-   }
-
-   ++pxMemory->ui32BlockCount;
    return(pxMemoryblock);
 }
 
@@ -537,7 +502,7 @@ static int32_t i32MemoryblockDestroy(Memory_t *pxMemory, Memoryblock_t *pxMemory
    int32_t i32Status = 0;
    if (pxMemoryblock == NULL || pxMemoryblock->pui8Buffer == NULL || !pxMemory->ui32BlockCount)
    {
-      i32Status = (-1);
+      i32Status = -1;
    }
    else
    {
@@ -577,10 +542,10 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
 
    if (0 == ui32BufferSize)
    {
-      return(-1);
+      i32Error = -1;
    }
 
-   if (pxMemory->pxMemoryblockHead == NULL)
+   else if (pxMemory->pxMemoryblockHead == NULL)
    {
       pxMemoryblock = pxMemoryblockCreate(pxMemory, NULL, NULL, ui32FullBlockAddress, ui32BufferSize, rui8Buffer);
       pxMemory->pxMemoryblockHead = pxMemoryblock;

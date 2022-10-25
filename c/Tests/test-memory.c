@@ -37,15 +37,16 @@
 
 typedef struct
 {
-   uint32_t ui32DestinationAddress;
+   uint32_t ui32Address;
    uint32_t ui32Size;
+   uint32_t ui32aaa;
    uint8_t *pui8Data;
-} TestAddMemory_t;
+} TestMemoryStructure_t;
 
 typedef struct
 {
    uint32_t ui32SourceAddress;
-   uint32_t ui32DestinationAddress;
+   uint32_t ui32Address;
    uint32_t ui32Size;
 } TestCopyMemory_t;
 
@@ -54,115 +55,136 @@ typedef struct
 uint8_t const array_rising[]    = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
 uint8_t const array_falling[]   = { 0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 };
 uint8_t const array_freebytes[] = { FB, FB, FB, FB, FB, FB, FB, FB, FB, FB, FB, FB, FB, FB, FB, FB, };
+uint8_t const array_zeroes[]    = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+uint8_t const arraz_ffs[]       = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
 // Add
-uint8_t rui8DumpAddTest0[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+uint8_t memory_test_expected0[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
 
-uint8_t rui8DumpAddTest1[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-                               0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+uint8_t memory_test_expected1[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+                                    0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
 
-uint8_t rui8DumpAddTest2[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-                               0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+uint8_t memory_test_expected2[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+                                    0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+
+uint8_t memory_test_expected3[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+
+uint8_t memory_test_expected4[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+
+uint8_t memory_test_expected5[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+
+uint8_t memory_test_expected6[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+
+uint8_t memory_test_expected7[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
+
+uint8_t memory_test_expected8[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                                    0xff, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
+
+uint8_t memory_test_expected9[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                                    0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                                    0xff, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
+
+TestMemoryStructure_t const array_add_expected[] = { { 0x100, sizeof(memory_test_expected0), 0, memory_test_expected0 },    //0
+                                                     { 0x100, sizeof(memory_test_expected1), 0, memory_test_expected1 },    //1
+                                                     { 0x100, sizeof(memory_test_expected2), 0, memory_test_expected2 },    //2
+                                                     { 0x100, sizeof(memory_test_expected3), 0, memory_test_expected3 },    //3
+                                                     { 0x100, sizeof(memory_test_expected4), 0, memory_test_expected4 },    //4
+                                                     {  0xa0, sizeof(memory_test_expected5), 0, memory_test_expected5 },    //5
+                                                     {  0xa0, sizeof(memory_test_expected6), 0, memory_test_expected6 },    //6
+                                                     {  0xa0, sizeof(memory_test_expected7), 0, memory_test_expected7 },    //7
+                                                     {  0xa0, sizeof(memory_test_expected8), 0, memory_test_expected8 },    //8
+                                                     {  0xa0, sizeof(memory_test_expected9), 0, memory_test_expected9 }, }; //9
+
+
+
+TestMemoryStructure_t const array_add_action[] = { { 0x100, 16, 0, array_rising     },   //0
+                                                   { 0x108, 16, 0, array_rising     },   //1
+                                                   { 0x120, 16, 0, array_rising     },   //2
+                                                   { 0x100, 16, 0, array_zeroes     },   //3
+                                                   { 0x110, 16, 0, array_zeroes     },   //4
+                                                   {  0xa0, 16, 0, array_rising     },   //5
+                                                   { 0x117,  1, 0, &array_rising[1] },   //6
+                                                   { 0x127,  7, 0, &array_rising[0] },   //7
+                                                   { 0x111, 16, 0, arraz_ffs        },   //8
+                                                   { 0x100, 16, 0, array_rising     } }; //9
+
+
+
+uint8_t array_copy_test0[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+
+uint8_t array_copy_test1[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
                                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
 
-uint8_t rui8DumpAddTest3[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
-
-uint8_t rui8DumpAddTest4[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
-
-uint8_t rui8DumpAddTest5[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
-
-uint8_t rui8DumpAddTest6[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
-
-uint8_t rui8DumpAddTest7[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
-
-uint8_t rui8DumpAddTest8[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-                               0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                               0xff, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
-
-uint8_t rui8DumpAddTest9[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+uint8_t array_copy_test2[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
                                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
-                               0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
-                               0xff, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
+                               0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
 
-Dump_t rxDumpAddExpected[] = { { 0x100, sizeof(rui8DumpAddTest0), 0, rui8DumpAddTest0 },    //0
-                               { 0x100, sizeof(rui8DumpAddTest1), 0, rui8DumpAddTest1 },    //1
-                               { 0x100, sizeof(rui8DumpAddTest2), 0, rui8DumpAddTest2 },    //2
-                               { 0x100, sizeof(rui8DumpAddTest3), 0, rui8DumpAddTest3 },    //3
-                               { 0x100, sizeof(rui8DumpAddTest4), 0, rui8DumpAddTest4 },    //4
-                               {  0xa0, sizeof(rui8DumpAddTest5), 0, rui8DumpAddTest5 },    //5
-                               {  0xa0, sizeof(rui8DumpAddTest6), 0, rui8DumpAddTest6 },    //6
-                               {  0xa0, sizeof(rui8DumpAddTest7), 0, rui8DumpAddTest7 },    //7
-                               {  0xa0, sizeof(rui8DumpAddTest8), 0, rui8DumpAddTest8 },    //8
-                               {  0xa0, sizeof(rui8DumpAddTest9), 0, rui8DumpAddTest9 }, }; //9
+TestMemoryStructure_t rxDumpCopyExpected[] = { { 0xa0, sizeof(array_copy_test0), 0, array_copy_test0 },
+                                               { 0xa0, sizeof(array_copy_test1), 0, array_copy_test1 },
+                                               { 0xa0, sizeof(array_copy_test2), 0, array_copy_test2 } }; //0
 
-uint8_t rui8TestArray[]                  = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
-uint8_t rui8TestArrayZeroes[]            = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-uint8_t rui8TestArrayFfs[]               = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-const TestAddMemory_t rxMemoryAddTests[] = { { 0x100, 16, rui8TestArray       },   //0
-                                             { 0x108, 16, rui8TestArray       },   //1
-                                             { 0x120, 16, rui8TestArray       },   //2
-                                             { 0x100, 16, rui8TestArrayZeroes },   //3
-                                             { 0x110, 16, rui8TestArrayZeroes },   //4
-                                             {  0xa0, 16, rui8TestArray       },   //5
-                                             { 0x117,  1, &rui8TestArray[1]   },   //6
-                                             { 0x127,  7, &rui8TestArray[0]   },   //7
-                                             { 0x111, 16, rui8TestArrayFfs    },   //8
-                                             { 0x100, 16, rui8TestArray       } }; //9
-// Copy
-uint8_t rui8DumpCopyTest0[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
-                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
-                                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
-                                0xff, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
-
-TestCopyMemory_t rxMemoryCopyTests[]  = { { 0x100, 0x110, 15 } };
-Dump_t           rxDumpCopyExpected[] = { { 0xa0, sizeof(rui8DumpCopyTest0), 0, rui8DumpCopyTest0 } }; //0
+uint8_t array_copy_action[][3] = { { 0x100, 0x160, 0x10 },
+                                   { 0x100, 0x170, 0x70 } };
 
 
-Dump_t *rpxDumpTest[2];
 
 /*****************************************************************************
  * @brief Unity Setup and Teardowns
@@ -480,16 +502,107 @@ void test07_MemoryisComparable()
 void test08_MemoryHasGaps()
 {
    #define T08_ARRAY_01    array_falling
-   #define T08_SIZE_01     sizeof(T08_SIZE_01)
+   #define T08_SIZE_01     sizeof(T08_ARRAY_01)
    #define T08_ARRAY_02    array_freebytes
    #define T08_SIZE_02     sizeof(T08_ARRAY_02)
+   #define T08_ARRAY_03    array_falling
+   #define T08_SIZE_03     1
+   #define T08_ADDR_01     100
+   #define T08_ADDR_02     (T08_ADDR_01 + T08_SIZE_02)
+   #define T08_ADDR_03     (T08_ADDR_01 + T08_SIZE_02 / 3)
+   #define T08_ADDR_04     (T08_ADDR_02 + T08_SIZE_02) - 1
 
 
+   Memory_t memory1;
+   Memory_t memory2;
+
+
+   // Init
+   vMemoryInitialize(&memory1);
+   vMemoryInitialize(&memory2);
+
+   // Prefill with free bytes and place data into the middle
+   int32_t status_add1 = i32MemoryAdd(&memory1, T08_ADDR_01, T08_SIZE_02, T08_ARRAY_02);
+   TEST_ASSERT(status_add1 == 0);
+   int32_t status_add2 = i32MemoryAdd(&memory1, T08_ADDR_02, T08_SIZE_02, T08_ARRAY_02);
+   TEST_ASSERT(status_add2 == 0);
+   int32_t status_add3 = i32MemoryAdd(&memory1, T08_ADDR_03, T08_SIZE_01, T08_ARRAY_01);
+   TEST_ASSERT(status_add3 == 0);
+
+   // Just place data
+   int32_t status_comp12 = i32MemoryAdd(&memory2, T08_ADDR_03, T08_SIZE_01, T08_ARRAY_01);
+   TEST_ASSERT(status_comp12 == 0);
+
+   // Should be equal
+   int32_t i32Status_comp1 = i32MemoryCompare(&memory1, &memory2, FB);
+   TEST_ASSERT(i32Status_comp1 == 0);
+   int32_t i32Status_comp2 = i32MemoryCompare(&memory2, &memory1, FB);
+   TEST_ASSERT(i32Status_comp2 == 0);
+
+   // Replace last byte by non-free byte value
+   int32_t status_add4 = i32MemoryAdd(&memory1, T08_ADDR_04, T08_SIZE_03, T08_ARRAY_03);
+   TEST_ASSERT(status_add4 == 0);
+   int32_t i32Status_comp3 = i32MemoryCompare(&memory2, &memory1, FB);
+   TEST_ASSERT(i32Status_comp3 != 0);
+   int32_t i32Status_comp4 = i32MemoryCompare(&memory1, &memory2, FB);
+   TEST_ASSERT(i32Status_comp4 != 0);
+
+   // Same changes, should be equal
+   int32_t status_add5 = i32MemoryAdd(&memory2, T08_ADDR_04, T08_SIZE_03, T08_ARRAY_03);
+   TEST_ASSERT(status_add5 == 0);
+   int32_t i32Status_comp5 = i32MemoryCompare(&memory1, &memory2, FB);
+   TEST_ASSERT(i32Status_comp5 == 0);
+
+
+   // Replace first byte by non-free byte value
+   i32MemoryPrint(&memory1);
+   i32MemoryPrint(&memory2);
+   int32_t status_add6 = i32MemoryAdd(&memory1, T08_ADDR_01, T08_SIZE_03, T08_ARRAY_03);
+   TEST_ASSERT(status_add6 == 0);
+   int32_t i32Status_comp6 = i32MemoryCompare(&memory1, &memory2, FB);
+   TEST_ASSERT(i32Status_comp6 != 0);
+   int32_t i32Status_comp7 = i32MemoryCompare(&memory2, &memory1, FB);
+   TEST_ASSERT(i32Status_comp7 != 0);
+   i32MemoryPrint(&memory1);
+   i32MemoryPrint(&memory2);
+
+   // Deinit
+   int32_t i32status1 = i32MemoryDeinitialize(&memory1);
+   TEST_ASSERT(i32status1 == 0);
+   int32_t i32status2 = i32MemoryDeinitialize(&memory2);
+   TEST_ASSERT(i32status2 == 0);
 
    #undef T08_ARRAY_01
    #undef T08_SIZE_01
    #undef T08_ARRAY_02
    #undef T08_SIZE_02
+}
+
+/*****************************************************************************
+ * @brief Tests for adding to memory
+ ******************************************************************************/
+void test09_MemoryAddTestsAreOkay()
+{
+   Memory_t memoryUnderTest;
+   Memory_t memoryExpected;
+
+   vMemoryInitialize(&memoryUnderTest);
+   for (uint32_t i = 0; i < SIZEOF(array_add_action); ++i)
+   {
+      int32_t i32status = i32MemoryAdd(&memoryUnderTest, array_add_action[i].ui32Address, array_add_action[i].ui32Size, array_add_action[i].pui8Data);
+      TEST_ASSERT(i32status == 0);
+
+      vMemoryInitialize(&memoryExpected);
+      int32_t i32status2 = i32MemoryAdd(&memoryExpected, array_add_expected[i].ui32Address, array_add_expected[i].ui32Size, array_add_expected[i].pui8Data);
+      TEST_ASSERT(i32status2 == 0);
+
+      int32_t i32status3 = i32MemoryCompare(&memoryUnderTest, &memoryExpected, FB);
+      TEST_ASSERT(i32status3 == 0);
+
+      i32MemoryDeinitialize(&memoryExpected);
+   }
+
+   i32MemoryDeinitialize(&memoryUnderTest);
 }
 
 /*****************************************************************************
@@ -505,68 +618,23 @@ void test0x_MemoryisGeneratingEqualDumps()
    Dump_t *dump = pxConvertMemoryToDump(&memory, freebyte);
 }
 
-void othertest()
+void test10_MemoryCopy()
 {
-   Memory_t xMemory;
-   uint8_t  ui8Error = FALSE;
+   Memory_t memoryUnderTest;
+   Memory_t memoryExpected;
 
-   vMemoryInitialize(&xMemory);
+   vMemoryInitialize(&memoryUnderTest);
 
-// Add test
-//------------------------------------------------------------------------------------------------------
-   for (uint32_t ui32LoopIndex = 0; ui32LoopIndex < SIZEOF(rxMemoryAddTests) && !ui8Error; ++ui32LoopIndex)
+
+   for (uint32_t i = 0; i < SIZEOF(array_copy_action); ++i)
    {
-      LogDebug("main ::vTestMemory: Test - Add[% d] : Writing % d bytes at % x ", ui32LoopIndex, rxMemoryAddTests[ui32LoopIndex].ui32Size, rxMemoryAddTests[ui32LoopIndex].ui32DestinationAddress);
-      i32MemoryAdd(&xMemory, rxMemoryAddTests[ui32LoopIndex].ui32DestinationAddress, rxMemoryAddTests[ui32LoopIndex].ui32Size, rxMemoryAddTests[ui32LoopIndex].pui8Data);
+      int32_t i32status1 = i32MemoryCopyRegion(&memoryUnderTest, array_copy_action[i][0], array_copy_action[i][1], array_copy_action[i][2]);
+      TEST_ASSERT(i32status1 == 0);
 
-      // Generate Dump
-      Dump_t *pxDump = pxConvertMemoryToDump(&xMemory, FB);
-      if (i32DumpCompare(&rxDumpAddExpected[ui32LoopIndex], pxDump))
-      {
-         ui8Error = TRUE;
-      }
-
-      //
-      if (ui8Error)
-      {
-         LogDebug("main ::vTestMemory: Test - Add[% d] NOK !", ui32LoopIndex);
-      }
-      else
-      {
-         LogDebug("main ::vTestMemory: Test - Add[% d] OK !", ui32LoopIndex);
-      }
-
-      i32MemoryPrint(&xMemory);
+      vMemoryInitialize(&memoryExpected);
    }
 
-// Copy test
-//------------------------------------------------------------------------------------------------------
-   for (uint32_t ui32LoopIndex = 0; ui32LoopIndex < SIZEOF(rxMemoryCopyTests) && !ui8Error; ++ui32LoopIndex)
-   {
-      LogDebug("main ::vTestMemory: Test - Copy[% d] : Copying % d bytes from % x to % x ", ui32LoopIndex, rxMemoryCopyTests[ui32LoopIndex].ui32Size, rxMemoryCopyTests[ui32LoopIndex].ui32SourceAddress, rxMemoryCopyTests[ui32LoopIndex].ui32DestinationAddress);
-      i32MemoryCopyRegion(&xMemory, rxMemoryCopyTests[ui32LoopIndex].ui32SourceAddress, rxMemoryCopyTests[ui32LoopIndex].ui32DestinationAddress, rxMemoryCopyTests[ui32LoopIndex].ui32Size);
-
-      // Generate Dump
-      Dump_t *pxDump = pxConvertMemoryToDump(&xMemory, FB);
-      if (i32DumpCompare(&rxDumpCopyExpected[ui32LoopIndex], pxDump))
-      {
-         ui8Error = TRUE;
-      }
-
-
-      if (ui8Error)
-      {
-         LogDebug("main ::vTestMemory: Test - Copy[% d] NOK !", ui32LoopIndex);
-      }
-      else
-      {
-         LogDebug("main ::vTestMemory: Test - Copy[% d] OK !", ui32LoopIndex);
-      }
-
-      i32MemoryPrint(&xMemory);
-   }
-
-   LogDebug("main ::vTestMemory: Testing Finished !\n ");
+   i32MemoryDeinitialize(&memoryUnderTest);
 }
 
 /*****************************************************************************
@@ -584,5 +652,7 @@ int main(int argc, char *argv[])
    RUN_TEST(test06_MemoryisPrintable, 0);
    RUN_TEST(test07_MemoryisComparable, 0);
    RUN_TEST(test08_MemoryHasGaps, 0);
+   RUN_TEST(test09_MemoryAddTestsAreOkay, 0);
+
    return(UnityEnd());
 }
