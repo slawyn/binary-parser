@@ -37,10 +37,10 @@
 
 typedef struct
 {
-   uint32_t ui32Address;
-   uint32_t ui32Size;
-   uint32_t ui32aaa;
-   uint8_t *pui8Data;
+   uint32_t       ui32Address;
+   uint32_t       ui32Size;
+   uint32_t       ui32aaa;
+   uint8_t const *pui8Data;
 } TestMemoryStructure_t;
 
 typedef struct
@@ -151,8 +151,15 @@ TestMemoryStructure_t const array_add_action[] = { { 0x100, 16, 0, array_rising 
                                                    { 0x100, 16, 0, array_rising     } }; //9
 
 
-
-uint8_t array_copy_test0[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+#define COPY_BASE    100
+uint8_t array_copy_base[]  = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
+uint8_t array_copy_test0[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                               0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
 
 uint8_t array_copy_test1[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
@@ -160,14 +167,6 @@ uint8_t array_copy_test1[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
-
-uint8_t array_copy_test2[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
-                               FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
                                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
                                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
@@ -177,12 +176,11 @@ uint8_t array_copy_test2[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,
                                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
 
-TestMemoryStructure_t rxDumpCopyExpected[] = { { 0xa0, sizeof(array_copy_test0), 0, array_copy_test0 },
-                                               { 0xa0, sizeof(array_copy_test1), 0, array_copy_test1 },
-                                               { 0xa0, sizeof(array_copy_test2), 0, array_copy_test2 } }; //0
+TestMemoryStructure_t array_copy_expected[] = { { COPY_BASE, sizeof(array_copy_test0), 0, array_copy_test0 },
+                                                { COPY_BASE, sizeof(array_copy_test1), 0, array_copy_test1 }, }; //0
 
-uint8_t array_copy_action[][3] = { { 0x100, 0x160, 0x10 },
-                                   { 0x100, 0x170, 0x70 } };
+uint8_t array_copy_action[][3] = { { COPY_BASE, COPY_BASE + 0x60, 0x10 },
+                                   { COPY_BASE, COPY_BASE + 0x70, 0x70 } };
 
 
 
@@ -249,7 +247,6 @@ void test02_MemoryHasFailedDeinitialization()
    Memory_t memory;
    vMemoryInitialize(&memory);
 
-
    int32_t i32statusadd1 = i32MemoryAdd(&memory, T02_ADDR_01, T02_SIZE_01, T02_ARRAY_01);
    TEST_ASSERT(i32statusadd1 == 0);
 
@@ -261,8 +258,6 @@ void test02_MemoryHasFailedDeinitialization()
    TEST_ASSERT(memory.pxMemoryblockTail != NULL);
    TEST_ASSERT(memory.ui32BaseAddress == 0);
    TEST_ASSERT(memory.ui32BlockCount == 2);
-
-
 
    // Missing Buffer
    // remove memory leak
@@ -507,7 +502,7 @@ void test08_MemoryHasGaps()
    #define T08_SIZE_02     sizeof(T08_ARRAY_02)
    #define T08_ARRAY_03    array_falling
    #define T08_SIZE_03     1
-   #define T08_ADDR_01     100
+   #define T08_ADDR_01     0xa0
    #define T08_ADDR_02     (T08_ADDR_01 + T08_SIZE_02)
    #define T08_ADDR_03     (T08_ADDR_01 + T08_SIZE_02 / 3)
    #define T08_ADDR_04     (T08_ADDR_02 + T08_SIZE_02) - 1
@@ -534,6 +529,8 @@ void test08_MemoryHasGaps()
    TEST_ASSERT(status_comp12 == 0);
 
    // Should be equal
+   i32MemoryPrint(&memory1);
+   i32MemoryPrint(&memory2);
    int32_t i32Status_comp1 = i32MemoryCompare(&memory1, &memory2, FB);
    TEST_ASSERT(i32Status_comp1 == 0);
    int32_t i32Status_comp2 = i32MemoryCompare(&memory2, &memory1, FB);
@@ -553,7 +550,6 @@ void test08_MemoryHasGaps()
    int32_t i32Status_comp5 = i32MemoryCompare(&memory1, &memory2, FB);
    TEST_ASSERT(i32Status_comp5 == 0);
 
-
    // Replace first byte by non-free byte value
    i32MemoryPrint(&memory1);
    i32MemoryPrint(&memory2);
@@ -563,8 +559,16 @@ void test08_MemoryHasGaps()
    TEST_ASSERT(i32Status_comp6 != 0);
    int32_t i32Status_comp7 = i32MemoryCompare(&memory2, &memory1, FB);
    TEST_ASSERT(i32Status_comp7 != 0);
+
+   int32_t status_add7 = i32MemoryAdd(&memory2, T08_ADDR_01, T08_SIZE_03, T08_ARRAY_03);
+   TEST_ASSERT(status_add7 == 0);
    i32MemoryPrint(&memory1);
    i32MemoryPrint(&memory2);
+
+   int32_t i32Status_comp8 = i32MemoryCompare(&memory2, &memory1, FB);
+   TEST_ASSERT(i32Status_comp8 == 0);
+
+
 
    // Deinit
    int32_t i32status1 = i32MemoryDeinitialize(&memory1);
@@ -596,10 +600,13 @@ void test09_MemoryAddTestsAreOkay()
       int32_t i32status2 = i32MemoryAdd(&memoryExpected, array_add_expected[i].ui32Address, array_add_expected[i].ui32Size, array_add_expected[i].pui8Data);
       TEST_ASSERT(i32status2 == 0);
 
+      i32MemoryPrint(&memoryUnderTest);
+      i32MemoryPrint(&memoryExpected);
       int32_t i32status3 = i32MemoryCompare(&memoryUnderTest, &memoryExpected, FB);
       TEST_ASSERT(i32status3 == 0);
 
-      i32MemoryDeinitialize(&memoryExpected);
+      int32_t i32status4 = i32MemoryDeinitialize(&memoryExpected);
+      TEST_ASSERT(i32status4 == 0);
    }
 
    i32MemoryDeinitialize(&memoryUnderTest);
@@ -618,20 +625,29 @@ void test0x_MemoryisGeneratingEqualDumps()
    Dump_t *dump = pxConvertMemoryToDump(&memory, freebyte);
 }
 
-void test10_MemoryCopy()
+void test10_MemoryCopyTestAreOkay()
 {
    Memory_t memoryUnderTest;
    Memory_t memoryExpected;
 
    vMemoryInitialize(&memoryUnderTest);
 
-
+   int32_t i32status0 = i32MemoryAdd(&memoryUnderTest, COPY_BASE, sizeof(array_copy_base), array_copy_base);
+   TEST_ASSERT(i32status0 == 0);
    for (uint32_t i = 0; i < SIZEOF(array_copy_action); ++i)
    {
       int32_t i32status1 = i32MemoryCopyRegion(&memoryUnderTest, array_copy_action[i][0], array_copy_action[i][1], array_copy_action[i][2]);
       TEST_ASSERT(i32status1 == 0);
 
       vMemoryInitialize(&memoryExpected);
+      int32_t i32status2 = i32MemoryAdd(&memoryExpected, array_copy_expected[i].ui32Address, array_copy_expected[i].ui32Size, array_copy_expected[i].pui8Data);
+      TEST_ASSERT(i32status2 == 0);
+
+      int32_t i32status3 = i32MemoryCompare(&memoryUnderTest, &memoryExpected, FB);
+      TEST_ASSERT(i32status3 == 0);
+
+      int32_t i32status4 = i32MemoryDeinitialize(&memoryExpected);
+      TEST_ASSERT(i32status4 == 0);
    }
 
    i32MemoryDeinitialize(&memoryUnderTest);
@@ -653,6 +669,6 @@ int main(int argc, char *argv[])
    RUN_TEST(test07_MemoryisComparable, 0);
    RUN_TEST(test08_MemoryHasGaps, 0);
    RUN_TEST(test09_MemoryAddTestsAreOkay, 0);
-
+   RUN_TEST(test10_MemoryCopyTestAreOkay, 0);
    return(UnityEnd());
 }
