@@ -1,22 +1,3 @@
-/*=======Test Runner Used To Run Each Test Below=====*/
-#define RUN_TEST(TestFunc, TestLineNum)          \
-   {                                             \
-      Unity.CurrentTestName       = #TestFunc;   \
-      Unity.CurrentTestLineNumber = TestLineNum; \
-      Unity.NumberOfTests++;                     \
-      if (TEST_PROTECT())                        \
-      {                                          \
-         setUp();                                \
-         TestFunc();                             \
-      }                                          \
-      if (TEST_PROTECT())                        \
-      {                                          \
-         tearDown();                             \
-      }                                          \
-      UnityConcludeTest();                       \
-   }
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,14 +6,21 @@
 #include "types.h"
 #include "misc/memory.h"
 #include "misc/file.h"
-#include "misc/helpers.h"
 #include "misc/dump.h"
-#include "misc/memory-converter.h"
+#include "misc/helpers.h"
 
-/* Unity */
+/* Includes Unity */
 #include "unity_config.h "
 #include "unity.h "
 
+#warning Need to override malloc!
+#define FB    (0xFE)
+
+PROTOTYPE int32_t i32MemoryRemoveBlock(Memory_t *pxMemory, Memoryblock_t *pxMemoryblock);
+PROTOTYPE int32_t i32MemoryFreeBlock(Memoryblock_t *pxMemoryblock);
+PROTOTYPE int32_t i32MemoryInsertBlock(Memory_t *pxMemory, Memoryblock_t *pxMemoryblockBase, Memoryblock_t *pxMemoryblock);
+PROTOTYPE Memoryblock_t * pxMemoryAllocateBlock(uint32_t ui32BlockAddress, uint32_t ui32BufferSize, uint8_t const rui8Buffer[]);
+PROTOTYPE int32_t i32MemoryUpdateBlock(Memoryblock_t *pxMemoryblock, uint32_t ui32BufferOffset, uint32_t ui32BufferSize, uint8_t const rui8Buffer[]);
 
 
 typedef struct
@@ -50,7 +38,6 @@ typedef struct
    uint32_t ui32Size;
 } TestCopyMemory_t;
 
-#define FB    (0xFE)
 
 uint8_t const array_rising[]    = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
 uint8_t const array_falling[]   = { 0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00 };
@@ -195,7 +182,8 @@ uint32_t array_del_action1[][2] = { {       0,       1 }, {       15,       16 }
                                     {  0 + 64,  1 + 64 }, {  15 + 64,  16 + 64 },
                                     {  0 + 80,  1 + 80 }, {  15 + 80,  16 + 80 },
                                     {  0 + 96,  1 + 96 }, {  15 + 96,  16 + 96 },
-                                    { 0 + 112, 1 + 112 }, { 15 + 112, 16 + 112 }, };
+                                    { 0 + 112, 1 + 112 }, { 15 + 112, 16 + 112 },
+                                    { 0 + 128, 1 + 128 }, { 15 + 128, 16 + 128 }, };
 
 
 /* For Copy Tests */
@@ -231,7 +219,6 @@ uint8_t array_copy_action[][3] = { { COPY_BASE, COPY_BASE + 0x60, 0x10 },
                                    { COPY_BASE, COPY_BASE + 0x70, 0x70 } };
 
 
-
 /*****************************************************************************
  * @brief Unity Setup and Teardowns
  ******************************************************************************/
@@ -246,30 +233,23 @@ void tearDown(void)
 /*****************************************************************************
  * @brief Tests for successful instatiation
  ******************************************************************************/
-void test01_MemoryisInitialized()
+void test00_MemoryisInitialized()
 {
    #define T01_ADDR_01     100
    #define T01_ARRAY_01    array_falling
    #define T01_SIZE_01     sizeof(array_falling)
 
    Memory_t memory;
-   vMemoryInitialize(&memory);
+   int32_t status = i32MemoryInitialize(&memory);
+   TEST_ASSERT(status == 0);
 
    TEST_ASSERT(memory.pxMemoryblockHead == NULL);
    TEST_ASSERT(memory.pxMemoryblockTail == NULL);
    TEST_ASSERT(memory.ui32BaseAddress == 0);
    TEST_ASSERT(memory.ui32BlockCount == 0);
 
-   int32_t i32statusadd1 = i32MemoryAdd(&memory, T01_ADDR_01, T01_SIZE_01, T01_ARRAY_01);
-   TEST_ASSERT(i32statusadd1 == 0);
-   TEST_ASSERT(memory.pxMemoryblockHead != NULL);
-   TEST_ASSERT(memory.pxMemoryblockTail != NULL);
-   TEST_ASSERT(memory.pxMemoryblockHead == memory.pxMemoryblockHead);
-   TEST_ASSERT(memory.ui32BaseAddress == 0);
-   TEST_ASSERT(memory.ui32BlockCount == 1);
-
-   int32_t i32status = i32MemoryDeinitialize(&memory);
-   TEST_ASSERT(i32status == 0);
+   status = i32MemoryDeinitialize(&memory);
+   TEST_ASSERT(status == 0);
    TEST_ASSERT(memory.pxMemoryblockHead == NULL);
    TEST_ASSERT(memory.pxMemoryblockTail == NULL);
    TEST_ASSERT(memory.ui32BaseAddress == 0);
@@ -278,6 +258,152 @@ void test01_MemoryisInitialized()
    #undef T01_ADDR_01
    #undef T01_ARRAY_01
    #undef T01_SIZE_01
+}
+
+/*****************************************************************************
+ * @brief Tests for Successfull Memoryblock creation
+ ******************************************************************************/
+void test01_MemoryBlockIsCreatable()
+{
+   #define T01_ADDR_01     100
+   #define T01_ARRAY_01    array_rising
+   #define T01_SIZE_01     10
+
+   #define T01_ADDR_02     101
+   #define T01_ARRAY_02    array_rising
+   #define T01_SIZE_02     1
+
+   #define T01_ADDR_03     101
+   #define T01_ARRAY_03    array_rising
+   #define T01_SIZE_03     0
+
+   #define T01_ADDR_04     101
+   #define T01_ARRAY_04    NULL
+   #define T01_SIZE_04     10
+
+   // 1.
+   Memoryblock_t * memory_block1 = pxMemoryAllocateBlock(T01_ADDR_01, T01_SIZE_01, T01_ARRAY_01);
+   TEST_ASSERT(memory_block1 != NULL);
+
+   Memoryblock_t *memory_block2 = pxMemoryAllocateBlock(T01_ADDR_02, T01_SIZE_02, T01_ARRAY_02);
+   TEST_ASSERT(memory_block2 != NULL);
+
+   Memoryblock_t *memory_block3 = pxMemoryAllocateBlock(T01_ADDR_03, T01_SIZE_03, T01_ARRAY_03);
+   TEST_ASSERT(memory_block3 == NULL);
+
+   Memoryblock_t *memory_block4 = pxMemoryAllocateBlock(T01_ADDR_04, T01_SIZE_04, T01_ARRAY_04);
+   TEST_ASSERT(memory_block4 == NULL);
+
+   int32_t status = i32MemoryFreeBlock(memory_block1);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryFreeBlock(memory_block2);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryFreeBlock(memory_block3);
+   TEST_ASSERT(status != 0);
+
+   status = i32MemoryFreeBlock(memory_block4);
+   TEST_ASSERT(status != 0);
+
+   #undef T01_ADDR_01
+   #undef T01_ARRAY_01
+   #undef T01_SIZE_01
+
+   #undef T01_ADDR_02
+   #undef T01_ARRAY_02
+   #undef T01_SIZE_02
+
+   #undef T01_ADDR_03
+   #undef T01_ARRAY_03
+   #undef T01_SIZE_03
+
+   #undef T01_ADDR_04
+   #undef T01_ARRAY_04
+   #undef T01_SIZE_04
+}
+
+void test01_1_MemoryblockIsInsertable()
+{
+   #define T01_01_ADDR_01     100
+   #define T01_01_ARRAY_01    array_rising
+   #define T01_01_SIZE_01     10
+
+   Memoryblock_t * memory_block1 = pxMemoryAllocateBlock(T01_01_ADDR_01, T01_01_SIZE_01, T01_01_ARRAY_01);
+   TEST_ASSERT(memory_block1 != NULL);
+
+   Memoryblock_t *memory_block2 = pxMemoryAllocateBlock(T01_01_ADDR_01, T01_01_SIZE_01, T01_01_ARRAY_01);
+   TEST_ASSERT(memory_block2 != NULL);
+
+   int32_t status = i32MemoryInsertBlock(NULL, NULL, NULL);
+   TEST_ASSERT(status != 0);
+
+   Memory_t memory;
+   status = i32MemoryInitialize(&memory);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryInsertBlock(&memory, NULL, NULL);
+   TEST_ASSERT(status != 0);
+
+   status = i32MemoryInsertBlock(&memory, memory_block1, NULL);
+   TEST_ASSERT(status != 0);
+
+   status = i32MemoryInsertBlock(&memory, NULL, NULL);
+   TEST_ASSERT(status != 0);
+
+   status = i32MemoryInsertBlock(&memory, NULL, memory_block1);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryInsertBlock(&memory, memory_block1, memory_block2);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryRemoveBlock(&memory, memory_block1);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryRemoveBlock(&memory, memory_block2);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryDeinitialize(&memory);
+   TEST_ASSERT(status == 0);
+
+   #undef T01_01_ADDR_01
+   #undef T01_01_ARRAY_01
+   #undef T01_01_SIZE_01
+}
+
+void test01_2_MemoryblockIsUpdatable()
+{
+   #define T01_02_ADDR_01     100
+   #define T01_02_ARRAY_01    array_rising
+   #define T01_02_SIZE_01     10
+
+   #define T01_02_OFF_02      1
+   #define T01_02_ARRAY_02    array_falling
+   #define T01_02_SIZE_02     9
+
+   Memoryblock_t * memory_block1 = pxMemoryAllocateBlock(T01_02_ADDR_01, T01_02_SIZE_01, T01_02_ARRAY_01);
+   TEST_ASSERT(memory_block1 != NULL);
+
+
+   int32_t status = i32MemoryUpdateBlock(memory_block1, T01_02_OFF_02, T01_02_SIZE_02, T01_02_ARRAY_02);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryUpdateBlock(memory_block1, T01_02_OFF_02 + 1, T01_02_SIZE_02, T01_02_ARRAY_02);
+   TEST_ASSERT(status != 0);
+
+   status = memcmp(&memory_block1->pui8Buffer[T01_02_OFF_02], T01_02_ARRAY_02, T01_02_SIZE_02);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryFreeBlock(memory_block1);
+   TEST_ASSERT(status == 0);
+
+   #undef T01_02_ADDR_01
+   #undef T01_02_ARRAY_01
+   #undef T01_02_SIZE_01
+
+   #undef T01_02_OFF_02
+   #undef T01_02_ARRAY_02
+   #undef T01_02_SIZE_02
 }
 
 /*****************************************************************************
@@ -293,13 +419,14 @@ void test02_MemoryHasFailedDeinitialization()
    #define T02_SIZE_02     sizeof(T02_ARRAY_02)
 
    Memory_t memory;
-   vMemoryInitialize(&memory);
+   int32_t status = i32MemoryInitialize(&memory);
+   TEST_ASSERT(status == 0);
 
-   int32_t i32statusadd1 = i32MemoryAdd(&memory, T02_ADDR_01, T02_SIZE_01, T02_ARRAY_01);
-   TEST_ASSERT(i32statusadd1 == 0);
+   status = i32MemoryAdd(&memory, T02_ADDR_01, T02_SIZE_01, T02_ARRAY_01);
+   TEST_ASSERT(status == 0);
 
-   int32_t i32statusadd2 = i32MemoryAdd(&memory, T02_ADDR_02, T02_SIZE_02, T02_ARRAY_02);
-   TEST_ASSERT(i32statusadd2 == 0);
+   status = i32MemoryAdd(&memory, T02_ADDR_02, T02_SIZE_02, T02_ARRAY_02);
+   TEST_ASSERT(status == 0);
 
 
    TEST_ASSERT(memory.pxMemoryblockHead != NULL);
@@ -311,8 +438,8 @@ void test02_MemoryHasFailedDeinitialization()
    // remove memory leak
    free(memory.pxMemoryblockTail->pui8Buffer);
    memory.pxMemoryblockTail->pui8Buffer = NULL;
-   int32_t i32status1 = i32MemoryDeinitialize(&memory);
-   TEST_ASSERT(i32status1 != 0);
+   status = i32MemoryDeinitialize(&memory);
+   TEST_ASSERT(status != 0);
    free(memory.pxMemoryblockTail);
    memory.pxMemoryblockTail = NULL;
 
@@ -321,8 +448,8 @@ void test02_MemoryHasFailedDeinitialization()
    free(memory.pxMemoryblockHead->pui8Buffer);
    free(memory.pxMemoryblockHead);
    memory.pxMemoryblockHead = NULL;
-   int32_t i32status2 = i32MemoryDeinitialize(&memory);
-   TEST_ASSERT(i32status2 != 0);
+   status = i32MemoryDeinitialize(&memory);
+   TEST_ASSERT(status != 0);
 
    #undef T02_ADDR_01
    #undef T02_ARRAY_01
@@ -338,15 +465,16 @@ void test02_MemoryHasFailedDeinitialization()
 void test03_MemorySizeIsZero()
 {
    Memory_t memory;
-   vMemoryInitialize(&memory);
+   int32_t  status = i32MemoryInitialize(&memory);
+   TEST_ASSERT(status == 0);
 
    uint32_t size = ui32MemoryGetTotalSize(&memory);
    TEST_ASSERT(size == 0);
 
    ++memory.ui32BlockCount;
 
-   int32_t i32status = i32MemoryDeinitialize(&memory);
-   TEST_ASSERT(i32status != 0);
+   status = i32MemoryDeinitialize(&memory);
+   TEST_ASSERT(status != 0);
 }
 
 /*****************************************************************************
@@ -359,16 +487,17 @@ void test04_MemorySizeIsOneBlock()
    #define T04_ADDR_01     0
 
    Memory_t memory;
-   vMemoryInitialize(&memory);
+   int32_t status = i32MemoryInitialize(&memory);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_add = i32MemoryAdd(&memory, T04_ADDR_01, T04_SIZE_01, T04_ARRAY_01);
-   TEST_ASSERT(status_add == 0);
+   status = i32MemoryAdd(&memory, T04_ADDR_01, T04_SIZE_01, T04_ARRAY_01);
+   TEST_ASSERT(status == 0);
 
    uint32_t size = ui32MemoryGetTotalSize(&memory);
    TEST_ASSERT(size == T04_SIZE_01);
 
-   int32_t i32status = i32MemoryDeinitialize(&memory);
-   TEST_ASSERT(i32status == 0);
+   status = i32MemoryDeinitialize(&memory);
+   TEST_ASSERT(status == 0);
 
    #undef T04_ARRAY_01
    #undef T04_SIZE_01
@@ -389,19 +518,20 @@ void test05_MemorySizeIsTwoBlocks()
    #define T05_RESULT      (T05_ADDR_02 - T05_ADDR_01 + T05_SIZE_02)
 
    Memory_t memory;
-   vMemoryInitialize(&memory);
+   int32_t status = i32MemoryInitialize(&memory);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_add = i32MemoryAdd(&memory, T05_ADDR_01, T05_SIZE_01, T05_ARRAY_01);
-   TEST_ASSERT(status_add == 0);
+   status = i32MemoryAdd(&memory, T05_ADDR_01, T05_SIZE_01, T05_ARRAY_01);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_add2 = i32MemoryAdd(&memory, T05_ADDR_02, T05_SIZE_02, T05_ARRAY_01);
-   TEST_ASSERT(status_add2 == 0);
+   status = i32MemoryAdd(&memory, T05_ADDR_02, T05_SIZE_02, T05_ARRAY_01);
+   TEST_ASSERT(status == 0);
 
    uint32_t size = ui32MemoryGetTotalSize(&memory);
    TEST_ASSERT(size == (T05_RESULT));
 
-   int32_t i32status = i32MemoryDeinitialize(&memory);
-   TEST_ASSERT(i32status == 0);
+   status = i32MemoryDeinitialize(&memory);
+   TEST_ASSERT(status == 0);
 
    #undef T05_ARRAY_01
    #undef T05_SIZE_01
@@ -422,25 +552,26 @@ void test06_MemoryisPrintable()
    #define T06_ADDR_01     0
 
    Memory_t memory;
-   vMemoryInitialize(&memory);
+   int32_t status = i32MemoryInitialize(&memory);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_add = i32MemoryAdd(&memory, T06_ADDR_01, T06_SIZE_01, T06_ARRAY_01);
-   TEST_ASSERT(status_add == 0);
+   status = i32MemoryAdd(&memory, T06_ADDR_01, T06_SIZE_01, T06_ARRAY_01);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_print1 = i32MemoryPrint(&memory);
-   TEST_ASSERT(status_print1 == 0);
+   status = i32MemoryPrint(&memory);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_print2 = i32MemoryPrint(NULL);
-   TEST_ASSERT(status_print2 != 0);
+   status = i32MemoryPrint(NULL);
+   TEST_ASSERT(status != 0);
 
-   int32_t status_del = i32MemoryDeleteRegion(&memory, T06_ADDR_01, T06_ADDR_01 + T06_SIZE_01);
-   TEST_ASSERT(status_del == 0);
+   status = i32MemoryDeleteRegion(&memory, T06_ADDR_01, T06_ADDR_01 + T06_SIZE_01);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_print3 = i32MemoryPrint(&memory);
-   TEST_ASSERT(status_print3 == 0);
+   status = i32MemoryPrint(&memory);
+   TEST_ASSERT(status == 0);
 
-   int32_t i32status = i32MemoryDeinitialize(&memory);
-   TEST_ASSERT(i32status == 0);
+   status = i32MemoryDeinitialize(&memory);
+   TEST_ASSERT(status == 0);
 
    #undef T06_ARRAY_01
    #undef T06_SIZE_01
@@ -469,29 +600,36 @@ void test07_MemoryisComparable()
    Memory_t memory3;
    Memory_t memory4;
 
-   vMemoryInitialize(&memory1);
-   vMemoryInitialize(&memory2);
-   vMemoryInitialize(&memory3);
-   vMemoryInitialize(&memory4);
+   int32_t status = i32MemoryInitialize(&memory1);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_add = i32MemoryAdd(&memory1, T07_ADDR_01, T07_SIZE_01, T07_ARRAZ_01);
-   TEST_ASSERT(status_add == 0);
+   status = i32MemoryInitialize(&memory2);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_add2 = i32MemoryAdd(&memory4, T07_ADDR_01, (T07_SIZE_01 - 1), T07_ARRAZ_01);
-   TEST_ASSERT(status_add2 == 0);
+   status = i32MemoryInitialize(&memory3);
+   TEST_ASSERT(status == 0);
 
-   int32_t i32Status_comp0 = i32MemoryCompare(&memory1, &memory4, FB);
-   TEST_ASSERT(i32Status_comp0 != 0);
+   status = i32MemoryInitialize(&memory4);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryAdd(&memory1, T07_ADDR_01, T07_SIZE_01, T07_ARRAZ_01);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryAdd(&memory4, T07_ADDR_01, (T07_SIZE_01 - 1), T07_ARRAZ_01);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryCompare(&memory1, &memory4, FB);
+   TEST_ASSERT(status != 0);
 
    // add ary and unary
    int32_t i = T07_SIZE_02 % 2;
    while (i < T07_SIZE_02)
    {
-      int32_t status_add = i32MemoryAdd(&memory2, T07_ADDR_02 + i, 1, &T07_ARRAZ_01[i]);
-      TEST_ASSERT(status_add == 0);
+      status = i32MemoryAdd(&memory2, T07_ADDR_02 + i, 1, &T07_ARRAZ_01[i]);
+      TEST_ASSERT(status == 0);
 
-      int32_t status_add2 = i32MemoryAdd(&memory3, T07_ADDR_03 + i, 1, &T07_ARRAZ_03[i]);
-      TEST_ASSERT(status_add2 == 0);
+      status = i32MemoryAdd(&memory3, T07_ADDR_03 + i, 1, &T07_ARRAZ_03[i]);
+      TEST_ASSERT(status == 0);
 
       i += 2;
       if (i == T07_SIZE_02)
@@ -499,34 +637,32 @@ void test07_MemoryisComparable()
          i = ((T07_SIZE_02 % 2) + 1) % T07_SIZE_02;
       }
    }
+   status = i32MemoryCompare(&memory1, &memory2, FB);
+   TEST_ASSERT(status == 0);
 
-   int32_t i32Status_comp1 = i32MemoryCompare(&memory1, &memory2, FB);
-   TEST_ASSERT(i32Status_comp1 == 0);
+   status = i32MemoryCompare(NULL, &memory2, FB);
+   TEST_ASSERT(status != 0);
 
-   // NULL Checks
-   int32_t i32Status_comp2 = i32MemoryCompare(NULL, &memory2, FB);
-   TEST_ASSERT(i32Status_comp2 != 0);
+   status = i32MemoryCompare(&memory1, NULL, FB);
+   TEST_ASSERT(status != 0);
 
-   int32_t i32Status_comp3 = i32MemoryCompare(&memory1, NULL, FB);
-   TEST_ASSERT(i32Status_comp3 != 0);
+   status = i32MemoryCompare(NULL, NULL, FB);
+   TEST_ASSERT(status != 0);
 
-   int32_t i32Status_comp4 = i32MemoryCompare(NULL, NULL, FB);
-   TEST_ASSERT(i32Status_comp4 != 0);
+   status = i32MemoryCompare(&memory2, &memory3, FB);
+   TEST_ASSERT(status != 0);
 
-   int32_t i32Status_comp5 = i32MemoryCompare(&memory2, &memory3, FB);
-   TEST_ASSERT(i32Status_comp5 != 0);
+   status = i32MemoryDeinitialize(&memory1);
+   TEST_ASSERT(status == 0);
 
-   int32_t i32status1 = i32MemoryDeinitialize(&memory1);
-   TEST_ASSERT(i32status1 == 0);
+   status = i32MemoryDeinitialize(&memory2);
+   TEST_ASSERT(status == 0);
 
-   int32_t i32status2 = i32MemoryDeinitialize(&memory2);
-   TEST_ASSERT(i32status2 == 0);
+   status = i32MemoryDeinitialize(&memory3);
+   TEST_ASSERT(status == 0);
 
-   int32_t i32status3 = i32MemoryDeinitialize(&memory3);
-   TEST_ASSERT(i32status3 == 0);
-
-   int32_t i32status4 = i32MemoryDeinitialize(&memory4);
-   TEST_ASSERT(i32status4 == 0);
+   status = i32MemoryDeinitialize(&memory4);
+   TEST_ASSERT(status == 0);
 
    #undef T07_ARRAZ_01
    #undef T07_SIZE_01
@@ -561,68 +697,64 @@ void test08_MemoryHasGaps()
 
 
    // Init
-   vMemoryInitialize(&memory1);
-   vMemoryInitialize(&memory2);
+   int32_t status = i32MemoryInitialize(&memory1);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryInitialize(&memory2);
+   TEST_ASSERT(status == 0);
 
    // Prefill with free bytes and place data into the middle
-   int32_t status_add1 = i32MemoryAdd(&memory1, T08_ADDR_01, T08_SIZE_02, T08_ARRAY_02);
-   TEST_ASSERT(status_add1 == 0);
-   int32_t status_add2 = i32MemoryAdd(&memory1, T08_ADDR_02, T08_SIZE_02, T08_ARRAY_02);
-   TEST_ASSERT(status_add2 == 0);
-   int32_t status_add3 = i32MemoryAdd(&memory1, T08_ADDR_03, T08_SIZE_01, T08_ARRAY_01);
-   TEST_ASSERT(status_add3 == 0);
+   status = i32MemoryAdd(&memory1, T08_ADDR_01, T08_SIZE_02, T08_ARRAY_02);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryAdd(&memory1, T08_ADDR_02, T08_SIZE_02, T08_ARRAY_02);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryAdd(&memory1, T08_ADDR_03, T08_SIZE_01, T08_ARRAY_01);
+   TEST_ASSERT(status == 0);
 
    // Just place data
-   int32_t status_comp12 = i32MemoryAdd(&memory2, T08_ADDR_03, T08_SIZE_01, T08_ARRAY_01);
-   TEST_ASSERT(status_comp12 == 0);
+   status = i32MemoryAdd(&memory2, T08_ADDR_03, T08_SIZE_01, T08_ARRAY_01);
+   TEST_ASSERT(status == 0);
 
    // Should be equal
-   i32MemoryPrint(&memory1);
-   i32MemoryPrint(&memory2);
-   int32_t i32Status_comp1 = i32MemoryCompare(&memory1, &memory2, FB);
-   TEST_ASSERT(i32Status_comp1 == 0);
-   int32_t i32Status_comp2 = i32MemoryCompare(&memory2, &memory1, FB);
-   TEST_ASSERT(i32Status_comp2 == 0);
+   status = i32MemoryCompare(&memory1, &memory2, FB);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryCompare(&memory2, &memory1, FB);
+   TEST_ASSERT(status == 0);
 
    // Replace last byte by non-free byte value
-   int32_t status_add4 = i32MemoryAdd(&memory1, T08_ADDR_04, T08_SIZE_03, T08_ARRAY_03);
-   TEST_ASSERT(status_add4 == 0);
-   int32_t i32Status_comp3 = i32MemoryCompare(&memory2, &memory1, FB);
-   TEST_ASSERT(i32Status_comp3 != 0);
-   int32_t i32Status_comp4 = i32MemoryCompare(&memory1, &memory2, FB);
-   TEST_ASSERT(i32Status_comp4 != 0);
+   status = i32MemoryAdd(&memory1, T08_ADDR_04, T08_SIZE_03, T08_ARRAY_03);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryCompare(&memory2, &memory1, FB);
+   TEST_ASSERT(status != 0);
+   status = i32MemoryCompare(&memory1, &memory2, FB);
+   TEST_ASSERT(status != 0);
 
    // Same changes, should be equal
-   int32_t status_add5 = i32MemoryAdd(&memory2, T08_ADDR_04, T08_SIZE_03, T08_ARRAY_03);
-   TEST_ASSERT(status_add5 == 0);
-   int32_t i32Status_comp5 = i32MemoryCompare(&memory1, &memory2, FB);
-   TEST_ASSERT(i32Status_comp5 == 0);
+   status = i32MemoryAdd(&memory2, T08_ADDR_04, T08_SIZE_03, T08_ARRAY_03);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryCompare(&memory1, &memory2, FB);
+   TEST_ASSERT(status == 0);
 
    // Replace first byte by non-free byte value
-   i32MemoryPrint(&memory1);
-   i32MemoryPrint(&memory2);
-   int32_t status_add6 = i32MemoryAdd(&memory1, T08_ADDR_01, T08_SIZE_03, T08_ARRAY_03);
-   TEST_ASSERT(status_add6 == 0);
-   int32_t i32Status_comp6 = i32MemoryCompare(&memory1, &memory2, FB);
-   TEST_ASSERT(i32Status_comp6 != 0);
-   int32_t i32Status_comp7 = i32MemoryCompare(&memory2, &memory1, FB);
-   TEST_ASSERT(i32Status_comp7 != 0);
+   status = i32MemoryAdd(&memory1, T08_ADDR_01, T08_SIZE_03, T08_ARRAY_03);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryCompare(&memory1, &memory2, FB);
+   TEST_ASSERT(status != 0);
+   status = i32MemoryCompare(&memory2, &memory1, FB);
+   TEST_ASSERT(status != 0);
 
-   int32_t status_add7 = i32MemoryAdd(&memory2, T08_ADDR_01, T08_SIZE_03, T08_ARRAY_03);
-   TEST_ASSERT(status_add7 == 0);
-   i32MemoryPrint(&memory1);
-   i32MemoryPrint(&memory2);
+   status = i32MemoryAdd(&memory2, T08_ADDR_01, T08_SIZE_03, T08_ARRAY_03);
+   TEST_ASSERT(status == 0);
 
-   int32_t i32Status_comp8 = i32MemoryCompare(&memory2, &memory1, FB);
-   TEST_ASSERT(i32Status_comp8 == 0);
-
+   status = i32MemoryCompare(&memory2, &memory1, FB);
+   TEST_ASSERT(status == 0);
 
 
    // Deinit
-   int32_t i32status1 = i32MemoryDeinitialize(&memory1);
-   TEST_ASSERT(i32status1 == 0);
-   int32_t i32status2 = i32MemoryDeinitialize(&memory2);
-   TEST_ASSERT(i32status2 == 0);
+   status = i32MemoryDeinitialize(&memory1);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryDeinitialize(&memory2);
+   TEST_ASSERT(status == 0);
 
    #undef T08_ARRAY_01
    #undef T08_SIZE_01
@@ -638,21 +770,24 @@ void test09_MemoryAddTestsAreOkay()
    Memory_t memoryUnderTest;
    Memory_t memoryExpected;
 
-   vMemoryInitialize(&memoryUnderTest);
+   int32_t status = i32MemoryInitialize(&memoryUnderTest);
+   TEST_ASSERT(status == 0);
    for (uint32_t i = 0; i < SIZEOF(array_add_action); ++i)
    {
-      int32_t i32status = i32MemoryAdd(&memoryUnderTest, array_add_action[i].ui32Address, array_add_action[i].ui32Size, array_add_action[i].pui8Data);
-      TEST_ASSERT(i32status == 0);
+      status = i32MemoryAdd(&memoryUnderTest, array_add_action[i].ui32Address, array_add_action[i].ui32Size, array_add_action[i].pui8Data);
+      TEST_ASSERT(status == 0);
 
-      vMemoryInitialize(&memoryExpected);
-      int32_t i32status2 = i32MemoryAdd(&memoryExpected, array_add_expected[i].ui32Address, array_add_expected[i].ui32Size, array_add_expected[i].pui8Data);
-      TEST_ASSERT(i32status2 == 0);
+      status = i32MemoryInitialize(&memoryExpected);
+      TEST_ASSERT(status == 0);
 
-      int32_t i32status3 = i32MemoryCompare(&memoryUnderTest, &memoryExpected, FB);
-      TEST_ASSERT(i32status3 == 0);
+      status = i32MemoryAdd(&memoryExpected, array_add_expected[i].ui32Address, array_add_expected[i].ui32Size, array_add_expected[i].pui8Data);
+      TEST_ASSERT(status == 0);
 
-      int32_t i32status4 = i32MemoryDeinitialize(&memoryExpected);
-      TEST_ASSERT(i32status4 == 0);
+      status = i32MemoryCompare(&memoryUnderTest, &memoryExpected, FB);
+      TEST_ASSERT(status == 0);
+
+      status = i32MemoryDeinitialize(&memoryExpected);
+      TEST_ASSERT(status == 0);
    }
 
    i32MemoryDeinitialize(&memoryUnderTest);
@@ -663,42 +798,44 @@ void test10_MemoryDeleteTestsAreOkay()
    Memory_t memoryUnderTest;
    Memory_t memoryExpected;
 
-   vMemoryInitialize(&memoryUnderTest);
-   int32_t status = i32MemoryAdd(&memoryUnderTest, 0, sizeof(memory_del_base), memory_del_base);
+   int32_t status = i32MemoryInitialize(&memoryUnderTest);
    TEST_ASSERT(status == 0);
 
+   status = i32MemoryAdd(&memoryUnderTest, 0, sizeof(memory_del_base), memory_del_base);
+   TEST_ASSERT(status == 0);
+
+   // 1st
    for (int32_t i = 0; i < SIZEOF(array_del_action0); ++i)
    {
-      int32_t statusx = i32MemoryDeleteRegion(&memoryUnderTest, array_del_action0[i][0], array_del_action0[i][1]);
-      TEST_ASSERT(statusx == 0);
-      i32MemoryPrint(&memoryUnderTest);
+      status = i32MemoryDeleteRegion(&memoryUnderTest, array_del_action0[i][0], array_del_action0[i][1]);
+      TEST_ASSERT(status == 0);
    }
 
-   vMemoryInitialize(&memoryExpected);
-   int32_t status0 = i32MemoryAdd(&memoryExpected, 0, sizeof(memory_del_expected0), memory_del_expected0);
-   TEST_ASSERT(status0 == 0);
-   int32_t statusx0 = i32MemoryDeleteRegion(&memoryExpected, 0, sizeof(memory_del_expected0));
-   TEST_ASSERT(statusx0 == 0);
+   status = i32MemoryInitialize(&memoryExpected);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryAdd(&memoryExpected, 0, sizeof(memory_del_expected0), memory_del_expected0);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryDeleteRegion(&memoryExpected, 0, sizeof(memory_del_expected0));
+   TEST_ASSERT(status == 0);
 
+   // 2nd
    for (int32_t i = 0; i < SIZEOF(array_del_action1); ++i)
    {
-      int32_t statusx = i32MemoryDeleteRegion(&memoryUnderTest, array_del_action1[i][0], array_del_action1[i][1]);
-      TEST_ASSERT(statusx == 0);
-      i32MemoryPrint(&memoryUnderTest);
+      status = i32MemoryDeleteRegion(&memoryUnderTest, array_del_action1[i][0], array_del_action1[i][1]);
+      TEST_ASSERT(status == 0);
    }
+   status = i32MemoryInitialize(&memoryExpected);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryAdd(&memoryExpected, 0, sizeof(memory_del_expected1), memory_del_expected1);
+   TEST_ASSERT(status == 0);
+   status = i32MemoryDeleteRegion(&memoryExpected, 0, sizeof(memory_del_expected1));
+   TEST_ASSERT(status == 0);
 
 
-   vMemoryInitialize(&memoryExpected);
-   int32_t status1 = i32MemoryAdd(&memoryExpected, 0, sizeof(memory_del_expected1), memory_del_expected1);
-   TEST_ASSERT(status1 == 0);
-   int32_t statusx1 = i32MemoryDeleteRegion(&memoryExpected, 0, sizeof(memory_del_expected1));
-   TEST_ASSERT(statusx1 == 0);
-
-
-   int32_t i32status3 = i32MemoryCompare(&memoryUnderTest, &memoryExpected, FB);
-   TEST_ASSERT(i32status3 == 0);
-   int32_t i32status4 = i32MemoryDeinitialize(&memoryExpected);
-   TEST_ASSERT(i32status4 == 0);
+   status = i32MemoryCompare(&memoryUnderTest, &memoryExpected, FB);
+   TEST_ASSERT(status != 0);
+   status = i32MemoryDeinitialize(&memoryExpected);
+   TEST_ASSERT(status == 0);
 }
 
 void test11_MemoryCopyTestAreOkay()
@@ -706,24 +843,27 @@ void test11_MemoryCopyTestAreOkay()
    Memory_t memoryUnderTest;
    Memory_t memoryExpected;
 
-   vMemoryInitialize(&memoryUnderTest);
+   int32_t status = i32MemoryInitialize(&memoryUnderTest);
+   TEST_ASSERT(status == 0);
 
    int32_t i32status0 = i32MemoryAdd(&memoryUnderTest, COPY_BASE, sizeof(array_copy_base), array_copy_base);
    TEST_ASSERT(i32status0 == 0);
    for (uint32_t i = 0; i < SIZEOF(array_copy_action); ++i)
    {
-      int32_t i32status1 = i32MemoryCopyRegion(&memoryUnderTest, array_copy_action[i][0], array_copy_action[i][1], array_copy_action[i][2]);
-      TEST_ASSERT(i32status1 == 0);
+      status = i32MemoryCopyRegion(&memoryUnderTest, array_copy_action[i][0], array_copy_action[i][1], array_copy_action[i][2]);
+      TEST_ASSERT(status == 0);
 
-      vMemoryInitialize(&memoryExpected);
-      int32_t i32status2 = i32MemoryAdd(&memoryExpected, array_copy_expected[i].ui32Address, array_copy_expected[i].ui32Size, array_copy_expected[i].pui8Data);
-      TEST_ASSERT(i32status2 == 0);
+      status = i32MemoryInitialize(&memoryExpected);
+      TEST_ASSERT(status == 0);
 
-      int32_t i32status3 = i32MemoryCompare(&memoryUnderTest, &memoryExpected, FB);
-      TEST_ASSERT(i32status3 == 0);
+      status = i32MemoryAdd(&memoryExpected, array_copy_expected[i].ui32Address, array_copy_expected[i].ui32Size, array_copy_expected[i].pui8Data);
+      TEST_ASSERT(status == 0);
 
-      int32_t i32status4 = i32MemoryDeinitialize(&memoryExpected);
-      TEST_ASSERT(i32status4 == 0);
+      status = i32MemoryCompare(&memoryUnderTest, &memoryExpected, FB);
+      TEST_ASSERT(status == 0);
+
+      status = i32MemoryDeinitialize(&memoryExpected);
+      TEST_ASSERT(status == 0);
    }
 
    i32MemoryDeinitialize(&memoryUnderTest);
@@ -736,10 +876,11 @@ void test0x_MemoryisGeneratingEqualDumps()
 {
    uint8_t  freebyte = 0xAA;
    Memory_t memory;
-   vMemoryInitialize(&memory);
 
+   int32_t status = i32MemoryInitialize(&memory);
+   TEST_ASSERT(status == 0);
 
-   Dump_t *dump = pxConvertMemoryToDump(&memory, freebyte);
+   //Dump_t *dump = pxConvertMemoryToDump(&memory, freebyte);
 }
 
 /*****************************************************************************
@@ -749,7 +890,10 @@ void test0x_MemoryisGeneratingEqualDumps()
 int main(int argc, char *argv[])
 {
    UnityBegin(__BASE_FILE__);
-   RUN_TEST(test01_MemoryisInitialized, 0);
+   RUN_TEST(test00_MemoryisInitialized, 0);
+   RUN_TEST(test01_MemoryBlockIsCreatable, 0);
+   RUN_TEST(test01_1_MemoryblockIsInsertable, 0);
+   RUN_TEST(test01_2_MemoryblockIsUpdatable, 0);
    RUN_TEST(test02_MemoryHasFailedDeinitialization, 0);
    RUN_TEST(test03_MemorySizeIsZero, 0);
    RUN_TEST(test04_MemorySizeIsOneBlock, 0);
@@ -759,6 +903,6 @@ int main(int argc, char *argv[])
    RUN_TEST(test08_MemoryHasGaps, 0);
    RUN_TEST(test09_MemoryAddTestsAreOkay, 0);
    RUN_TEST(test10_MemoryDeleteTestsAreOkay, 0);
-   RUN_TEST(test11_MemoryCopyTestAreOkay, 0);
+   //RUN_TEST(test11_MemoryCopyTestAreOkay, 0);
    return(UnityEnd());
 }

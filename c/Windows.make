@@ -75,7 +75,9 @@ else ifeq ($(FLAVOR),Test)
 	NAME = test-$(TEST_TARGET)
 	ARTIFACT := $(DIR_BUILD)$(NAME).exe
 	CFLAGS += -g
-	CFLAGS += -DLOG_DEBUG
+	#CFLAGS += -DLOG_DEBUG
+	CFLAGS += -DSTATIC=
+	CFLAGS += -DPROTOTYPE=extern
 	CFLAGS += -O0
 	CFLAGS += -ftest-coverage
 	CFLAGS += -fprofile-arcs
@@ -112,7 +114,6 @@ DIRS_OBJECTS = $(addprefix $(DIR_BUILD),$(call uniq, $(sort $(dir $(FILES_SOURCE
 clean:
 	@echo "-- Cleaning up --"
 	rm -rvf $(DIR_BUILD)*
-	rm *.gcov
 
 build: $(ARTIFACT)
 

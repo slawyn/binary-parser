@@ -78,11 +78,10 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
 {
    uint32_t ui32Temp;
    uint16_t ui16Address;
-
-   uint8_t ui8ByteCount;
-   uint8_t ui8RecordType;
-   uint8_t ui8ByteIndex;
-   uint8_t ui8Checksum = 0;
+   uint8_t  ui8ByteCount;
+   uint8_t  ui8RecordType;
+   uint8_t  ui8ByteIndex;
+   uint8_t  ui8Checksum = 0;
 
    // Check min length
    if ((sRec[HEX_LINESTART_IDX] == HEX_HEAD_LINESTART) && (xSize < (HEX_DATA_BYTE0_IDX + S19_CHECKSUM_SZ)))

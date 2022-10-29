@@ -3,8 +3,8 @@
 
 #include "config.h"
 #include "types.h"
-#include "misc/helpers.h"
 #include "misc/dump.h"
+#include "misc/helpers.h"
 
 /***************************************************************
  * @param pxOriginalDump Pointer to Original Dump Comparee

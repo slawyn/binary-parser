@@ -71,7 +71,7 @@
  * you are going to specify if you don't like the defaults.
  **************************************************************************** */
 
- /* Define this to be the number of bits an `int` takes up on your system. The
+/* Define this to be the number of bits an `int` takes up on your system. The
  * default, if not auto-detected, is 32 bits.
  *
  * Example:
@@ -115,11 +115,11 @@
  * the only option.
  **************************************************************************** */
 
- /* By default, Unity guesses that you will want single precision floating point
-  * support, but not double precision. It's easy to change either of these using
-  * the include and exclude options here. You may include neither, just float,
-  * or both, as suits your needs.
-  */
+/* By default, Unity guesses that you will want single precision floating point
+ * support, but not double precision. It's easy to change either of these using
+ * the include and exclude options here. You may include neither, just float,
+ * or both, as suits your needs.
+ */
 /* #define UNITY_EXCLUDE_FLOAT  */
 /* #define UNITY_INCLUDE_DOUBLE */
 /* #define UNITY_EXCLUDE_DOUBLE */
@@ -240,5 +240,25 @@
  * TEST - PASS (10 ms)
  */
 /* #define UNITY_INCLUDE_EXEC_TIME */
+
+
+#define RUN_TEST(TestFunc, TestLineNum)          \
+   {                                             \
+      Unity.CurrentTestName       = #TestFunc;   \
+      Unity.CurrentTestLineNumber = TestLineNum; \
+      Unity.NumberOfTests++;                     \
+      if (TEST_PROTECT())                        \
+      {                                          \
+         setUp();                                \
+         TestFunc();                             \
+      }                                          \
+      if (TEST_PROTECT())                        \
+      {                                          \
+         tearDown();                             \
+      }                                          \
+      UnityConcludeTest();                       \
+   }
+
+
 
 #endif /* UNITY_CONFIG_H */

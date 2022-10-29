@@ -5,7 +5,7 @@
 #include "types.h"
 #include "misc/memory.h"
 #include "misc/file.h"
-#include "misc/helpers.h"
+
 
 
 // Set Version here
@@ -18,7 +18,7 @@
 /*****************************************************************************
  * @return void
  ******************************************************************************/
-static void vDisplayHelp(void)
+STATIC void vDisplayHelp(void)
 {
    printf("Usage:\n");
    printf("\tbinary-parser.exe <file.hex>\n");
@@ -41,9 +41,9 @@ int main(int argc, char *argv[])
 
    if (argc > 1)
    {
-      vMemoryInitialize(&xMemory);
-      i32Status = i32FileLoad(argv[1], &xMemory);
-      i32MemoryPrint(&xMemory);
+      i32Status  = i32MemoryInitialize(&xMemory);
+      i32Status |= i32FileLoad(argv[1], &xMemory);
+      i32Status |= i32MemoryPrint(&xMemory);
    }
    // Print help
    else

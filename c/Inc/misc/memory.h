@@ -1,7 +1,9 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
+#include "types.h"
 
+/* Public types */
 typedef struct memblock_
 {
    struct memblock_ *pxMemoryblockNext;
@@ -21,8 +23,9 @@ typedef struct
 Memory_t;
 
 
-extern void vMemoryInitialize(Memory_t *pxMemory);
-int32_t i32MemoryDeinitialize(Memory_t *pxMemory);
+/* Public prototypes */
+extern int32_t i32MemoryInitialize(Memory_t *pxMemory);
+extern int32_t i32MemoryDeinitialize(Memory_t *pxMemory);
 extern int32_t i32MemoryPrint(Memory_t *pxMemory);
 extern uint32_t ui32MemoryGetTotalSize(Memory_t *pxMemory);
 extern int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui32Buffersize, uint8_t const *pui8Buffer);

@@ -1,22 +1,3 @@
-/*=======Test Runner Used To Run Each Test Below=====*/
-#define RUN_TEST(TestFunc, TestLineNum)          \
-   {                                             \
-      Unity.CurrentTestName       = #TestFunc;   \
-      Unity.CurrentTestLineNumber = TestLineNum; \
-      Unity.NumberOfTests++;                     \
-      if (TEST_PROTECT())                        \
-      {                                          \
-         setUp();                                \
-         TestFunc();                             \
-      }                                          \
-      if (TEST_PROTECT())                        \
-      {                                          \
-         tearDown();                             \
-      }                                          \
-      UnityConcludeTest();                       \
-   }
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,9 +6,8 @@
 #include "types.h"
 #include "misc/memory.h"
 #include "misc/file.h"
-#include "misc/helpers.h"
 #include "misc/dump.h"
-#include "misc/memory-converter.h"
+#include "misc/helpers.h"
 
 /* Unity */
 #include "unity_config.h "

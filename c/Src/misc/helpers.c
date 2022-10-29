@@ -5,37 +5,19 @@
 #include "config.h"
 #include "types.h"
 #include "misc/memory.h"
+#include "misc/dump.h"
 #include "misc/helpers.h"
-#include "misc/parsers.h"
 
+/* Private Prototypes */
+PROTOTYPE uint32_t ui32ConvertHexNibbleToUint(char cHex);
 
-/*****************************************************************************
- * @param format string with placeholders
- * @param ... variable arguments
- * @return        0: OK
- *                x: Error
- ******************************************************************************/
-int32_t i32Log(const char *format, ...)
-{
-   va_list vl;
-   va_start(vl, format);
-   int32_t    i32Status;
-   SYSTEMTIME xSystemTime;
-
-   GetSystemTime(&xSystemTime);
-   printf("%02hu:%02hu:%02hu:%03hu:: ", xSystemTime.wHour, xSystemTime.wMinute, xSystemTime.wSecond, xSystemTime.wMilliseconds);
-
-   i32Status = vprintf(format, vl);
-   printf("\n");
-   va_end(vl);
-   return(i32Status);
-}
+/* Private Functions */
 
 /*****************************************************************************
  * @param cHex Hex character
  * @return Resulting Byte
  ******************************************************************************/
-static uint32_t ui32ConvertHexNibbleToUint(char cHex)
+STATIC uint32_t ui32ConvertHexNibbleToUint(char cHex)
 {
    uint32_t ui32Result;
    if (cHex >= '0' && cHex <= '9')
@@ -94,4 +76,48 @@ void vConvertHexStringToByteBuffer(char *sHexNibbles, uint8_t *pui8Buffer, uint8
    {
       (pui8Buffer)[ui8Index] = (uint8_t)ui32ConvertHexStringToByte(&sHexNibbles[ui8Index * 2]);
    }
+}
+
+/***************************************************************
+* @param pxMemory Pointer to Memory
+* @param ui8FreeByte Fill Byte between the blocks
+* @return Pointer to Dump struct
+***************************************************************/
+Dump_t * pxConvertMemoryToDump(Memory_t *pxMemory, uint8_t ui8FreeByte)
+{
+   Memoryblock_t *pxMemoryblock;
+   uint32_t       ui32DumpSize = ui32MemoryGetTotalSize(pxMemory);
+
+
+   Dump_t *pxDump = NULL;
+   if (ui32DumpSize > 0)
+   {
+      pxDump = malloc(sizeof(Dump_t));
+
+      // Update base if 0
+      if (pxMemory->ui32BaseAddress == 0 && (pxMemory->pxMemoryblockHead != NULL))
+      {
+         pxDump->ui32BaseAddress = pxMemory->pxMemoryblockHead->ui32BlockAddress;
+      }
+      else
+      {
+         pxDump->ui32BaseAddress = pxMemory->ui32BaseAddress;
+      }
+
+      pxDump->ui32Size = ui32DumpSize;
+      pxDump->pui8Data = malloc(ui32DumpSize);
+
+      // Fill with ui8Freebyte
+      memset(pxDump->pui8Data, ui8FreeByte, ui32DumpSize);
+
+      // Copy into memory
+      pxMemoryblock = pxMemory->pxMemoryblockHead;
+      while (pxMemoryblock != NULL)
+      {
+         memcpy(pxDump->pui8Data + (pxMemoryblock->ui32BlockAddress - pxDump->ui32BaseAddress), pxMemoryblock->pui8Buffer, pxMemoryblock->ui32BlockSize);
+         pxMemoryblock = pxMemoryblock->pxMemoryblockNext;
+      }
+   }
+
+   return(pxDump);
 }
