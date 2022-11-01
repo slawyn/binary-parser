@@ -4,7 +4,11 @@
         "stdlib.h": "c",
         "stdio.h": "c",
         "unity.h": "c",
-        "unity_config.h": "c"
+        "unity_config.h": "c",
+        "helpers.h": "c",
+        "memory.h": "c",
+        "config.h": "c",
+        "parsers.h": "c"
     },
     "cmake.configureOnOpen": false
 }

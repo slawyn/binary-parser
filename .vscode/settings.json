@@ -3,6 +3,10 @@
         "types.h": "c",
         "helpers.h": "c",
         "config.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "unity.h": "c",
+        "dump.h": "c",
+        "memory.h": "c",
+        "parsers.h": "c"
     }
 }

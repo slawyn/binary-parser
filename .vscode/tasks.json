@@ -14,8 +14,8 @@
                 "-f",
                 "Windows.make",
                 "FLAVOR=Test",
-                "build",
-                "TEST_FILE=test-memory"
+                "TEST_TARGET=memory",
+                "build"
             ],
             "group": "build",
             "presentation": {
