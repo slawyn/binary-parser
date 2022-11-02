@@ -187,6 +187,7 @@ STATIC int32_t i32MemoryRemoveBlock(Memory_t *pxMemory, Memoryblock_t *pxMemoryb
    if (pxMemoryblock == NULL || pxMemoryblock->pui8Buffer == NULL || !pxMemory->ui32BlockCount)
    {
       i32Status = -1;
+      LogError(__BASE_FILE__ "::i32MemoryRemoveBlock:: Error: NULL block");
    }
    else
    {
@@ -234,16 +235,21 @@ STATIC int32_t i32MemoryRemoveBlock(Memory_t *pxMemory, Memoryblock_t *pxMemoryb
 int32_t i32MemoryInitialize(Memory_t *pxMemory)
 {
    REQUIRE(pxMemory);
-   int32_t i32Status = -1;
-   if (pxMemory != NULL)
+   int32_t i32Error = 0;
+
+   if (pxMemory == NULL)
+   {
+      i32Error = -1;
+   }
+   else
    {
       pxMemory->ui32BlockCount    = 0;
       pxMemory->ui32BaseAddress   = 0;
       pxMemory->pxMemoryblockTail = NULL;
       pxMemory->pxMemoryblockHead = NULL;
-      i32Status = 0;
    }
-   return(i32Status);
+
+   return(i32Error);
 }
 
 /***************************************************************
@@ -253,42 +259,41 @@ int32_t i32MemoryDeinitialize(Memory_t *pxMemory)
 {
    REQUIRE(pxMemory);
 
-   int32_t i32Status = 0;
+   int32_t i32Error = 0;
    if (pxMemory == NULL)
    {
-      i32Status = 1;
+      i32Error = 1;
       LogError(__BASE_FILE__ "::i32MemoryDeinitialize:: Memory is NULL");
    }
    else
    {
-      Memoryblock_t *pxMemoryblock         = pxMemory->pxMemoryblockTail;
-      Memoryblock_t *pxMemoryblockBackward = NULL;
-      while (!i32Status && pxMemory->ui32BlockCount)
+      Memoryblock_t *pxMemoryblock = pxMemory->pxMemoryblockTail;
+      while (!i32Error && pxMemory->ui32BlockCount)
       {
          if (pxMemoryblock == NULL)
          {
-            i32Status = -1;
+            i32Error = -1;
             LogError(__BASE_FILE__ "::i32MemoryDeinitialize:: Error at Count %d", pxMemory->ui32BlockCount);
          }
          else
          {
-            pxMemoryblockBackward = pxMemoryblock->pxMemoryblockPrevious;
-            i32Status             = i32MemoryRemoveBlock(pxMemory, pxMemoryblock);
-            pxMemoryblock         = pxMemoryblockBackward;
+            Memoryblock_t *pxMemoryblockBackward = pxMemoryblock->pxMemoryblockPrevious;
+            i32Error      = i32MemoryRemoveBlock(pxMemory, pxMemoryblock);
+            pxMemoryblock = pxMemoryblockBackward;
          }
+      }
+
+      // Reset memory
+      if (!i32Error)
+      {
+         pxMemory->ui32BaseAddress   = 0;
+         pxMemory->pxMemoryblockTail = NULL;
+         pxMemory->pxMemoryblockHead = NULL;
       }
    }
 
 
-// Reset memory
-   if (!i32Status)
-   {
-      pxMemory->ui32BaseAddress   = 0;
-      pxMemory->pxMemoryblockTail = NULL;
-      pxMemory->pxMemoryblockHead = NULL;
-   }
-
-   return(i32Status);
+   return(i32Error);
 }
 
 /***************************************************************
@@ -303,11 +308,11 @@ int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary
 
    Memoryblock_t *pxMemoryblockOriginal;
    Memoryblock_t *pxMemoryblockSecondary;
-   int32_t        i32Status = 0;
+   int32_t        i32Error = 0;
 
    if (pxMemorySecondary == NULL || pxMemoryOriginal == NULL)
    {
-      i32Status = -1;
+      i32Error = -1;
    }
    else
    {
@@ -316,14 +321,14 @@ int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary
       pxMemoryblockOriginal  = pxMemoryOriginal->pxMemoryblockHead;
       pxMemoryblockSecondary = pxMemorySecondary->pxMemoryblockHead;
 
-      while (!i32Status && pxMemoryblockOriginal != NULL && pxMemoryblockSecondary != NULL)
+      while (!i32Error && pxMemoryblockOriginal != NULL && pxMemoryblockSecondary != NULL)
       {
          // One is lagging behind
          if ((pxMemoryblockOriginal->ui32BlockAddress + ui32Index1) > (pxMemoryblockSecondary->ui32BlockAddress + ui32Index2))
          {
             if (ui8Freebyte != pxMemoryblockSecondary->pui8Buffer[ui32Index2++])
             {
-               i32Status = -4;
+               i32Error = -4;
             }
          }
          // The other is lagging behind
@@ -331,7 +336,7 @@ int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary
          {
             if (ui8Freebyte != pxMemoryblockOriginal->pui8Buffer[ui32Index1++])
             {
-               i32Status = -3;
+               i32Error = -3;
             }
          }
          // At equal addresses
@@ -342,7 +347,7 @@ int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary
          }
          else
          {
-            i32Status = -5;
+            i32Error = -5;
          }
 
          // Switch Original here to next block
@@ -361,7 +366,7 @@ int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary
       }
 
       // Compare the rest against free bytes
-      while (!i32Status && pxMemoryblockOriginal != NULL)
+      while (!i32Error && pxMemoryblockOriginal != NULL)
       {
          // Switch Original here to next block
          if (ui32Index1 >= pxMemoryblockOriginal->ui32BlockSize)
@@ -371,12 +376,12 @@ int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary
          }
          else if (pxMemoryblockOriginal->pui8Buffer[ui32Index1++] != ui8Freebyte)
          {
-            i32Status = -6;
+            i32Error = -6;
          }
       }
 
 
-      while (!i32Status && pxMemoryblockSecondary != NULL)
+      while (!i32Error && pxMemoryblockSecondary != NULL)
       {
          // Switch Original here to next block
          if (ui32Index2 >= pxMemoryblockSecondary->ui32BlockSize)
@@ -386,12 +391,12 @@ int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary
          }
          else if (pxMemoryblockSecondary->pui8Buffer[ui32Index2++] != ui8Freebyte)
          {
-            i32Status = -7;
+            i32Error = -7;
          }
       }
    }
 
-   return(i32Status);
+   return(i32Error);
 }
 
 /***************************************************************
@@ -430,11 +435,11 @@ int32_t i32MemoryPrint(Memory_t *pxMemory)
    uint32_t       ui32BlockIndex;
    uint32_t       ui32InnerBufferIndex;
    Memoryblock_t *pxMemoryblock;
-   int32_t        i32Status = 0;
+   int32_t        i32Error = 0;
 
    if (pxMemory == NULL)
    {
-      i32Status = -1;
+      i32Error = -1;
    }
    else
    {
@@ -460,7 +465,7 @@ int32_t i32MemoryPrint(Memory_t *pxMemory)
       printf("\n");
    }
 
-   return(i32Status);
+   return(i32Error);
 }
 
 /***************************************************************

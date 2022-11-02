@@ -5,7 +5,6 @@
 #include "config.h"
 #include "types.h"
 #include "misc/memory.h"
-#include "misc/file.h"
 #include "misc/dump.h"
 #include "misc/helpers.h"
 
@@ -200,7 +199,6 @@ uint32_t array_del_action1[][2] = { {       0,       1 }, {       15,       16 }
 
 
 /* For Copy Tests */
-#define COPY_BASE    0x60
 uint8_t array_copy_base[]  = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };
 uint8_t array_copy_test0[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,    //0x60
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB, FB,        //0x70
@@ -304,6 +302,7 @@ uint8_t array_copy_test6[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0
                                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,    //0x130
                                0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, }; //0x140
 
+#define COPY_BASE    0x60
 TestMemoryStructure_t array_copy_expected[] = { { COPY_BASE, sizeof(array_copy_test0), 0, array_copy_test0 },
                                                 { COPY_BASE, sizeof(array_copy_test1), 0, array_copy_test1 },
                                                 { COPY_BASE, sizeof(array_copy_test2), 0, array_copy_test2 },
@@ -550,6 +549,9 @@ void test02_MemoryHasFailedDeinitialization()
 
    //
    status = i32MemoryDeinitialize(NULL);
+   TEST_ASSERT(status != 0);
+
+   status = i32MemoryInitialize(NULL);
    TEST_ASSERT(status != 0);
 
    #undef T02_ADDR_01

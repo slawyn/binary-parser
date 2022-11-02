@@ -85,7 +85,6 @@ else ifeq ($(FLAVOR),Test)
 	LDFLAGS += -lm
 	LDFLAGS += -lgcov --coverage
 
-
 	# Filter out the main 
 	FILES_SOURCES := $(filter-out $(call rwildcard, $(DIR_SOURCE),*$(NAME_ENTRY)),$(FILES_SOURCES))
 

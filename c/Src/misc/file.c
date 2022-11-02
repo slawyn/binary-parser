@@ -81,43 +81,43 @@ STATIC size_t xGetLine(uint8_t **ppui8LineBuffer, const size_t xReadMax, FILE *p
  ******************************************************************************/
 int32_t i32FileLoad(char *sFileFullPath, Memory_t *pxMemory)
 {
-   FILE *     pxFile;
-   Filetype_e eFiletype;
-   int32_t    i32Length;
+   FILE *  pxFile;
+   int32_t i32Length;
+   int32_t i32Error = 0;
 
    pxFile = fopen(sFileFullPath, "r");
    if (pxFile == NULL)
    {
+      i32Error = -1;
       LogError(__BASE_FILE__ "::i32FileLoad:: Error: Could not open file %s\n", sFileFullPath);
-      return(-1);
    }
    else
    {
       i32Length = strlen(sFileFullPath);
-      if (i32Length >= 4)
+      i32Length = i32Length < 4? 4:i32Length;
+
+      Parser_j jParser = NULL;
+      if (0 == strcmp(&sFileFullPath[i32Length - 4], ".s19"))
       {
-         if (0 == strcmp(&sFileFullPath[i32Length - 4], ".s19"))
-         {
-            eFiletype = S19;
-         }
-         else if (0 == strcmp(&sFileFullPath[i32Length - 4], ".hex"))
-         {
-            eFiletype = HEX;
-         }
-         else
-         {
-            eFiletype = UNKNOWN;
-            LogError(__BASE_FILE__ "::i32FileLoad:: Warning: Unknown Format");
-         }
+         jParser = i32S19Parse;
+      }
+      else if (0 == strcmp(&sFileFullPath[i32Length - 4], ".hex"))
+      {
+         jParser = i32HexParse;
+      }
 
-         int32_t  i32LineCount = 0;
-         size_t   xLineSize;
-         uint8_t *pui8Buffer;
-
-         // Init required memory
-         pui8Buffer = malloc(LINE_MALLOC_MAX);
-
+      // Parser
+      if (jParser == NULL)
+      {
+         LogError(__BASE_FILE__ "::i32FileLoad:: Warning: Unknown Format");
+         i32Error = -2;
+      }
+      else
+      {
          // Loop through until we are done with the file
+         size_t   xLineSize;
+         int32_t  i32LineCount = 0;
+         uint8_t *pui8Buffer   = malloc(LINE_MALLOC_MAX);
          do
          {
             /* Get the next line */
@@ -125,24 +125,9 @@ int32_t i32FileLoad(char *sFileFullPath, Memory_t *pxMemory)
             i32LineCount++;
 
             /* Show the line details */
-            //i32Log("line[%06d]: chars=%06zd, contents: %s", i32LineCount, xLineSize, pui8Buffer);
             if (xLineSize > 0)
             {
-               // Switch load file
-               switch (eFiletype)
-               {
-               case S19:
-                  i32S19Parse((char *)pui8Buffer, xLineSize, pxMemory);
-                  break;
-
-               case HEX:
-                  i32HexParse((char *)pui8Buffer, xLineSize, pxMemory);
-                  break;
-
-               case UNKNOWN:
-               default:
-                  break;
-               }
+               jParser((char *)pui8Buffer, xLineSize, pxMemory);
             }
             else if (xLineSize == 0)
             {
@@ -152,17 +137,12 @@ int32_t i32FileLoad(char *sFileFullPath, Memory_t *pxMemory)
             else
             {
                LogError(__BASE_FILE__ "::i32FileLoad:: Error: Could not load file");
-               break;
+               i32Error = -3;
             }
-         } while (1);
+         } while (!i32Error);
          free(pui8Buffer);
-      }
-      else
-      {
-         LogError(__BASE_FILE__ "::i32FileLoad:: Error: Filename is too short %s", sFileFullPath);
-         return(-2);
       }
    }
 
-   return(0);
+   return(i32Error);
 }

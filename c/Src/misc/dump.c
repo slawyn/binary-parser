@@ -62,7 +62,7 @@ int32_t i32DumpDestroy(Dump_t *pxDump)
 {
    REQUIRE(pxDump);
 
-   int32_t i32Status = (-1);
+   int32_t i32Error = (-1);
    if (pxDump != NULL)
    {
       // Double check
@@ -70,14 +70,14 @@ int32_t i32DumpDestroy(Dump_t *pxDump)
       {
          pxDump->pui8Data = NULL;
          pxDump->ui32Size = 0;
-         i32Status        = 0;
+         i32Error         = 0;
       }
 
       // At last Release Memory
       free(pxDump);
    }
 
-   return(i32Status);
+   return(i32Error);
 }
 
 /***************************************************************
