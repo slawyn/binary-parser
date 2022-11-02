@@ -13,8 +13,6 @@
 #include "unity_config.h "
 #include "unity.h "
 
-
-
 typedef struct
 {
    uint32_t ui32DestinationAddress;
@@ -288,18 +286,6 @@ void test07_DumpsAreEqual()
    #undef T07_SIZE_02
    #undef T07_ADDR_01
    #undef T07_ADDR_02
-}
-
-/*****************************************************************************
- * @brief Tests for successful comparison
- ******************************************************************************/
-void test0x_MemoryisGeneratingEqualDumps()
-{
-   uint8_t  freebyte = 0xAA;
-   Memory_t memory;
-   vMemoryInitialize(&memory);
-
-   Dump_t *dump = pxConvertMemoryToDump(&memory, freebyte);
 }
 
 /*****************************************************************************

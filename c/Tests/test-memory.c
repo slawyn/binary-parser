@@ -113,16 +113,28 @@ uint8_t memory_add_expected9[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x7
                                    0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
                                    0xff, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
 
-TestMemoryStructure_t const array_add_expected[] = { { 0x100, sizeof(memory_add_expected0), 0, memory_add_expected0 },    //0
-                                                     { 0x100, sizeof(memory_add_expected1), 0, memory_add_expected1 },    //1
-                                                     { 0x100, sizeof(memory_add_expected2), 0, memory_add_expected2 },    //2
-                                                     { 0x100, sizeof(memory_add_expected3), 0, memory_add_expected3 },    //3
-                                                     { 0x100, sizeof(memory_add_expected4), 0, memory_add_expected4 },    //4
-                                                     {  0xa0, sizeof(memory_add_expected5), 0, memory_add_expected5 },    //5
-                                                     {  0xa0, sizeof(memory_add_expected6), 0, memory_add_expected6 },    //6
-                                                     {  0xa0, sizeof(memory_add_expected7), 0, memory_add_expected7 },    //7
-                                                     {  0xa0, sizeof(memory_add_expected8), 0, memory_add_expected8 },    //8
-                                                     {  0xa0, sizeof(memory_add_expected9), 0, memory_add_expected9 }, }; //9
+uint8_t memory_add_expected10[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+                                    0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,  FB,    FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,  FB,    FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,  FB,    FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,  FB,    FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,  FB,    FB,   FB,   FB,   FB,   FB,   FB,   FB,
+                                    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                                    0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                                    0xff, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0xee, 0xff };
+
+TestMemoryStructure_t const array_add_expected[] = { { 0x100, sizeof(memory_add_expected0),  0, memory_add_expected0  },    //0
+                                                     { 0x100, sizeof(memory_add_expected1),  0, memory_add_expected1  },    //1
+                                                     { 0x100, sizeof(memory_add_expected2),  0, memory_add_expected2  },    //2
+                                                     { 0x100, sizeof(memory_add_expected3),  0, memory_add_expected3  },    //3
+                                                     { 0x100, sizeof(memory_add_expected4),  0, memory_add_expected4  },    //4
+                                                     {  0xa0, sizeof(memory_add_expected5),  0, memory_add_expected5  },    //5
+                                                     {  0xa0, sizeof(memory_add_expected6),  0, memory_add_expected6  },    //6
+                                                     {  0xa0, sizeof(memory_add_expected7),  0, memory_add_expected7  },    //7
+                                                     {  0xa0, sizeof(memory_add_expected8),  0, memory_add_expected8  },    //8
+                                                     {  0xa0, sizeof(memory_add_expected9),  0, memory_add_expected9  },
+                                                     {  0x98, sizeof(memory_add_expected10), 0, memory_add_expected10 }, }; //9
 
 
 
@@ -135,7 +147,8 @@ TestMemoryStructure_t const array_add_action[] = { { 0x100, 16, 0, array_rising 
                                                    { 0x117,  1, 0, &array_rising[1] },   //6
                                                    { 0x127,  7, 0, &array_rising[0] },   //7
                                                    { 0x111, 16, 0, arraz_ffs        },   //8
-                                                   { 0x100, 16, 0, array_rising     } }; //9
+                                                   { 0x100, 16, 0, array_rising     },
+                                                   {  0x98, 16, 0, array_rising     } }; //9
 
 
 
@@ -226,7 +239,6 @@ uint8_t array_copy_test2[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB, FB,        //0x110
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB, FB,        //0x120
                                0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff };  //0x130
-
 
 uint8_t array_copy_test3[] = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,    //0x60
                                FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,   FB,      //0x70
@@ -358,15 +370,12 @@ void test01_MemoryBlockIsCreatableAndFreeable()
    #define T01_ADDR_01     100
    #define T01_ARRAY_01    array_rising
    #define T01_SIZE_01     10
-
    #define T01_ADDR_02     101
    #define T01_ARRAY_02    array_rising
    #define T01_SIZE_02     1
-
    #define T01_ADDR_03     101
    #define T01_ARRAY_03    array_rising
    #define T01_SIZE_03     0
-
    #define T01_ADDR_04     101
    #define T01_ARRAY_04    NULL
    #define T01_SIZE_04     10
@@ -399,15 +408,12 @@ void test01_MemoryBlockIsCreatableAndFreeable()
    #undef T01_ADDR_01
    #undef T01_ARRAY_01
    #undef T01_SIZE_01
-
    #undef T01_ADDR_02
    #undef T01_ARRAY_02
    #undef T01_SIZE_02
-
    #undef T01_ADDR_03
    #undef T01_ARRAY_03
    #undef T01_SIZE_03
-
    #undef T01_ADDR_04
    #undef T01_ARRAY_04
    #undef T01_SIZE_04
@@ -466,14 +472,12 @@ void test01_2_MemoryblockIsUpdatable()
    #define T01_02_ADDR_01     100
    #define T01_02_ARRAY_01    array_rising
    #define T01_02_SIZE_01     10
-
    #define T01_02_OFF_02      1
    #define T01_02_ARRAY_02    array_falling
    #define T01_02_SIZE_02     9
 
    Memoryblock_t * memory_block1 = pxMemoryAllocateBlock(T01_02_ADDR_01, T01_02_SIZE_01, T01_02_ARRAY_01);
    TEST_ASSERT(memory_block1 != NULL);
-
 
    int32_t status = i32MemoryUpdateBlock(memory_block1, T01_02_OFF_02, T01_02_SIZE_02, T01_02_ARRAY_02);
    TEST_ASSERT(status == 0);
@@ -496,7 +500,6 @@ void test01_2_MemoryblockIsUpdatable()
    #undef T01_02_ADDR_01
    #undef T01_02_ARRAY_01
    #undef T01_02_SIZE_01
-
    #undef T01_02_OFF_02
    #undef T01_02_ARRAY_02
    #undef T01_02_SIZE_02
@@ -524,12 +527,10 @@ void test02_MemoryHasFailedDeinitialization()
    status = i32MemoryAdd(&memory, T02_ADDR_02, T02_SIZE_02, T02_ARRAY_02);
    TEST_ASSERT(status == 0);
 
-
    TEST_ASSERT(memory.pxMemoryblockHead != NULL);
    TEST_ASSERT(memory.pxMemoryblockTail != NULL);
    TEST_ASSERT(memory.ui32BaseAddress == 0);
    TEST_ASSERT(memory.ui32BlockCount == 2);
-
 
    // Missing Buffer
    // remove memory leak
@@ -539,7 +540,6 @@ void test02_MemoryHasFailedDeinitialization()
    TEST_ASSERT(status != 0);
    free(memory.pxMemoryblockTail);
    memory.pxMemoryblockTail = NULL;
-
 
    // Missing head
    free(memory.pxMemoryblockHead->pui8Buffer);
@@ -570,6 +570,9 @@ void test03_MemorySizeIsZero()
    TEST_ASSERT(status == 0);
 
    uint32_t size = ui32MemoryGetTotalSize(&memory);
+   TEST_ASSERT(size == 0);
+
+   size = ui32MemoryGetTotalSize(NULL);
    TEST_ASSERT(size == 0);
 
    ++memory.ui32BlockCount;
@@ -687,12 +690,10 @@ void test07_MemoryisComparable()
    #define T07_ARRAZ_01    array_falling
    #define T07_SIZE_01     sizeof(T07_ARRAZ_01)
    #define T07_ADDR_01     100
-
-   #define T07_ARRAZ_02    T07_ARRAZ_01
+   #define T07_ARRAZ_02    array_falling
    #define T07_SIZE_02     sizeof(T07_ARRAZ_02)
    #define T07_ADDR_02     100
-
-   #define T07_ARRAZ_03    T07_ARRAZ_01
+   #define T07_ARRAZ_03    array_falling
    #define T07_SIZE_03     sizeof(T07_ARRAZ_03)
    #define T07_ADDR_03     101
 
@@ -738,19 +739,34 @@ void test07_MemoryisComparable()
          i = ((T07_SIZE_02 % 2) + 1) % T07_SIZE_02;
       }
    }
+   // equal
    status = i32MemoryCompare(&memory1, &memory2, FB);
    TEST_ASSERT(status == 0);
 
+   // one null
    status = i32MemoryCompare(NULL, &memory2, FB);
    TEST_ASSERT(status != 0);
 
    status = i32MemoryCompare(&memory1, NULL, FB);
    TEST_ASSERT(status != 0);
 
+   // both null
    status = i32MemoryCompare(NULL, NULL, FB);
    TEST_ASSERT(status != 0);
 
+   // shifted forward
    status = i32MemoryCompare(&memory2, &memory3, FB);
+   TEST_ASSERT(status != 0);
+
+   // shifted backward
+   status = i32MemoryCompare(&memory3, &memory2, FB);
+   TEST_ASSERT(status != 0);
+
+   // one byte difference
+   status = i32MemoryAdd(&memory2, T07_ADDR_02 + 1, 1, T07_ARRAZ_01);
+   TEST_ASSERT(status == 0);
+
+   status = i32MemoryCompare(&memory1, &memory2, FB);
    TEST_ASSERT(status != 0);
 
    status = i32MemoryDeinitialize(&memory1);
@@ -792,10 +808,8 @@ void test08_MemoryHasGaps()
    #define T08_ADDR_03     (T08_ADDR_01 + T08_SIZE_02 / 3)
    #define T08_ADDR_04     (T08_ADDR_02 + T08_SIZE_02) - 1
 
-
    Memory_t memory1;
    Memory_t memory2;
-
 
    // Init
    int32_t status = i32MemoryInitialize(&memory1);
@@ -850,7 +864,6 @@ void test08_MemoryHasGaps()
    status = i32MemoryCompare(&memory2, &memory1, FB);
    TEST_ASSERT(status == 0);
 
-
    // Deinit
    status = i32MemoryDeinitialize(&memory1);
    TEST_ASSERT(status == 0);
@@ -861,6 +874,12 @@ void test08_MemoryHasGaps()
    #undef T08_SIZE_01
    #undef T08_ARRAY_02
    #undef T08_SIZE_02
+   #undef T08_ARRAY_03
+   #undef T08_SIZE_03
+   #undef T08_ADDR_01
+   #undef T08_ADDR_02
+   #undef T08_ADDR_03
+   #undef T08_ADDR_04
 }
 
 /*****************************************************************************
@@ -873,6 +892,11 @@ void test09_MemoryAddTestsAreOkay()
 
    int32_t status = i32MemoryInitialize(&memoryUnderTest);
    TEST_ASSERT(status == 0);
+
+   // zero size
+   status = i32MemoryAdd(&memoryUnderTest, COPY_BASE, 0, array_copy_base);
+   TEST_ASSERT(status != 0);
+
    for (uint32_t i = 0; i < SIZEOF(array_add_action); ++i)
    {
       status = i32MemoryAdd(&memoryUnderTest, array_add_action[i].ui32Address, array_add_action[i].ui32Size, array_add_action[i].pui8Data);
@@ -949,12 +973,12 @@ void test11_MemoryCopyTestAreOkay()
 
    status = i32MemoryAdd(&memoryUnderTest, COPY_BASE, sizeof(array_copy_base), array_copy_base);
    TEST_ASSERT(status == 0);
+
+
    for (uint32_t i = 0; i < SIZEOF(array_copy_action); ++i)
    {
       status = i32MemoryCopyRegion(&memoryUnderTest, array_copy_action[i][0], array_copy_action[i][1], array_copy_action[i][2]);
       TEST_ASSERT(status == 0);
-
-      i32MemoryPrint(&memoryUnderTest);
 
       status = i32MemoryInitialize(&memoryExpected);
       TEST_ASSERT(status == 0);
@@ -971,7 +995,6 @@ void test11_MemoryCopyTestAreOkay()
 
    status = i32MemoryDeinitialize(&memoryUnderTest);
    TEST_ASSERT(status == 0);
-
 
    //
    status = i32MemoryInitialize(&memoryUnderTest);
@@ -1003,20 +1026,6 @@ void test11_MemoryCopyTestAreOkay()
 
    status = i32MemoryDeinitialize(&memoryUnderTest);
    TEST_ASSERT(status == 0);
-}
-
-/*****************************************************************************
- * @brief Tests for successful comparison
- ******************************************************************************/
-void test0x_MemoryisGeneratingEqualDumps()
-{
-   uint8_t  freebyte = 0xAA;
-   Memory_t memory;
-
-   int32_t status = i32MemoryInitialize(&memory);
-   TEST_ASSERT(status == 0);
-
-   //Dump_t *dump = pxConvertMemoryToDump(&memory, freebyte);
 }
 
 /*****************************************************************************

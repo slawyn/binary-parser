@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "types.h"
+#include "assert.h"
 #include "misc/dump.h"
 #include "misc/helpers.h"
 
@@ -17,6 +18,9 @@
  **************************************************************/
 int32_t i32DumpAddBuffer(Dump_t *pxDump, uint32_t ui32Size, const uint8_t *pui8Data)
 {
+   REQUIRE(pxDump);
+   REQUIRE(pui8Data);
+
    memcpy(pxDump->pui8Data + pxDump->ui32Offset, pui8Data, ui32Size);
    pxDump->ui32Offset += ui32Size;
    return(0);
@@ -28,11 +32,8 @@ int32_t i32DumpAddBuffer(Dump_t *pxDump, uint32_t ui32Size, const uint8_t *pui8D
 ***************************************************************/
 Dump_t *pxDumpCreate(uint32_t ui32BaseAddress, uint32_t ui32Size)
 {
-   Dump_t *pxDump = NULL;
-
    // Create Dump with Size
-
-   pxDump = malloc(sizeof(Dump_t));
+   Dump_t *pxDump = malloc(sizeof(Dump_t));
    if (NULL != pxDump)
    {
       // No Dump without buffer
@@ -59,6 +60,8 @@ Dump_t *pxDumpCreate(uint32_t ui32BaseAddress, uint32_t ui32Size)
 ***************************************************************/
 int32_t i32DumpDestroy(Dump_t *pxDump)
 {
+   REQUIRE(pxDump);
+
    int32_t i32Status = (-1);
    if (pxDump != NULL)
    {
@@ -87,6 +90,9 @@ int32_t i32DumpDestroy(Dump_t *pxDump)
  **************************************************************/
 int32_t i32DumpCompare(Dump_t *pxOriginalDump, Dump_t *pxSecondaryDump)
 {
+   REQUIRE(pxOriginalDump);
+   REQUIRE(pxSecondaryDump);
+
    uint8_t  i8Comparison;
    uint32_t ui32Size;
    if ((pxOriginalDump == NULL) || (pxSecondaryDump == NULL))

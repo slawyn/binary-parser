@@ -28,16 +28,11 @@ PROTOTYPE Memoryblock_t * pxMemoryAllocateBlock(uint32_t ui32BlockAddress, uint3
  **************************************************************/
 STATIC Memoryblock_t * pxMemoryAllocateBlock(uint32_t ui32BlockAddress, uint32_t ui32BufferSize, uint8_t const rui8Buffer[])
 {
-   REQUIRE(rui8Buffer != NULL);
-   REQUIRE(ui32BufferSize != 0);
+   REQUIRE(rui8Buffer);
+   REQUIRE(ui32BufferSize);
 
-   Memoryblock_t *pxMemoryblock;
-   uint8_t *      pui8Buffer;
-
-   pui8Buffer    = malloc(ui32BufferSize);
-   pxMemoryblock = malloc(sizeof(Memoryblock_t));
-
-
+   uint8_t *      pui8Buffer    = malloc(ui32BufferSize);
+   Memoryblock_t *pxMemoryblock = malloc(sizeof(Memoryblock_t));
 
    // Continue if buffer was allocated
    if ((ui32BufferSize == 0) || pui8Buffer == NULL || pxMemoryblock == NULL || rui8Buffer == NULL)
@@ -69,7 +64,7 @@ STATIC Memoryblock_t * pxMemoryAllocateBlock(uint32_t ui32BlockAddress, uint32_t
  **************************************************************/
 STATIC int32_t i32MemoryFreeBlock(Memoryblock_t *pxMemoryblock)
 {
-   REQUIRE((pxMemoryblock != NULL && pxMemoryblock->pui8Buffer != NULL));
+   REQUIRE((pxMemoryblock && pxMemoryblock->pui8Buffer));
 
    int32_t i32Status = -1;
    if (pxMemoryblock && pxMemoryblock->pui8Buffer)
@@ -87,8 +82,8 @@ STATIC int32_t i32MemoryFreeBlock(Memoryblock_t *pxMemoryblock)
 
 STATIC int32_t i32MemoryInsertBlock(Memory_t *pxMemory, Memoryblock_t *pxMemoryblockPrevious, Memoryblock_t *pxMemoryblock)
 {
-   REQUIRE(pxMemory != NULL);
-   REQUIRE(pxMemoryblock != NULL);
+   REQUIRE(pxMemory);
+   REQUIRE(pxMemoryblock);
 
    int32_t i32Status = 0;
 
@@ -154,8 +149,8 @@ STATIC int32_t i32MemoryInsertBlock(Memory_t *pxMemory, Memoryblock_t *pxMemoryb
  **************************************************************/
 STATIC int32_t i32MemoryUpdateBlock(Memoryblock_t *pxMemoryblock, uint32_t ui32BufferOffset, uint32_t ui32BufferSize, uint8_t const rui8Buffer[])
 {
-   REQUIRE(pxMemoryblock != NULL);
-   REQUIRE(rui8Buffer != NULL);
+   REQUIRE(pxMemoryblock);
+   REQUIRE(rui8Buffer);
 
    int32_t i32Status = 0;
    if (pxMemoryblock == NULL || rui8Buffer == NULL)
@@ -185,8 +180,8 @@ STATIC int32_t i32MemoryUpdateBlock(Memoryblock_t *pxMemoryblock, uint32_t ui32B
 ***************************************************************/
 STATIC int32_t i32MemoryRemoveBlock(Memory_t *pxMemory, Memoryblock_t *pxMemoryblock)
 {
-   REQUIRE(pxMemory != NULL);
-   REQUIRE(pxMemoryblock != NULL);
+   REQUIRE(pxMemory);
+   REQUIRE(pxMemoryblock);
 
    int32_t i32Status = 0;
    if (pxMemoryblock == NULL || pxMemoryblock->pui8Buffer == NULL || !pxMemory->ui32BlockCount)
@@ -238,7 +233,7 @@ STATIC int32_t i32MemoryRemoveBlock(Memory_t *pxMemory, Memoryblock_t *pxMemoryb
  **************************************************************/
 int32_t i32MemoryInitialize(Memory_t *pxMemory)
 {
-   REQUIRE(pxMemory != NULL);
+   REQUIRE(pxMemory);
    int32_t i32Status = -1;
    if (pxMemory != NULL)
    {
@@ -256,10 +251,9 @@ int32_t i32MemoryInitialize(Memory_t *pxMemory)
  **************************************************************/
 int32_t i32MemoryDeinitialize(Memory_t *pxMemory)
 {
-   REQUIRE(pxMemory != NULL);
+   REQUIRE(pxMemory);
 
    int32_t i32Status = 0;
-
    if (pxMemory == NULL)
    {
       i32Status = 1;
@@ -274,7 +268,7 @@ int32_t i32MemoryDeinitialize(Memory_t *pxMemory)
          if (pxMemoryblock == NULL)
          {
             i32Status = -1;
-            LogError(__BASE_FILE__ "::i32MemoryDeinitialize:: Error at Count %d %d", pxMemory->ui32BlockCount);
+            LogError(__BASE_FILE__ "::i32MemoryDeinitialize:: Error at Count %d", pxMemory->ui32BlockCount);
          }
          else
          {
@@ -304,6 +298,9 @@ int32_t i32MemoryDeinitialize(Memory_t *pxMemory)
 ***************************************************************/
 int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary, uint8_t ui8Freebyte)
 {
+   REQUIRE(pxMemoryOriginal);
+   REQUIRE(pxMemorySecondary);
+
    Memoryblock_t *pxMemoryblockOriginal;
    Memoryblock_t *pxMemoryblockSecondary;
    int32_t        i32Status = 0;
@@ -403,8 +400,10 @@ int32_t i32MemoryCompare(Memory_t *pxMemoryOriginal, Memory_t *pxMemorySecondary
 ***************************************************************/
 uint32_t ui32MemoryGetTotalSize(Memory_t *pxMemory)
 {
+   REQUIRE(pxMemory);
+
    uint32_t ui32Size;
-   if (pxMemory->pxMemoryblockHead == NULL)
+   if (pxMemory == NULL || pxMemory->pxMemoryblockHead == NULL)
    {
       ui32Size = 0;
    }
@@ -425,8 +424,9 @@ uint32_t ui32MemoryGetTotalSize(Memory_t *pxMemory)
 ***************************************************************/
 int32_t i32MemoryPrint(Memory_t *pxMemory)
 {
-   #define ALIGN    16
+   REQUIRE(pxMemory);
 
+   #define ALIGN    16
    uint32_t       ui32BlockIndex;
    uint32_t       ui32InnerBufferIndex;
    Memoryblock_t *pxMemoryblock;
@@ -471,6 +471,8 @@ int32_t i32MemoryPrint(Memory_t *pxMemory)
 ***************************************************************/
 int32_t i32MemoryDeleteRegion(Memory_t *pxMemory, uint32_t ui32RegionStartingAddress, uint32_t ui32RegionEndingAddress)
 {
+   REQUIRE(pxMemory);
+
    Memoryblock_t *pxMemoryblock;
    Memoryblock_t *pxMemoryblockAwaiting;
    int8_t         i8Error = 0;
@@ -478,11 +480,9 @@ int32_t i32MemoryDeleteRegion(Memory_t *pxMemory, uint32_t ui32RegionStartingAdd
    // Free Destination blocks
    //-----------------------------------------
    pxMemoryblock = pxMemory->pxMemoryblockTail;
-   while (!i8Error && (pxMemoryblock != NULL))
+   while (!i8Error && (pxMemoryblock))
    {
       pxMemoryblockAwaiting = pxMemoryblock->pxMemoryblockPrevious;
-
-
 
       if (ui32RegionEndingAddress < (pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) &&
           (pxMemoryblock->ui32BlockAddress < ui32RegionEndingAddress) &&
@@ -500,14 +500,12 @@ int32_t i32MemoryDeleteRegion(Memory_t *pxMemory, uint32_t ui32RegionStartingAdd
       }
 
 
-
       if ((pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) <= ui32RegionEndingAddress &&
           ui32RegionStartingAddress <= pxMemoryblock->ui32BlockAddress)
       {
          // ||***DEL***||
          i8Error = i32MemoryRemoveBlock(pxMemory, pxMemoryblock);
       }
-
 
       if ((pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) > ui32RegionEndingAddress &&
           (pxMemoryblock->ui32BlockAddress < ui32RegionStartingAddress))
@@ -559,7 +557,7 @@ int32_t i32MemoryDeleteRegion(Memory_t *pxMemory, uint32_t ui32RegionStartingAdd
 ***************************************************************/
 int32_t i32MemoryCopyRegion(Memory_t *pxMemory, uint32_t ui32SourceStartAddress, uint32_t ui32DestinationStartAddress, int32_t i32RegionSize)
 {
-   REQUIRE(pxMemory != NULL && pxMemory->pxMemoryblockHead != NULL && pxMemory->pxMemoryblockTail != NULL);
+   REQUIRE(pxMemory && pxMemory->pxMemoryblockHead && pxMemory->pxMemoryblockTail);
 
    Memoryblock_t *pxMemoryblock;
    Memoryblock_t *pxMemoryblockTemporary;
@@ -600,8 +598,7 @@ int32_t i32MemoryCopyRegion(Memory_t *pxMemory, uint32_t ui32SourceStartAddress,
          {
             // Preserve pointer to next for traversing
             pxMemoryblockTemporary = pxMemoryblock->pxMemoryblockNext;
-
-            i32FreeSize = (pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) - ui32SourceStartAddress;
+            i32FreeSize            = (pxMemoryblock->ui32BlockAddress + pxMemoryblock->ui32BlockSize) - ui32SourceStartAddress;
 
             // Whole block
             if (i32FreeSize > 0)
@@ -653,12 +650,9 @@ int32_t i32MemoryCopyRegion(Memory_t *pxMemory, uint32_t ui32SourceStartAddress,
                   }
                   else
                   {
-                     pxMemoryblockTemporary = NULL;
+                     //pxMemoryblockTemporary = NULL;
                   }
                }
-            }
-            else
-            {
             }
 
             pxMemoryblock = pxMemoryblockTemporary;
@@ -676,6 +670,9 @@ int32_t i32MemoryCopyRegion(Memory_t *pxMemory, uint32_t ui32SourceStartAddress,
 **************************************************************/
 int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui32BufferSize, uint8_t const rui8Buffer[])
 {
+   REQUIRE(pxMemory);
+   REQUIRE(ui32BufferSize);
+
    Memoryblock_t *pxMemoryblock;
    Memoryblock_t *pxMemoryblockTraversee;
    uint32_t       ui32FullBlockAddress = (ui32BlockAddress + pxMemory->ui32BaseAddress);
