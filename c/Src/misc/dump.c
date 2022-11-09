@@ -19,11 +19,21 @@
 int32_t i32DumpAddBuffer(Dump_t *pxDump, uint32_t ui32Size, const uint8_t *pui8Data)
 {
    REQUIRE(pxDump);
+   REQUIRE(ui32Size > 0);
    REQUIRE(pui8Data);
 
-   memcpy(pxDump->pui8Data + pxDump->ui32Offset, pui8Data, ui32Size);
-   pxDump->ui32Offset += ui32Size;
-   return(0);
+   int32_t i32Error = 0;
+   if (pxDump == NULL || pui8Data == NULL || ui32Size == 0)
+   {
+      i32Error = -1;
+   }
+   else
+   {
+      memcpy(pxDump->pui8Data + pxDump->ui32Offset, pui8Data, ui32Size);
+      pxDump->ui32Offset += ui32Size;
+   }
+
+   return(i32Error);
 }
 
 /***************************************************************
@@ -32,6 +42,8 @@ int32_t i32DumpAddBuffer(Dump_t *pxDump, uint32_t ui32Size, const uint8_t *pui8D
 ***************************************************************/
 Dump_t *pxDumpCreate(uint32_t ui32BaseAddress, uint32_t ui32Size)
 {
+   REQUIRE(ui32Size > 0);
+
    // Create Dump with Size
    Dump_t *pxDump = malloc(sizeof(Dump_t));
    if (NULL != pxDump)

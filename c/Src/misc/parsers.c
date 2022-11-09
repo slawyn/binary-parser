@@ -147,18 +147,18 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
       break;
 
    case HEX_RT_EXT_SEG_ADR:
-      if ((ui8ByteCount) <= (HEX_DATA_ADDR_2BYTE_SZ))
+      if ((ui8ByteCount) < (HEX_DATA_ADDR_2BYTE_SZ))
       {
-         LogError(__BASE_FILE__ "::i32HexParse:: 02:Error: Record size");
+         LogError(__BASE_FILE__ "::i32HexParse:: 02:Error: Record size %d", ui8ByteCount);
          return(-5);
       }
       pxMemory->ui32BaseAddress = ui32ConvertHexStringToWord(&sRec[0]);
       break;
 
    case HEX_RT_START_SEG_ADR:
-      if ((ui8ByteCount) <= (HEX_DATA_ADDR_4BYTE_SZ))
+      if ((ui8ByteCount) < (HEX_DATA_ADDR_4BYTE_SZ))
       {
-         LogError(__BASE_FILE__ "::i32HexParse:: 03:Error: Record size");
+         LogError(__BASE_FILE__ "::i32HexParse:: 03:Error: Record size %d", ui8ByteCount);
          return(-5);
       }
       // ui32BaseAddress = ui32ConvertHexStringToDword(&sRec[0]);
@@ -168,18 +168,18 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
       break;
 
    case HEX_RT_EXT_LIN_ADR:
-      if ((ui8ByteCount) <= (HEX_DATA_ADDR_2BYTE_SZ))
+      if ((ui8ByteCount) < (HEX_DATA_ADDR_2BYTE_SZ))
       {
-         LogError(__BASE_FILE__ "::i32HexParse:: 04:Error: Record size");
+         LogError(__BASE_FILE__ "::i32HexParse:: 04:Error: Record size %d", ui8ByteCount);
          return(-5);
       }
       pxMemory->ui32BaseAddress = ui32ConvertHexStringToWord(&sRec[0]);
       break;
 
    case HEX_RT_START_LIN_ADR:
-      if ((ui8ByteCount) <= (HEX_DATA_ADDR_4BYTE_SZ))
+      if ((ui8ByteCount) < (HEX_DATA_ADDR_4BYTE_SZ))
       {
-         LogError(__BASE_FILE__ "::i32HexParse:: 05:Warning: Record size");
+         LogError(__BASE_FILE__ "::i32HexParse:: 05:Warning: Record size %d", ui8ByteCount);
          return(-5);
       }
 

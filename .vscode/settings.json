@@ -7,6 +7,7 @@
         "unity.h": "c",
         "dump.h": "c",
         "memory.h": "c",
-        "parsers.h": "c"
+        "parsers.h": "c",
+        "unity_config.h": "c"
     }
 }

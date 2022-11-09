@@ -677,6 +677,7 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
 {
    REQUIRE(pxMemory);
    REQUIRE(ui32BufferSize);
+   REQUIRE(rui8Buffer);
 
    Memoryblock_t *pxMemoryblock;
    Memoryblock_t *pxMemoryblockTraversee;

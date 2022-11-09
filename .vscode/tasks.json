@@ -22,6 +22,46 @@
                 // Reveal the output only if unrecognized errors occur.
                 "reveal": "silent"
             },
+        },
+        {
+            "label": "build-test-file",
+            "type": "shell",
+            "command": "make",
+            "options": {
+                "cwd": "${workspaceFolder}/c"
+            },
+            "args": [
+                "-f",
+                "Windows.make",
+                "FLAVOR=Test",
+                "TEST_TARGET=file",
+                "build"
+            ],
+            "group": "build",
+            "presentation": {
+                // Reveal the output only if unrecognized errors occur.
+                "reveal": "silent"
+            },
+        },
+        {
+            "label": "build-test-helpers",
+            "type": "shell",
+            "command": "make",
+            "options": {
+                "cwd": "${workspaceFolder}/c"
+            },
+            "args": [
+                "-f",
+                "Windows.make",
+                "FLAVOR=Test",
+                "TEST_TARGET=helpers",
+                "build"
+            ],
+            "group": "build",
+            "presentation": {
+                // Reveal the output only if unrecognized errors occur.
+                "reveal": "silent"
+            },
         }
     ]
 }

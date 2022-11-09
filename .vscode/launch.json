@@ -11,11 +11,67 @@
             "program": "${workspaceFolder}/c/Build/Test/test-memory.exe",
             "args": [],
             "stopAtEntry": true,
-            "cwd": "${fileDirname}",
+            "cwd": "${workspaceFolder}/c/",
             "environment": [],
             "externalConsole": true,
             "MIMode": "gdb",
             "preLaunchTask": "build-test-memory",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "set output-radix 16"
+                }
+            ]
+        },
+        {
+            "name": "(gdb) [test-file] Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/c/Build/Test/test-file.exe",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}/c/",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "preLaunchTask": "build-test-helper",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                },
+                {
+                    "text": "set output-radix 16"
+                }
+            ]
+        },
+        {
+            "name": "(gdb) [test-helpers] Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/c/Build/Test/test-helpers.exe",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}/c/",
+            "environment": [],
+            "externalConsole": true,
+            "MIMode": "gdb",
+            "preLaunchTask": "build-test-helpers",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

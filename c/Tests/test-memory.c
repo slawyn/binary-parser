@@ -917,6 +917,10 @@ void test09_MemoryAddTestsAreOkay()
       TEST_ASSERT(status == 0);
    }
 
+   // NULL pointer to buffer
+   status = i32MemoryAdd(&memoryUnderTest, COPY_BASE, 0, NULL);
+   TEST_ASSERT(status != 0);
+
    i32MemoryDeinitialize(&memoryUnderTest);
 }
 

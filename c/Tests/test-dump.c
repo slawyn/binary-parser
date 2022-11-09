@@ -124,16 +124,19 @@ void test05_DumpIsFilledMultiple()
    memcpy(array_total, T05_ARRAY_01, T05_SIZE_01);
    memcpy(array_total, T05_ARRAY_02 + T05_SIZE_01, T05_SIZE_02);
 
-   int32_t status_add1 = i32DumpAddBuffer(testDump, T05_SIZE_01, array_total);
-   TEST_ASSERT(status_add1 == 0);
+   int32_t status = i32DumpAddBuffer(testDump, T05_SIZE_01, array_total);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_add2 = i32DumpAddBuffer(testDump, T05_SIZE_02, array_total + T05_SIZE_01);
-   TEST_ASSERT(status_add2 == 0);
+   status = i32DumpAddBuffer(testDump, T05_SIZE_02, array_total + T05_SIZE_01);
+   TEST_ASSERT(status == 0);
 
-   int32_t status_mc1 = memcmp(testDump->pui8Data, array_total, T05_SIZE_03);
-   TEST_ASSERT(status_mc1 == 0);
+   status = i32DumpAddBuffer(testDump, 0, array_total + T05_SIZE_01);
+   TEST_ASSERT(status != 0);
 
-   int32_t status = i32DumpDestroy(testDump);
+   status = memcmp(testDump->pui8Data, array_total, T05_SIZE_03);
+   TEST_ASSERT(status == 0);
+
+   status = i32DumpDestroy(testDump);
    TEST_ASSERT(status == 0);
 
    #undef T05_ARRAY_01
