@@ -68,6 +68,24 @@ void test03_BuffersAreConvertable(void)
    TEST_ASSERT(memcmp(buffer, test_deadcafe01, sizeof(test_deadcafe01)) == 0);
 }
 
+void test04_4NibblesAreConvertable(void)
+{
+   char *   FEED = "FEED";
+   uint16_t feed = 0xFEED;
+
+   uint16_t word = ui32ConvertHexStringToWord(FEED);
+   TEST_ASSERT(word == feed);
+}
+
+void test05_8NibblesAreConvertable(void)
+{
+   char *   FEEDfood = "F00DFEED";
+   uint32_t feedfood = 0xf00dFEED;
+
+   uint32_t dword = ui32ConvertHexStringToDword(FEEDfood);
+   TEST_ASSERT(dword == feedfood);
+}
+
 /*****************************************************************************
  * @param argc argument count
  * @param argv string arguments
@@ -79,6 +97,8 @@ int main(int argc, char *argv[])
    RUN_TEST(test01_NibblesIsNotConvertable, 0);
    RUN_TEST(test02_TwoNibblesAreConvertable, 0);
    RUN_TEST(test03_BuffersAreConvertable, 0);
+   RUN_TEST(test04_4NibblesAreConvertable, 0);
+   RUN_TEST(test05_8NibblesAreConvertable, 0);
 
    return(UnityEnd());
 }

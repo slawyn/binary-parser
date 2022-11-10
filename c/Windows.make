@@ -6,13 +6,11 @@
 #########################
 # 	Miscellaneous		#
 #########################
-.PHONY = clean build test
+.PHONY: clean build test
 uniq = $(if $1,$(firstword $1) $(call uniq,$(filter-out $(firstword $1),$1)))
 rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 mkfile_dir := $(dir $(mkfile_path))
-
-
 
 #########################
 # 		Project			#
@@ -55,7 +53,6 @@ CFLAGS += -Wall
 # Shared Linker Flags
 LDFLAGS =
 
-
 #########################
 # 		FLAVORS			#
 #########################
@@ -94,18 +91,16 @@ else ifeq ($(FLAVOR),Test)
 	FILES_SOURCES += $(FILE_UNIT_TEST)
 
 	# Files to run cover for
-	COVERS := $(FILE_TARGET:%.c=%.gcda)
+	COVERS = $(FILE_TARGET:%.c=%.gcda)
 
 	# Include Testing Dependencies
 	FILES_UNITY := $(DIR_DEPS)Unity-master/src
 	FILES_SOURCES += $(call rwildcard, $(FILES_UNITY),*.c)
 	CFLAGS += -I$(FILES_UNITY)
-
 endif
 
-# All Objects
-FILES_OBJECTS = $(FILES_SOURCES:%.c=%.o)
-DIRS_OBJECTS = $(addprefix $(DIR_BUILD),$(call uniq, $(sort $(dir $(FILES_SOURCES)))))
+FILES_OBJECTS = $(addprefix $(DIR_BUILD),$(FILES_SOURCES:%.c=%.o))
+DIRS_OBJECTS = $(call uniq, $(sort $(dir $(FILES_OBJECTS))))
 
 #########################
 # 		Commands		#
@@ -130,20 +125,21 @@ test:
 # 	Building Rules	    #
 #########################
 
-# Create Build Folders
+## Create Directories for Build
 $(DIRS_OBJECTS): $(LIBS)
 	@echo "[CREATING Directories]"
 	${TOOL_MKDIR} $(DIRS_OBJECTS)
 
-# Link Objects to Artefact
-$(ARTIFACT): $(DIRS_OBJECTS) $(FILES_OBJECTS)
-	@echo "[LINKING $(ARTIFACT)]"
-	${TOOL_CC} ${LDFLAGS} -o $@ $(addprefix $(DIR_BUILD),$(FILES_OBJECTS))
-
-# Generate Objects for Linking
-%.o: %.c
+## Generate Objects for Linking
+$(DIR_BUILD)%.o: %.c
 	@echo "[BUILDING $@]"
-	$(TOOL_CC) $(CFLAGS) -c $< -o $(DIR_BUILD)$@
+	$(TOOL_CC) $(CFLAGS) -o $@ -c $< 
+
+## Link Objects to Artefact
+$(ARTIFACT): $(DIRS_OBJECTS) $(FILES_OBJECTS)
+	@echo "[LINKING $@]"
+	${TOOL_CC} ${LDFLAGS} -o $@ $(FILES_OBJECTS)
+
 
 
 
