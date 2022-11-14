@@ -202,6 +202,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
 }
 
 /***************************************************************
+* @brief    Reference: https://en.wikipedia.org/wiki/SREC_(file_format)
 * @param sRec .s19 Records
 * @param xSize Length of line
 * @param pxMemory Pointer to Memory
@@ -217,8 +218,7 @@ int32_t i32S19Parse(char *sRec, size_t xSize, Memory_t *pxMemory)
    // Fields:
    // S  Type  ByteCount   Address   Data  Checksum
 
-   // Reference:
-   // https://en.wikipedia.org/wiki/SREC_(file_format)
+
    uint32_t ui32Temp;
    uint8_t *pui8Buffer = NULL;
    uint8_t  ui8ByteCount;

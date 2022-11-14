@@ -19,7 +19,6 @@ PROTOTYPE Memoryblock_t * pxMemoryAllocateBlock(uint32_t ui32BlockAddress, uint3
 
 /* Private functions */
 
-
 /*************************************************************
  * @param ui32BlockAddress Block base address
  * @param ui32BufferSize Byte Count

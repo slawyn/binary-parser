@@ -2,3 +2,5 @@ make -f Windows.make FLAVOR=Test TEST_TARGET=file build test | hlt.exe -c Darkre
 make -f Windows.make FLAVOR=Test TEST_TARGET=dump build test | hlt.exe -c Darkred -t "error" -t "FAIL" -c yellow -t warning -c Green -t PASS -c Cyan -t NULL -t BUILD -t LINK -c Magenta -t "%" -t ASSERT
 make -f Windows.make FLAVOR=Test TEST_TARGET=memory build test | hlt.exe -c Darkred -t "error" -t "FAIL" -c yellow -t warning -c Green -t PASS -c Cyan -t NULL -t BUILD -t LINK -c Magenta -t "%" -t ASSERT
 make -f Windows.make FLAVOR=Test TEST_TARGET=helpers build test | hlt.exe -c Darkred -t "error" -t "FAIL" -c yellow -t warning -c Green -t PASS -c Cyan -t NULL -t BUILD -t LINK -c Magenta -t "%" -t ASSERT
+make -f Windows.make FLAVOR=Test TEST_TARGET=log build test | hlt.exe -c Darkred -t "error" -t "FAIL" -c yellow -t warning -c Green -t PASS -c Cyan -t NULL -t BUILD -t LINK -c Magenta -t "%" -t ASSERT
+make -f Windows.make FLAVOR=Test TEST_TARGET=assert build test | hlt.exe -c Darkred -t "error" -t "FAIL" -c yellow -t warning -c Green -t PASS -c Cyan -t NULL -t BUILD -t LINK -c Magenta -t "%" -t ASSERT
