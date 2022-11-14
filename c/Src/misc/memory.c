@@ -244,7 +244,6 @@ int32_t i32MemoryInitialize(Memory_t *pxMemory)
    else
    {
       pxMemory->ui32BlockCount    = 0;
-      pxMemory->ui32BaseAddress   = 0;
       pxMemory->pxMemoryblockTail = NULL;
       pxMemory->pxMemoryblockHead = NULL;
    }
@@ -286,7 +285,6 @@ int32_t i32MemoryDeinitialize(Memory_t *pxMemory)
       // Reset memory
       if (!i32Error)
       {
-         pxMemory->ui32BaseAddress   = 0;
          pxMemory->pxMemoryblockTail = NULL;
          pxMemory->pxMemoryblockHead = NULL;
       }
@@ -411,6 +409,7 @@ uint32_t ui32MemoryGetTotalSize(Memory_t *pxMemory)
    if (pxMemory == NULL || pxMemory->pxMemoryblockHead == NULL)
    {
       ui32Size = 0;
+      LogError(__BASE_FILE__ "::ui32MemoryGetTotalSize:Error Memory is NULL");
    }
    else if ((pxMemory->pxMemoryblockHead != pxMemory->pxMemoryblockTail))
    {
@@ -681,7 +680,7 @@ int32_t i32MemoryAdd(Memory_t *pxMemory, uint32_t ui32BlockAddress, uint32_t ui3
 
    Memoryblock_t *pxMemoryblock;
    Memoryblock_t *pxMemoryblockTraversee;
-   uint32_t       ui32FullBlockAddress = (ui32BlockAddress + pxMemory->ui32BaseAddress);
+   uint32_t       ui32FullBlockAddress = (ui32BlockAddress);
    int32_t        i32Overlap           = 0;
    int32_t        i32FreeSpace         = 0;
    int32_t        i32Error             = 0;

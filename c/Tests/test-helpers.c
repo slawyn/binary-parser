@@ -86,6 +86,49 @@ void test05_8NibblesAreConvertable(void)
    TEST_ASSERT(dword == feedfood);
 }
 
+void test06_MemoryConvertableToDump(void)
+{
+   #define FREEBYTE    0xFF
+   Memory_t memory;
+   uint8_t  array[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 };
+
+   int32_t status = i32MemoryInitialize(&memory);
+   TEST_ASSERT(status == 0);
+
+   // NULL TEsts
+   Dump_t *dump = pxConvertMemoryToDump(NULL, FREEBYTE);
+   TEST_ASSERT(dump == NULL);
+
+   dump = pxConvertMemoryToDump(&memory, FREEBYTE);
+   TEST_ASSERT(dump == NULL);
+
+   status = i32MemoryAdd(&memory, 0x100, sizeof(array), array);
+   TEST_ASSERT(status == 0);
+
+   dump = pxConvertMemoryToDump(&memory, FREEBYTE);
+   TEST_ASSERT(dump);
+
+   // First comparison
+   //----------------------------
+   Dump_t *dump2 = pxDumpCreate(0x100, sizeof(array));
+   TEST_ASSERT(dump2);
+
+   status = i32DumpAddBuffer(dump2, sizeof(array), array);
+   TEST_ASSERT(status == 0);
+
+   status = i32DumpCompare(dump, dump2);
+   TEST_ASSERT(status == 0);
+
+   status = i32DumpDestroy(dump2) | i32DumpDestroy(dump);
+   TEST_ASSERT(status == 0);
+
+
+   status = i32MemoryDeinitialize(&memory);
+   TEST_ASSERT(status == 0);
+
+   #undef FREEBYTE
+}
+
 /*****************************************************************************
  * @param argc argument count
  * @param argv string arguments
@@ -99,6 +142,7 @@ int main(int argc, char *argv[])
    RUN_TEST(test03_BuffersAreConvertable, 0);
    RUN_TEST(test04_4NibblesAreConvertable, 0);
    RUN_TEST(test05_8NibblesAreConvertable, 0);
+   RUN_TEST(test06_MemoryConvertableToDump, 0);
 
    return(UnityEnd());
 }

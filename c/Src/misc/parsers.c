@@ -83,6 +83,8 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
    uint8_t  ui8ByteIndex;
    uint8_t  ui8Checksum = 0;
 
+   static uint32_t ui32BaseAddress = 0;
+
    // Check min length
    if ((sRec[HEX_LINESTART_IDX] == HEX_HEAD_LINESTART) && (xSize < (HEX_DATA_BYTE0_IDX + S19_CHECKSUM_SZ)))
    {
@@ -90,7 +92,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
       return(-1);
    }
    ui8ByteCount  = ui32ConvertHexStringToByte(&sRec[HEX_BYTE_COUNT_IDX]) * 2;
-   ui16Address   = ui32ConvertHexStringToWord(&sRec[HEX_ADDRESS_IDX]);
+   ui16Address   = ui32ConvertHexStringToWord(&sRec[HEX_ADDRESS_IDX]) + ui32BaseAddress;
    ui8RecordType = ui32ConvertHexStringToByte(&sRec[HEX_RECTYPE_IDX]);
 
    // Check type
@@ -144,6 +146,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
 
    case HEX_RT_EOF:
       i32Log(__BASE_FILE__ "::i32HexParse:: End Of File");
+      ui32BaseAddress = 0;
       break;
 
    case HEX_RT_EXT_SEG_ADR:
@@ -152,7 +155,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
          LogError(__BASE_FILE__ "::i32HexParse:: 02:Error: Record size %d", ui8ByteCount);
          return(-5);
       }
-      pxMemory->ui32BaseAddress = ui32ConvertHexStringToWord(&sRec[0]);
+      ui32BaseAddress = ui32ConvertHexStringToWord(&sRec[0]);
       break;
 
    case HEX_RT_START_SEG_ADR:
@@ -173,7 +176,7 @@ int32_t i32HexParse(char *sRec, size_t xSize, Memory_t *pxMemory)
          LogError(__BASE_FILE__ "::i32HexParse:: 04:Error: Record size %d", ui8ByteCount);
          return(-5);
       }
-      pxMemory->ui32BaseAddress = ui32ConvertHexStringToWord(&sRec[0]);
+      ui32BaseAddress = ui32ConvertHexStringToWord(&sRec[0]);
       break;
 
    case HEX_RT_START_LIN_ADR:

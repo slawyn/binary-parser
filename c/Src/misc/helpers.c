@@ -96,25 +96,17 @@ Dump_t * pxConvertMemoryToDump(Memory_t *pxMemory, uint8_t ui8FreeByte)
    REQUIRE(pxMemory);
 
    Memoryblock_t *pxMemoryblock;
+   Dump_t *       pxDump;
    uint32_t       ui32DumpSize = ui32MemoryGetTotalSize(pxMemory);
 
-   Dump_t *pxDump = NULL;
-   if (ui32DumpSize > 0)
+   pxDump           = malloc(sizeof(Dump_t));
+   pxDump->pui8Data = malloc(ui32DumpSize);
+
+   // Dump
+   if (pxDump && pxDump->pui8Data && ui32DumpSize)
    {
-      pxDump = malloc(sizeof(Dump_t));
-
-      // Update base if 0
-      if (pxMemory->ui32BaseAddress == 0 && (pxMemory->pxMemoryblockHead != NULL))
-      {
-         pxDump->ui32BaseAddress = pxMemory->pxMemoryblockHead->ui32BlockAddress;
-      }
-      else
-      {
-         pxDump->ui32BaseAddress = pxMemory->ui32BaseAddress;
-      }
-
-      pxDump->ui32Size = ui32DumpSize;
-      pxDump->pui8Data = malloc(ui32DumpSize);
+      pxDump->ui32BaseAddress = pxMemory->pxMemoryblockHead->ui32BlockAddress;
+      pxDump->ui32Size        = ui32DumpSize;
 
       // Fill with ui8Freebyte
       memset(pxDump->pui8Data, ui8FreeByte, ui32DumpSize);
@@ -127,6 +119,16 @@ Dump_t * pxConvertMemoryToDump(Memory_t *pxMemory, uint8_t ui8FreeByte)
          pxMemoryblock = pxMemoryblock->pxMemoryblockNext;
       }
    }
+   else
+   {
+      free(pxDump);
+      free(pxDump->pui8Data);
+
+
+      pxDump = NULL;
+      LogError(__BASE_FILE__ "::pxConvertMemoryToDump:Error Dump not created");
+   }
+
 
    return(pxDump);
 }

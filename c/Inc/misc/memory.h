@@ -16,7 +16,6 @@ typedef struct memblock_
 typedef struct
 {
    uint32_t       ui32BlockCount;
-   uint32_t       ui32BaseAddress;
    Memoryblock_t *pxMemoryblockHead;
    Memoryblock_t *pxMemoryblockTail;
 }

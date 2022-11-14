@@ -346,14 +346,12 @@ void test00_MemoryisInitialized()
 
    TEST_ASSERT(memory.pxMemoryblockHead == NULL);
    TEST_ASSERT(memory.pxMemoryblockTail == NULL);
-   TEST_ASSERT(memory.ui32BaseAddress == 0);
    TEST_ASSERT(memory.ui32BlockCount == 0);
 
    status = i32MemoryDeinitialize(&memory);
    TEST_ASSERT(status == 0);
    TEST_ASSERT(memory.pxMemoryblockHead == NULL);
    TEST_ASSERT(memory.pxMemoryblockTail == NULL);
-   TEST_ASSERT(memory.ui32BaseAddress == 0);
    TEST_ASSERT(memory.ui32BlockCount == 0);
 
    #undef T01_ADDR_01
@@ -528,7 +526,6 @@ void test02_MemoryHasFailedDeinitialization()
 
    TEST_ASSERT(memory.pxMemoryblockHead != NULL);
    TEST_ASSERT(memory.pxMemoryblockTail != NULL);
-   TEST_ASSERT(memory.ui32BaseAddress == 0);
    TEST_ASSERT(memory.ui32BlockCount == 2);
 
    // Missing Buffer
