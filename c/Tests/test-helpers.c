@@ -122,7 +122,6 @@ void test06_MemoryConvertableToDump(void)
    status = i32DumpDestroy(dump2) | i32DumpDestroy(dump);
    TEST_ASSERT(status == 0);
 
-
    status = i32MemoryDeinitialize(&memory);
    TEST_ASSERT(status == 0);
 

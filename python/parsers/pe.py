@@ -254,8 +254,11 @@ class OPTIONALHEADER:
         out = "Data Directories:\n\t"
         out2 = ""
         for i in self.DataDirectory.keys():
-            out2 = "%12s:\tRVA:0x%x\tSIZE:0x%x\t%s\n\t" % (
-                i, self.DataDirectory[i][0], self.DataDirectory[i][1], (self.DataDirectory[i][2]).Name)
+            section = self.DataDirectory[i][2]
+            name = "<Not found>"
+            if section != None:
+                name = section.Name
+            out2 = "%12s:\tRVA:0x%x\tSIZE:0x%x\t%s\n\t" % (i, self.DataDirectory[i][0], self.DataDirectory[i][1], name)
             out += out2
         return out
 
@@ -860,7 +863,7 @@ class PeParser:
     def __init__(self, buffer):
         try:
 
-            log("pypeparser.py#Parsing PE...")
+            log("Parsing PE...")
             self.buffer = buffer
             self.DOSHEADER_ = DOSHEADER(self.buffer)
             # next header at offset field
@@ -902,32 +905,36 @@ class PeParser:
                 tablesrva = self.NTHEADER_.OPTIONALHEADER_.DataDirectory[key][0]
                 # get corresponding section in which the information resides
                 section = self.NTHEADER_.OPTIONALHEADER_.DataDirectory[key][2]
-                tables_fileoffset = tablesrva-section.VirtualAddress + \
-                    section.PointerToRawData  # offset to directory table: internal use
+                if section == None:
+                    log(f"ERROR: {key} has no section")
+                    continue
+
+                # offset to directory table: internal use
+                tables_fileoffset = tablesrva-section.VirtualAddress + section.PointerToRawData
 
                 # parse directories
                 if key == "EXPORT":
-                    log("pypeparser.py#Parsing EXPORT")
+                    log("Parsing EXPORT")
                     self.EXPORTTABLE_ = EXPORTTABLE(
                         self.buffer, tables_fileoffset, self.SECTIONHEADERS_)
 
                 elif key == "IMPORT":
-                    log("pypeparser.py#Parsing IMPORT")
+                    log("Parsing IMPORT")
                     self.IMPORTTABLE_ = IMPORTTABLE(
                         self.buffer, tables_fileoffset, self.SECTIONHEADERS_, self.NTHEADER_.OPTIONALHEADER_.is64Bit)
 
                 elif key == "DELAYIMPORT":
-                    log("pypeparser.py#Parsing DELAYIMPORT")
+                    log("Parsing DELAYIMPORT")
                     self.DELAYIMPORTTABLE_ = DELAYIMPORTTABLE(
                         self.buffer, tables_fileoffset, self.SECTIONHEADERS_, self.NTHEADER_.OPTIONALHEADER_.is64Bit)
 
                 elif key == "TLS":
-                    log("pypeparser.py#Parsing TLS")
+                    log("Parsing TLS")
                     self.TLS_ = TLS(self.buffer, tables_fileoffset,
                                     self.NTHEADER_.OPTIONALHEADER_.is64Bit)
 
                 elif key == "EXCEPTION":  # x64 only, on x86 the exception information is saved on the stack
-                    log("pypeparser.py#Parsing EXCEPTION")
+                    log("Parsing EXCEPTION")
                     self.EXCEPTIONTABLE_ = EXCEPTIONTABLE(
                         self.buffer,  tables_fileoffset, self.SECTIONHEADERS_)
 
@@ -971,7 +978,7 @@ class PeParser:
             log(self.GetExceptions())
 
     def write_all(self, folder):
-        log("pypeparser.py#Success!Writing to files..")
+        log("Success!Writing to files..")
 
         # write out information about all headers
         with open(folder+"\\peanalysis.txt", "w") as fd:
