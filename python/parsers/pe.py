@@ -483,28 +483,33 @@ class ImportObject:
 
 
 class IMPORTTABLE:
+    IMPORT_BY_ORDINAL_64BIT = 0x8000000000000000
+    IMPORT_BY_ORDINAL_32BIT = 0x80000000
+
     def __init__(self, data, tables_fileoffset, sections, mode64):
         self.ImportDirectoryTables = []
         self.NumberOfDLLs = 0
         i = 0
         importdirectorytables = self.ImportDirectoryTables
         while True:
-            importdirectorytable = IMPORTDIRECTORYTABLE(
-                data, tables_fileoffset+20*i)
+            importdirectorytable = IMPORTDIRECTORYTABLE(data, tables_fileoffset+20*i)
             if importdirectorytable.isEmpty:
                 break
 
-            nameoffset = convertRVAToOffset(
-                importdirectorytable.NameRVA, sections)
+            nameoffset = convertRVAToOffset(importdirectorytable.NameRVA, sections)
             importdirectorytable.nameOfDLL = readstring(data, nameoffset)
-
             importdirectorytables.append(importdirectorytable)
-            iltoffset = convertRVAToOffset(
-                importdirectorytable.ILTRVA, sections)
 
+            # Sometimes ILT is empty, but the content of ILT and IAT is the same
+            # and changes only after loading
+            if importdirectorytable.ILTRVA > 0:
+                offsetILT = convertRVAToOffset(importdirectorytable.ILTRVA, sections)
+            else:
+                offsetILT = convertRVAToOffset(importdirectorytable.IATRVA, sections)
+
+            # parse imported itemslist
             j = 0
             importObjects = []
-            # parse imported itemslist
             while True:
                 iltentry = 0
                 importbyordinal = 0
@@ -512,19 +517,16 @@ class IMPORTTABLE:
                 iatrva = 0
                 value = 0
                 if mode64:
-                    iltentry = unpackuint64(
-                        data[iltoffset+j*8:iltoffset+j*8+8])  # 8 bytes
-                    # is the import by ordinal bit set?
-                    importbyordinal = iltentry & 0x8000000000000000
-                    iatrva = importdirectorytable.IATRVA+j*8     # iat rva that functions use
+                    iltentry = unpackuint64(data[offsetILT+j*8:offsetILT+j*8+8])
+                    importbyordinal = iltentry & IMPORTTABLE.IMPORT_BY_ORDINAL_64BIT
+                    iatrva = importdirectorytable.IATRVA+j*8
                     valueoffset = convertRVAToOffset(iatrva, sections)
                     value = unpackuint64(data[valueoffset:valueoffset+8])
 
                 else:
-                    iltentry = unpackuint32(
-                        data[iltoffset+j*4:iltoffset+j*4+4])  # 4 bytes
-                    importbyordinal = iltentry & 0x80000000  # same as above. but for 32 bit PE
-                    iatrva = importdirectorytable.IATRVA+j*4		# iat rva that functions use
+                    iltentry = unpackuint32(data[offsetILT+j*4:offsetILT+j*4+4])
+                    importbyordinal = iltentry & IMPORTTABLE.IMPORT_BY_ORDINAL_32BIT
+                    iatrva = importdirectorytable.IATRVA+j*4
                     valueoffset = convertRVAToOffset(iatrva, sections)
                     value = unpackuint32(data[valueoffset:valueoffset+4])
 
@@ -533,29 +535,22 @@ class IMPORTTABLE:
 
                 # we have a forwarder:this is undocumented
                 if importdirectorytable.ForwarderChain != 0 and importdirectorytable.ForwarderChain != -1:
-                    forwarderstringoffset = convertRVAToOffset(
-                        iltentry, sections)
+                    forwarderstringoffset = convertRVAToOffset(iltentry, sections)
                     forwarderstring = readstring(data, forwarderstringoffset)
 
                     # since we have a  forwarder set it to forwarderchain
-                    importObjects.append(ImportObject(
-                        iatrva, 0, 0, forwarderstring, importdirectorytable.ForwarderChain, value))
+                    importObjects.append(ImportObject(iatrva, 0, 0, forwarderstring, importdirectorytable.ForwarderChain, value))
 
                 # import by ordinal
                 elif importbyordinal:
-                    importObjects.append(ImportObject(
-                        iatrva, iltentry & 0xFFFF, 0, 0, "", 0, value))  # no hint no name
+                    importObjects.append(ImportObject(iatrva, iltentry & 0xFFFF, 0, 0, "", 0, value))
 
                 # import by name
                 else:
-                    nametableoffset = convertRVAToOffset(
-                        (iltentry & 0x7FFFFFFF), sections)
-
-                    hint = unpackuint16(
-                        data[nametableoffset:nametableoffset+2])  # read hint
+                    nametableoffset = convertRVAToOffset((iltentry & 0x7FFFFFFF), sections)
+                    hint = unpackuint16(data[nametableoffset:nametableoffset+2])
                     name = readstring(data, nametableoffset+2)
-                    importObjects.append(ImportObject(
-                        iatrva, 0, (iltentry & 0x7FFFFFFF), hint, name, 0, value))
+                    importObjects.append(ImportObject(iatrva, 0, (iltentry & 0x7FFFFFFF), hint, name, 0, value))
 
                 j += 1
                 importdirectorytable.importObjects = importObjects
