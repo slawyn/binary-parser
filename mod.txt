@@ -1,0 +1,461 @@
+2024-01-21 18:15:33.462759::[Bootloader.mod] Read Bytes: 2057832
+
+[Elf Identification]
+Class:                                   ELF32
+Data:                                    Little Endian
+Version:                                 1 (Current)
+OSABI:                                   System V
+Abi Version:                             0 (Standard)
+
+[Elf Header]
+Type:                                    ET_EXEC (Executable file)
+Machine:                                 ARM (up to ARMv7/Aarch32)
+Version:                                 1 (Original)
+Entry point address:                     8069f9d
+Program headers file offset:             1f6048
+Section headers file offset:             1f6168
+Flags:                                   5000000
+Size of this header:                     52
+Size of program headers:                 20
+Number of program headers:               9
+Size of section headers:                 28
+Number of section headers:               32
+Section header string table index:       1
+
+[Program Headers]
+[0]
+Type:                                    PT_LOAD (Loadable segment)
+File offset:                             44
+File size:                               2c8
+Physical address:                        8000000
+Virtual address:                         8000000
+Memory size:                             2c8
+Flags:                                   R 
+Align:                                   4
+[1]
+Type:                                    PT_LOAD (Loadable segment)
+File offset:                             30c
+File size:                               cc
+Physical address:                        8004000
+Virtual address:                         8004000
+Memory size:                             cc
+Flags:                                   R 
+Align:                                   4
+[2]
+Type:                                    PT_LOAD (Loadable segment)
+File offset:                             3d8
+File size:                               60
+Physical address:                        8008000
+Virtual address:                         8008000
+Memory size:                             60
+Flags:                                   R 
+Align:                                   4
+[3]
+Type:                                    PT_LOAD (Loadable segment)
+File offset:                             438
+File size:                               92
+Physical address:                        8010000
+Virtual address:                         8010000
+Memory size:                             92
+Flags:                                   X R 
+Align:                                   4
+[4]
+Type:                                    PT_LOAD (Loadable segment)
+File offset:                             4cc
+File size:                               bee8
+Physical address:                        8060000
+Virtual address:                         8060000
+Memory size:                             bee8
+Flags:                                   X R 
+Align:                                   8
+[5]
+Type:                                    PT_LOAD (Loadable segment)
+File offset:                             c3b4
+File size:                               4
+Physical address:                        807fffc
+Virtual address:                         807fffc
+Memory size:                             4
+Flags:                                   R 
+Align:                                   4
+[6]
+Type:                                    PT_LOAD (Loadable segment)
+File offset:                             191fc6
+File size:                               4ff6e
+Physical address:                        8010092
+Virtual address:                         8010092
+Memory size:                             4ff6e
+Flags:                                   0
+Align:                                   0
+[7]
+Type:                                    PT_LOAD (Loadable segment)
+File offset:                             1e1f34
+File size:                               14110
+Physical address:                        806bee8
+Virtual address:                         806bee8
+Memory size:                             14110
+Flags:                                   0
+Align:                                   0
+[8]
+Type:                                    PT_LOAD (Loadable segment)
+File offset:                             1f6044
+File size:                               4
+Physical address:                        807fff8
+Virtual address:                         807fff8
+Memory size:                             4
+Flags:                                   0
+Align:                                   0
+
+[Section Headers]
+
+[0] 
+Offset:                                  0
+Type:                                    SHT_NULL (Unused)
+File offset:                             175ed0
+File size:                               0
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              0
+
+[1] .shstrtab
+Offset:                                  1
+Type:                                    SHT_STRTAB (String table)
+File offset:                             175ed0
+File size:                               134
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              0
+
+[2] .strtab
+Offset:                                  11
+Type:                                    SHT_STRTAB (String table)
+File offset:                             176004
+File size:                               c021
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              0
+
+[3] .symtab
+Offset:                                  19
+Type:                                    SHT_SYMTAB (Symbol table)
+File offset:                             182026
+File size:                               ffa0
+Physical address:                        0
+Link:                                    2
+Info:                                    e2c
+Flags:                                   0
+Entry Size:                              10
+
+[4] A0
+Offset:                                  27
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             44
+File size:                               2c8
+Physical address:                        8000000
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_ALLOC (Occupies memory during execution) 
+Entry Size:                              1
+
+[5] A1
+Offset:                                  30
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             30c
+File size:                               cc
+Physical address:                        8004000
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_ALLOC (Occupies memory during execution) 
+Entry Size:                              1
+
+[6] A4
+Offset:                                  33
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             3d8
+File size:                               60
+Physical address:                        8008000
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_ALLOC (Occupies memory during execution) 
+Entry Size:                              1
+
+[7] A3
+Offset:                                  36
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             438
+File size:                               92
+Physical address:                        8010000
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_ALLOC (Occupies memory during execution) SHF_EXECINSTR (Executable) 
+Entry Size:                              1
+
+[8] P1
+Offset:                                  39
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             4cc
+File size:                               bee8
+Physical address:                        8060000
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_ALLOC (Occupies memory during execution) SHF_EXECINSTR (Executable) 
+Entry Size:                              1
+
+[9] A2
+Offset:                                  42
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             c3b4
+File size:                               4
+Physical address:                        807fffc
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_ALLOC (Occupies memory during execution) 
+Entry Size:                              1
+
+[10] A5
+Offset:                                  45
+Type:                                    SHT_NOBITS (bss)
+File offset:                             c3b8
+File size:                               1000
+Physical address:                        20000010
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_WRITE (Writable) SHF_ALLOC (Occupies memory during execution) 
+Entry Size:                              1
+
+[11] P2 rw
+Offset:                                  48
+Type:                                    SHT_NOBITS (bss)
+File offset:                             d3b8
+File size:                               5c0
+Physical address:                        20001010
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_WRITE (Writable) SHF_ALLOC (Occupies memory during execution) 
+Entry Size:                              1
+
+[12] P2 ui
+Offset:                                  54
+Type:                                    SHT_NOBITS (bss)
+File offset:                             d978
+File size:                               fe1d
+Physical address:                        200015d0
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_WRITE (Writable) SHF_ALLOC (Occupies memory during execution) 
+Entry Size:                              1
+
+[13] A6
+Offset:                                  60
+Type:                                    SHT_NOBITS (bss)
+File offset:                             1d796
+File size:                               140
+Physical address:                        2001d000
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_WRITE (Writable) SHF_ALLOC (Occupies memory during execution) 
+Entry Size:                              1
+
+[14] .debug_abbrev
+Offset:                                  63
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             1d8d6
+File size:                               5017
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[15] .debug_aranges
+Offset:                                  77
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             228ed
+File size:                               2760
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[16] .debug_frame
+Offset:                                  92
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             2504d
+File size:                               3792
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[17] .debug_info
+Offset:                                  105
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             287df
+File size:                               3e595
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[18] .debug_line
+Offset:                                  117
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             66d74
+File size:                               3738b
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[19] .debug_loc
+Offset:                                  129
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             9e0ff
+File size:                               8516
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[20] .debug_macinfo
+Offset:                                  140
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             a6615
+File size:                               29fb
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[21] .debug_pubnames
+Offset:                                  155
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             a9010
+File size:                               3b01
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[22] .debug_ranges
+Offset:                                  171
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             acb11
+File size:                               798
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[23] .debug_types
+Offset:                                  185
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             ad2a9
+File size:                               3e0c
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[24] .iar.debug_frame
+Offset:                                  198
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             b10b5
+File size:                               1626
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[25] .iar.debug_line
+Offset:                                  215
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             b26db
+File size:                               10419
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[26] .comment
+Offset:                                  231
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             c2af4
+File size:                               b3376
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[27] .iar.rtmodel
+Offset:                                  240
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             175e6a
+File size:                               36
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[28] .ARM.attributes
+Offset:                                  253
+Type:                                    70000003
+File offset:                             175ea0
+File size:                               2e
+Physical address:                        0
+Link:                                    0
+Info:                                    0
+Flags:                                   0
+Entry Size:                              1
+
+[29] .partial_10d
+Offset:                                  269
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             191fc6
+File size:                               4ff6e
+Physical address:                        8010092
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_ALLOC (Occupies memory during execution) SHF_EXECINSTR (Executable) 
+Entry Size:                              0
+
+[30] .partial_11a
+Offset:                                  282
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             1e1f34
+File size:                               14110
+Physical address:                        806bee8
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_ALLOC (Occupies memory during execution) SHF_EXECINSTR (Executable) 
+Entry Size:                              0
+
+[31] .partial_127
+Offset:                                  295
+Type:                                    SHT_PROGBITS (Program data)
+File offset:                             1f6044
+File size:                               4
+Physical address:                        807fff8
+Link:                                    0
+Info:                                    0
+Flags:                                   SHF_ALLOC (Occupies memory during execution) SHF_EXECINSTR (Executable) 
+Entry Size:                              0
+

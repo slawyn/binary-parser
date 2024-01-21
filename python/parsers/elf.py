@@ -264,6 +264,7 @@ class ProgramHeader:
     PH_ALIGN_64SZ = 8
 
     PT_LOAD = 0x00000001
+    PT_PHDR = 0x00000006
     PH_TYPE_T = {0x00000000: "PT_NULL (Unused)",
                  0x00000001: "PT_LOAD (Loadable segment)",
                  0x00000002: "PT_DYNAMIC (Dynamic linking information)",
@@ -317,6 +318,9 @@ class ProgramHeader:
 
     def get_offset(self):
         return self.members["ph_offset"]
+
+    def get_type(self):
+        return self.members["ph_type"]
 
     def get_vaddr(self):
         return self.members["ph_vaddr"]
@@ -728,7 +732,7 @@ class ElfParser:
                     data.add_program_header(ph)
 
             if not found:
-                raise Exception(f"ERROR: couldn't place {_start:x}-{_end:x}")
+                print(f"WARNING: couldn't place {ph.get_type()} {_start:x}-{_end:x}")
 
     def _create_data(self, address, new_data):
         '''Create data
