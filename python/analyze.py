@@ -1,5 +1,5 @@
 import sys
-
+import argparse
 from parsers.pe import PeParser
 from parsers.elf import ElfParser
 
@@ -7,17 +7,34 @@ from utils import log, load_file
 
 
 if __name__ == "__main__":
-    if len(sys.argv) >= 1:
-        in_filename = sys.argv[1]
+    parser = argparse.ArgumentParser(
+        prog='ProgramName',
+        description='What the program does',
+        epilog='Text at the bottom of help')
 
-        try:
-            buffer = load_file(in_filename)
-            if buffer[0:4] == b"\x7fELF":
-                parser = ElfParser(buffer)
-                parser.print_all()
-            elif buffer[0:2] == b"MZ":
-                parser = PeParser(buffer)
-                parser.print_all()
+    parser.add_argument('-i', '--input')
+    parser.add_argument('-p', '--print', action='store_true')
+    parser.add_argument('-oh', '--ohex')
+    parser.add_argument('-o', '--output')
+    args = parser.parse_args()
 
-        except Exception as e:
-            log(e)
+    try:
+        buffer = load_file(args.input)
+        elf_type = buffer[0:4] == b"\x7fELF"
+        pe_type = buffer[0:2] == b"MZ"
+        if elf_type:
+            _parser = ElfParser(buffer)
+        elif pe_type:
+            _parser = PeParser(buffer)
+        else:
+            raise Exception("ERROR: File type not recognized")
+        # Analyze
+        if args.print:
+            print(_parser)
+
+        # Output
+        if args.output:
+            _parser.write_data_to_file(elf_out=args.output)
+
+    except Exception as e:
+        log(e)

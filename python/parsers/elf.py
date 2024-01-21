@@ -351,7 +351,7 @@ class ProgramHeader:
 
 
 class ElfIdent:
-    ELF_MAGIC = 0x7F454C46
+    ELF_MAGIC = 0x464C457F
     EI_MAGIC = 0x0
     EI_MAGIC_SZ = 4
     EI_CLASS_SZ = 1
@@ -364,7 +364,24 @@ class ElfIdent:
     EI_CLASS_T = {1: "ELF32", 2: "ELF64"}
     EI_DATA_T = {1: "Little Endian", 2: "Big Endian"}
     EI_VERSION_T = {0: "0 (Old)", 1: "1 (Current)"}
-    EI_OSABI_T = {0x00: "System V", 0x01: "HP-UX", 0x02: "NetBSD", 0x03: "Linux", 0x04: "GNU Hurd", 0x06: "Solaris", 0x07: "AIX", 0x08: "IRIX", 0x09: "FreeBSD", 0x0A: "Tru64", 0x0B: "Novell Modesto", 0x0C: "OpenBSD", 0x0D: "OpenVMS", 0x0E: "NonStop Kernel", 0x0F: "AROS", 0x10: "FenixOS", 0x011: "Nuxi CloudABI", 0x12: "Stratus Technologies OpenVOS"}
+    EI_OSABI_T = {0x00: "System V",
+                  0x01: "HP-UX",
+                  0x02: "NetBSD",
+                  0x03: "Linux",
+                  0x04: "GNU Hurd",
+                  0x06: "Solaris",
+                  0x07: "AIX",
+                  0x08: "IRIX",
+                  0x09: "FreeBSD",
+                  0x0A: "Tru64",
+                  0x0B: "Novell Modesto",
+                  0x0C: "OpenBSD",
+                  0x0D: "OpenVMS",
+                  0x0E: "NonStop Kernel",
+                  0x0F: "AROS",
+                  0x10: "FenixOS",
+                  0x011: "Nuxi CloudABI",
+                  0x12: "Stratus Technologies OpenVOS"}
     EI_ABIVERSION_T = {0: "0 (Standard)"}
 
     DATA_LITTLE_ENDIAN = 0x01
@@ -384,7 +401,7 @@ class ElfIdent:
     def unpack(self, buffer):
         offset = ElfIdent.EI_MAGIC
         for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(ElfIdent,  Packer.get(key))])
+            self.members[key] = utils.unpack(buffer[offset:offset + getattr(ElfIdent,  Packer.get(key))])
             offset += getattr(ElfIdent, Packer.get(key))
 
         if self.members["ei_magic"] != ElfIdent.ELF_MAGIC:
@@ -397,7 +414,7 @@ class ElfIdent:
     def pack(self):
         buffer = []
         for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(ElfIdent,  Packer.get(key))))
+            buffer.extend(utils.pack(self.members[key], getattr(ElfIdent,  Packer.get(key))))
         return buffer
 
     def get_size(self):
@@ -904,7 +921,7 @@ class ElfParser:
         self._update_elf_header(binary)
 
         if elf_out != "":
-            with open(fileout, 'wb') as f:
+            with open(elf_out, 'wb') as f:
                 f.write(bytes(binary))
 
         if hex_out != "":
@@ -945,9 +962,6 @@ class ElfParser:
                     return sd.get_data()
 
         raise Exception(f"ERROR: section data was not found for name {section_name}")
-
-    def print_all(self):
-        print(self)
 
     def __str__(self):
         out = ""

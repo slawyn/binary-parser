@@ -1,2 +1,0 @@
-2024-01-21 20:06:51.005855::[python/binaries/main] Read Bytes: 16736
-2024-01-21 20:06:51.006855::ERROR: Symbol or String table not found

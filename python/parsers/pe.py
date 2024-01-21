@@ -251,15 +251,17 @@ class OPTIONALHEADER:
         return "Subsystem:\n\t"+hex(self.Subsystem) + " "+self._subsystemtypes[self.Subsystem]+"\n"
 
     def GetDataDirectories(self):
-        out = "Data Directories:\n\t"
+        out = "\n[Data Directories]\n"
         out2 = ""
         for i in self.DataDirectory.keys():
             section = self.DataDirectory[i][2]
             name = "<Not found>"
             if section != None:
                 name = section.Name
-            out2 = "%12s:\tRVA:0x%x\tSIZE:0x%x\t%s\n\t" % (i, self.DataDirectory[i][0], self.DataDirectory[i][1], name)
-            out += out2
+            out += f"{i:10}\n"
+            out += f"  rva:  {self.DataDirectory[i][0]:10}\n"
+            out += f"  size: {self.DataDirectory[i][1]:10}\n"
+            out += f"  sect: {name:10}\n"
         return out
 
     def GetDllCharacteristics(self):
@@ -942,35 +944,35 @@ class PeParser:
     def get_buffer(self):
         return self.buffer
 
-    def print_all(self):
+    def __str__(self):
+        out = self.NTHEADER_.FILEHEADER_.GetMachine()
+        out += self.NTHEADER_.FILEHEADER_.GetCharacteristics()
+        out += "ImageBase:\n\t%s\n" % hex(self.NTHEADER_.OPTIONALHEADER_.ImageBase)
+        out += "BaseOfCode:\n\t%s\n" % hex(self.NTHEADER_.OPTIONALHEADER_.BaseOfCode)
 
-        log(self.NTHEADER_.FILEHEADER_.GetMachine())
-        log(self.NTHEADER_.FILEHEADER_.GetCharacteristics())
-        log("ImageBase:\n\t%s\n" % hex(self.NTHEADER_.OPTIONALHEADER_.ImageBase))
-        log("BaseOfCode:\n\t%s\n" %
-            hex(self.NTHEADER_.OPTIONALHEADER_.BaseOfCode))
-        log("EntryPoint:\n\t%s\n" %
-            hex(self.NTHEADER_.OPTIONALHEADER_.AddressOfEntryPoint))
-        log(self.NTHEADER_.OPTIONALHEADER_.GetSubsystem())
-        log(self.NTHEADER_.OPTIONALHEADER_.GetDllCharacteristics())
-        log(self.NTHEADER_.OPTIONALHEADER_.GetDataDirectories())
-        log(self.GetSections())
+        out += "EntryPoint:\n\t%s\n" % hex(self.NTHEADER_.OPTIONALHEADER_.AddressOfEntryPoint)
+        out += self.NTHEADER_.OPTIONALHEADER_.GetSubsystem()
+        out += self.NTHEADER_.OPTIONALHEADER_.GetDllCharacteristics()
+        out += self.NTHEADER_.OPTIONALHEADER_.GetDataDirectories()
+        out += self.GetSections()
 
         # write out information about dictionaries
         if self.DELAYIMPORTTABLE_:
-            log(self.GetDelayImports())
+            out += self.GetDelayImports()
 
         if self.IMPORTTABLE_:
-            log(self.GetImports())
+            out += self.GetImports()
 
         if self.EXPORTTABLE_:
-            log(self.GetExports())
+            out += self.GetExports()
 
         if self.TLS_:
-            log(self.GetTLSCallbacks())
+            out += self.GetTLSCallbacks()
 
         if self.EXCEPTIONTABLE_:
-            log(self.GetExceptions())
+            out += self.GetExceptions()
+
+        return out
 
     def write_all(self, folder):
         log("Success!Writing to files..")
@@ -1059,24 +1061,16 @@ class PeParser:
 
     def GetSections(self):
         NumberOfEntries = self.NTHEADER_.FILEHEADER_.NumberOfSections
-        out = "NumberOfSections: %d\n" % (NumberOfEntries)
+        out = "\n[Sections]\n"
+        out += " NumberOfSections: %d\n" % (NumberOfEntries)
 
         for i in range(NumberOfEntries):
-            out2 = "\tName\t\t\t:\t%s\n 		\
-					\tVirtualAddress\t:\t0x%x\n \
-					\tVirtualSize\t\t:\t0x%x\n  \
-					\tPointerToRawData:\t0x%x\n \
-					\tSizeOfRawData\t:\t0x%x\n  \
-					\t%s" % (
-                self.SECTIONHEADERS_[i].Name,
-                self.SECTIONHEADERS_[i].VirtualAddress,
-                self.SECTIONHEADERS_[i].VirtualSize,
-                self.SECTIONHEADERS_[i].PointerToRawData,
-                self.SECTIONHEADERS_[i].SizeOfRawData,
-                self.SECTIONHEADERS_[i].GetCharacteristics())
-
-            out += out2
-        out += "\n"
+            out += f" {'Name':20} {self.SECTIONHEADERS_[i].Name}\n"
+            out += f" {'VirtualAddress':20} {self.SECTIONHEADERS_[i].VirtualAddress:x}\n"
+            out += f" {'VirtualSize':20} {self.SECTIONHEADERS_[i].VirtualSize:x}\n"
+            out += f" {'PointerToRawData':20} {self.SECTIONHEADERS_[i].PointerToRawData:x}\n"
+            out += f" {'SizeOfRawData':20} {self.SECTIONHEADERS_[i].SizeOfRawData:x}\n"
+            out += f" {self.SECTIONHEADERS_[i].GetCharacteristics()}\n"
         return out
 
     def GetExports(self):
@@ -1161,15 +1155,15 @@ class PeParser:
         import_dic = self.import_dic
         for i in range(NumberOfDLLs):
             table = self.IMPORTTABLE_.ImportDirectoryTables[i]
-            dlladdress = "0x%x" % (table.NameRVA+base)
-            dllname = "#"+table.nameOfDLL
+            dlladdress = f"{table.NameRVA+base:x}"
+            dllname = table.nameOfDLL
             out1 = dlladdress+"\t"+dllname+"\n"
             out = out+out1
             numberofobjects = table.numberOfImportObjects
 
             for j in range(numberofobjects):
                 out2 = ""
-                address = "0x%x" % (table.importObjects[j].IATAddressRVA+base)
+                address = f"  {table.importObjects[j].IATAddressRVA + base:x}"
                 name = ""
                 if table.importObjects[j].Forwarder:
                     name = "__forwarded__%s" % (table.importObjects[j].Name)
