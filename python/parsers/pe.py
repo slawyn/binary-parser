@@ -259,9 +259,9 @@ class OPTIONALHEADER:
             if section != None:
                 name = section.Name
             out += f"{i:10}\n"
-            out += f"  rva:  {self.DataDirectory[i][0]:10}\n"
-            out += f"  size: {self.DataDirectory[i][1]:10}\n"
-            out += f"  sect: {name:10}\n"
+            out += f"  {'rva:':10} {self.DataDirectory[i][0]:x}\n"
+            out += f"  {'size:':10} {self.DataDirectory[i][1]:x}\n"
+            out += f"  {'sect:':10} {name:}\n"
         return out
 
     def GetDllCharacteristics(self):
@@ -1151,7 +1151,7 @@ class PeParser:
     def GetImports(self):
         NumberOfDLLs = self.IMPORTTABLE_.NumberOfDLLs
         base = self.NTHEADER_.OPTIONALHEADER_.ImageBase
-        out = ""
+        out = "\n[Imports]\n"
         import_dic = self.import_dic
         for i in range(NumberOfDLLs):
             table = self.IMPORTTABLE_.ImportDirectoryTables[i]
