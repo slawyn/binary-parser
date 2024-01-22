@@ -49,19 +49,23 @@ class FILEHEADER:
         0x8000: "IMAGE_FILE_BYTES_REVERSED_HI"}
 
     def __init__(self, data):
-        self.Machine = unpackuint16(data[0:2])
-        self.NumberOfSections = unpackuint16(data[2:4])
-        self.TimeDateStamp = unpackuint32(data[4:8])
-        self.PointerToSymbolTable = unpackuint32(data[8:12])
-        self.NumberOfSymbols = unpackuint32(data[12:16])
-        self.SizeOfOptionalHeader = unpackuint16(data[16:18])
-        self.Characteristics = unpackuint16(data[18:20])
+        self.Machine = unpack(data[0:2])
+        self.NumberOfSections = unpack(data[2:4])
+        self.TimeDateStamp = unpack(data[4:8])
+        self.PointerToSymbolTable = unpack(data[8:12])
+        self.NumberOfSymbols = unpack(data[12:16])
+        self.SizeOfOptionalHeader = unpack(data[16:18])
+        self.Characteristics = unpack(data[18:20])
 
-    def GetMachine(self):
-        return "Machine:\n\t"+hex(self.Machine) + "\t"+self._machinetypes[self.Machine]+"\n"
+    def __str__(self):
+        out = "\n[FILEHEADER]\n"
+        out += f"{'Machine:':30} {self.Machine:x} {self._machinetypes[self.Machine]}\n"
+        out += f"{'TimeDateStamp:':30} {self.TimeDateStamp:x}\n"
+        out += f"{'PointerToSymbolTable:':30} {self.PointerToSymbolTable:x}\n"
+        out += f"{'NumberOfSymbols:':30} {self.NumberOfSymbols}\n"
+        out += f"{'SizeOfOptionalHeader:':30} {self.SizeOfOptionalHeader}\n"
 
-    def GetCharacteristics(self):
-        out = "Characteristics:"
+        out += "Characteristics:"
         characteristics = self.Characteristics
         shifter = 0x8000
         while (shifter != 0):
@@ -106,153 +110,164 @@ class OPTIONALHEADER:
 
     def __init__(self, data):
         self.DataDirectory = {}
-        self.Signature = unpackuint16(data[0:2])
+        self.Signature = unpack(data[0:2])
         if self.Signature == 0x20b:
             self.is64Bit = True
         else:
             self.is64Bit = False
 
-        self.MajorLinkerVersion = unpackuint8(data[2:3])
-        self.MinorLinkerVersion = unpackuint8(data[3:4])
-        self.SizeOfCode = unpackuint32(data[4:8])
-        self.SizeOfInitializedData = unpackuint32(data[8:12])
-        self.SizeOfUninitializedData = unpackuint32(data[12:16])
-        self.AddressOfEntryPoint = unpackuint32(data[16:20])
-        self.BaseOfCode = unpackuint32(data[20:24])
+        self.MajorLinkerVersion = unpack(data[2:3])
+        self.MinorLinkerVersion = unpack(data[3:4])
+        self.SizeOfCode = unpack(data[4:8])
+        self.SizeOfInitializedData = unpack(data[8:12])
+        self.SizeOfUninitializedData = unpack(data[12:16])
+        self.AddressOfEntryPoint = unpack(data[16:20])
+        self.BaseOfCode = unpack(data[20:24])
 
         if self.is64Bit:
             # 64bit doesn't have BaseOfData
-            self.ImageBase = unpackuint64(data[24:32])
+            self.ImageBase = unpack(data[24:32])
         else:
-            self.BaseOfData = unpackuint32(data[24:28])
-            self.ImageBase = unpackuint32(data[28:32])
+            self.BaseOfData = unpack(data[24:28])
+            self.ImageBase = unpack(data[28:32])
 
-        self.SectionAlignment = unpackuint32(data[32:36])
-        self.FileAlignment = unpackuint32(data[36:40])
-        self.MajorOperatingSystemVersion = unpackuint16(data[40:42])
-        self.MinorOperatingSystemVersion = unpackuint16(data[42:44])
-        self.MajorImageVersion = unpackuint16(data[44:46])
-        self.MinorImageVersion = unpackuint16(data[46:48])
-        self.MajorSubsystemVersion = unpackuint16(data[48:50])
-        self.MinorSubsystemVersion = unpackuint16(data[50:52])
-        self.Win32VersionValue = unpackuint32(data[52:56])
-        self.SizeOfImage = unpackuint32(data[56:60])
-        self.SizeOfHeaders = unpackuint32(data[60:64])
-        self.CheckSum = unpackuint32(data[64:68])
-        self.Subsystem = unpackuint16(data[68:70])
-        self.DllCharacteristics = unpackuint16(data[70:72])
+        self.SectionAlignment = unpack(data[32:36])
+        self.FileAlignment = unpack(data[36:40])
+        self.MajorOperatingSystemVersion = unpack(data[40:42])
+        self.MinorOperatingSystemVersion = unpack(data[42:44])
+        self.MajorImageVersion = unpack(data[44:46])
+        self.MinorImageVersion = unpack(data[46:48])
+        self.MajorSubsystemVersion = unpack(data[48:50])
+        self.MinorSubsystemVersion = unpack(data[50:52])
+        self.Win32VersionValue = unpack(data[52:56])
+        self.SizeOfImage = unpack(data[56:60])
+        self.SizeOfHeaders = unpack(data[60:64])
+        self.CheckSum = unpack(data[64:68])
+        self.Subsystem = unpack(data[68:70])
+        self.DllCharacteristics = unpack(data[70:72])
         offset = 0
 
         if self.is64Bit:
             # in case of 64bit we have a shift in offset
-            self.SizeOfStackReserve = unpackuint64(data[72:80])
-            self.SizeOfStackCommit = unpackuint64(data[80:88])
-            self.SizeOfHeapReserve = unpackuint64(data[88:96])
-            self.SizeOfHeapCommit = unpackuint64(data[96:104])
-            self.LoaderFlags = unpackuint32(data[104:108])
-            self.NumberOfRvaAndSizes = unpackuint32(data[108:112])
+            self.SizeOfStackReserve = unpack(data[72:80])
+            self.SizeOfStackCommit = unpack(data[80:88])
+            self.SizeOfHeapReserve = unpack(data[88:96])
+            self.SizeOfHeapCommit = unpack(data[96:104])
+            self.LoaderFlags = unpack(data[104:108])
+            self.NumberOfRvaAndSizes = unpack(data[108:112])
             offset = 112
         else:
-            self.SizeOfStackReserve = unpackuint32(data[72:76])
-            self.SizeOfStackCommit = unpackuint32(data[76:80])
-            self.SizeOfHeapReserve = unpackuint32(data[80:84])
-            self.SizeOfHeapCommit = unpackuint32(data[84:88])
-            self.LoaderFlags = unpackuint32(data[88:92])
-            self.NumberOfRvaAndSizes = unpackuint32(data[92:96])
+            self.SizeOfStackReserve = unpack(data[72:76])
+            self.SizeOfStackCommit = unpack(data[76:80])
+            self.SizeOfHeapReserve = unpack(data[80:84])
+            self.SizeOfHeapCommit = unpack(data[84:88])
+            self.LoaderFlags = unpack(data[88:92])
+            self.NumberOfRvaAndSizes = unpack(data[92:96])
             offset = 96
 
         # fille the Dictionary with useful information
-        exportrva = unpackuint32(data[offset:offset+4])
-        exportsz = unpackuint32(data[offset+4:offset+8])
+        exportrva = unpack(data[offset:offset+4])
+        exportsz = unpack(data[offset+4:offset+8])
         if exportrva > 0:
             self.DataDirectory["EXPORT"] = [exportrva, exportsz, None]
 
-        importrva = unpackuint32(data[offset+8:offset+12])
-        importsz = unpackuint32(data[offset+12:offset+16])
+        importrva = unpack(data[offset+8:offset+12])
+        importsz = unpack(data[offset+12:offset+16])
         if importrva > 0:
             self.DataDirectory["IMPORT"] = [importrva, importsz, None]
 
-        resourcerva = unpackuint32(data[offset+16:offset+20])
-        resourcesz = unpackuint32(data[offset+20:offset+24])
+        resourcerva = unpack(data[offset+16:offset+20])
+        resourcesz = unpack(data[offset+20:offset+24])
         if resourcerva > 0:
             self.DataDirectory["RESOURCE"] = [resourcerva, resourcesz, None]
 
-        exceptionrva = unpackuint32(data[offset+24:offset+28])
-        exceptionsz = unpackuint32(data[offset+28:offset+32])
+        exceptionrva = unpack(data[offset+24:offset+28])
+        exceptionsz = unpack(data[offset+28:offset+32])
         if exceptionrva > 0:
             self.DataDirectory["EXCEPTION"] = [exceptionrva, exceptionsz, None]
 
-        certificaterva = unpackuint32(data[offset+32:offset+36])
-        certificatesz = unpackuint32(data[offset+36:offset+40])
+        certificaterva = unpack(data[offset+32:offset+36])
+        certificatesz = unpack(data[offset+36:offset+40])
         if certificaterva > 0:
             self.DataDirectory["CERTIFICATE"] = [
                 certificaterva, certificatesz, None]
 
-        relocrva = unpackuint32(data[offset+40:offset+44])
-        relocsz = unpackuint32(data[offset+44:offset+48])
+        relocrva = unpack(data[offset+40:offset+44])
+        relocsz = unpack(data[offset+44:offset+48])
         if relocrva > 0:
             self.DataDirectory["RELOCATION"] = [relocrva, relocsz, None]
 
-        debugrva = unpackuint32(data[offset+48:offset+52])
-        debugsz = unpackuint32(data[offset+52:offset+56])
+        debugrva = unpack(data[offset+48:offset+52])
+        debugsz = unpack(data[offset+52:offset+56])
 
         if debugrva > 0:
             self.DataDirectory["DEBUG"] = [debugrva, debugsz, None]
 
-        architecturerva = unpackuint32(data[offset+56:offset+60])
-        architecturesz = unpackuint32(data[offset+60:offset+64])
+        architecturerva = unpack(data[offset+56:offset+60])
+        architecturesz = unpack(data[offset+60:offset+64])
         if architecturerva > 0:
             self.DataDirectory["ARCHITECTURE"] = [
                 architecturerva, architecturesz, None]
 
-        globalptrrva = unpackuint32(data[offset+64:offset+68])
-        globalptrsz = unpackuint32(data[offset+68:offset+72])
+        globalptrrva = unpack(data[offset+64:offset+68])
+        globalptrsz = unpack(data[offset+68:offset+72])
         if globalptrrva > 0:
             self.DataDirectory["GLOBALPTR"] = [globalptrrva, globalptrsz, None]
 
-        tlsrva = unpackuint32(data[offset+72:offset+76])
-        tlssz = unpackuint32(data[offset+76:offset+80])
+        tlsrva = unpack(data[offset+72:offset+76])
+        tlssz = unpack(data[offset+76:offset+80])
         if tlsrva > 0:
             self.DataDirectory["TLS"] = [tlsrva, tlssz, None]
 
-        configrva = unpackuint32(data[offset+80:offset+84])
-        configsz = unpackuint32(data[offset+84:offset+88])
+        configrva = unpack(data[offset+80:offset+84])
+        configsz = unpack(data[offset+84:offset+88])
         if configrva > 0:
             self.DataDirectory["CONFIG"] = [configrva, configsz, None]
 
-        boundimportrva = unpackuint32(data[offset+88:offset+92])
-        boundimportsz = unpackuint32(data[offset+92:offset+96])
+        boundimportrva = unpack(data[offset+88:offset+92])
+        boundimportsz = unpack(data[offset+92:offset+96])
         if boundimportrva > 0:
             self.DataDirectory["BOUNDIMPORT"] = [
                 boundimportrva, boundimportsz, None]
 
-        iatrva = unpackuint32(data[offset+96:offset+100])
-        iatsz = unpackuint32(data[offset+100:offset+104])
+        iatrva = unpack(data[offset+96:offset+100])
+        iatsz = unpack(data[offset+100:offset+104])
         if iatrva > 0:
             self.DataDirectory["IAT"] = [iatrva, iatsz, None]
 
-        delayimportrva = unpackuint32(data[offset+104:offset+108])
-        delayimportsz = unpackuint32(data[offset+108:offset+112])
+        delayimportrva = unpack(data[offset+104:offset+108])
+        delayimportsz = unpack(data[offset+108:offset+112])
         if delayimportrva > 0:
             self.DataDirectory["DELAYIMPORT"] = [
                 delayimportrva, delayimportsz, None]
 
-        clrrva = unpackuint32(data[offset+112:offset+116])
-        clrsz = unpackuint32(data[offset+116:offset+120])
+        clrrva = unpack(data[offset+112:offset+116])
+        clrsz = unpack(data[offset+116:offset+120])
         if clrrva > 0:
             self.DataDirectory["META"] = [clrrva, clrsz, None]
 
-        reservedrva = unpackuint32(data[offset+120:offset+124])
-        reservedsz = unpackuint32(data[offset+124:offset+128])
+        reservedrva = unpack(data[offset+120:offset+124])
+        reservedsz = unpack(data[offset+124:offset+128])
         if reservedrva > 0:
             self.DataDirectory["RESERVED"] = [reservedrva, reservedsz, None]
 
-    def GetSubsystem(self):
-        return "Subsystem:\n\t"+hex(self.Subsystem) + " "+self._subsystemtypes[self.Subsystem]+"\n"
+    def __str__(self):
+        out = "\n[OPTIONALHEADER]\n"
+        out += f"{'ImageBase:':30}{self.ImageBase:x}\n"
+        out += f"{'BaseOfCode:':30}{self.BaseOfCode:x}\n"
+        out += f"{'EntryPoint:':30}{self.AddressOfEntryPoint:x}\n"
+        out += f"{'Subsystem:':30}{self.Subsystem:x} {self._subsystemtypes[self.Subsystem]}\n"
+        out += "DllCharacteristics:"
+        characteristics = self.DllCharacteristics
+        shifter = 0x8000
+        while (shifter != 0):
 
-    def GetDataDirectories(self):
-        out = "\n[Data Directories]\n"
-        out2 = ""
+            if shifter & characteristics in self._dllcharacteristictypes.keys():
+                cha = self._dllcharacteristictypes[shifter & characteristics]
+                out = out+"\n\t"+cha
+            shifter = shifter >> 1
+
+        out += "\n[Data Directories]\n"
         for i in self.DataDirectory.keys():
             section = self.DataDirectory[i][2]
             name = "<Not found>"
@@ -264,23 +279,12 @@ class OPTIONALHEADER:
             out += f"  {'sect:':10} {name:}\n"
         return out
 
-    def GetDllCharacteristics(self):
-        out = "DllCharacteristics:"
-        characteristics = self.DllCharacteristics
-        shifter = 0x8000
-        while (shifter != 0):
-
-            if shifter & characteristics in self._dllcharacteristictypes.keys():
-                cha = self._dllcharacteristictypes[shifter & characteristics]
-                out = out+"\n\t"+cha
-            shifter = shifter >> 1
-        out += "\n"
         return out
 
 
 class NTHEADER:
     def __init__(self, data):
-        self.Signature = unpackuint32(data[0:4])
+        self.Signature = unpack(data[0:4])
         self.FILEHEADER_ = FILEHEADER(data[4:])
         self.OPTIONALHEADER_ = OPTIONALHEADER(data[24:])
 
@@ -288,24 +292,24 @@ class NTHEADER:
 class DOSHEADER:
     def __init__(self, data):
         self.signature = data[0:2]
-        self.cblp = unpackuint16(data[2:4])
-        self.cp = unpackuint16(data[4:6])
-        self.crlc = unpackuint16(data[6:8])
-        self.cparhdr = unpackuint16(data[8:10])
-        self.minalloc = unpackuint16(data[10:12])
-        self.maxalloc = unpackuint16(data[12:14])
-        self.ss = unpackuint16(data[14:16])
-        self.sp = unpackuint16(data[16:18])
-        self.checksum = unpackuint16(data[18:20])
-        self.ip = unpackuint16(data[20:22])
-        self.cs = unpackuint16(data[22:24])
-        self.lfarlc = unpackuint16(data[24:26])
-        self.noverlay = unpackuint16(data[26:28])
+        self.cblp = unpack(data[2:4])
+        self.cp = unpack(data[4:6])
+        self.crlc = unpack(data[6:8])
+        self.cparhdr = unpack(data[8:10])
+        self.minalloc = unpack(data[10:12])
+        self.maxalloc = unpack(data[12:14])
+        self.ss = unpack(data[14:16])
+        self.sp = unpack(data[16:18])
+        self.checksum = unpack(data[18:20])
+        self.ip = unpack(data[20:22])
+        self.cs = unpack(data[22:24])
+        self.lfarlc = unpack(data[24:26])
+        self.noverlay = unpack(data[26:28])
         self.reserved1 = data[28:36]
-        self.oemid = unpackuint16(data[36:38])
-        self.oeminfo = unpackuint16(data[38:40])
+        self.oemid = unpack(data[36:38])
+        self.oeminfo = unpack(data[38:40])
         self.reserved2 = data[40:60]
-        self.lfanew = unpackuint32(data[60:64])
+        self.lfanew = unpack(data[60:64])
 
 
 class SECTIONHEADER:
@@ -350,15 +354,15 @@ class SECTIONHEADER:
 
     def __init__(self, data):
         self.Name = readstring(data, 0)
-        self.VirtualSize = unpackuint32(data[8:12])
-        self.VirtualAddress = unpackuint32(data[12:16])
-        self.SizeOfRawData = unpackuint32(data[16:20])
-        self.PointerToRawData = unpackuint32(data[20:24])
-        self.PointerToRelocations = unpackuint32(data[24:28])
-        self.PointerToLinenumbers = unpackuint32(data[28:32])
-        self.NumberOfRelocations = unpackuint16(data[32:34])
-        self.NumberOfLinenumbers = unpackuint16(data[34:36])
-        self.Characteristics = unpackuint32(data[36:40])
+        self.VirtualSize = unpack(data[8:12])
+        self.VirtualAddress = unpack(data[12:16])
+        self.SizeOfRawData = unpack(data[16:20])
+        self.PointerToRawData = unpack(data[20:24])
+        self.PointerToRelocations = unpack(data[24:28])
+        self.PointerToLinenumbers = unpack(data[28:32])
+        self.NumberOfRelocations = unpack(data[32:34])
+        self.NumberOfLinenumbers = unpack(data[34:36])
+        self.Characteristics = unpack(data[36:40])
 
     def GetCharacteristics(self):
         out = "Characteristics :"
@@ -377,27 +381,27 @@ class SECTIONHEADER:
 class EXPORTTABLE:
     def __init__(self, data, tables_fileoffset, sections):
         self.exportTable = []
-        self.ExportFlags = unpackuint32(
+        self.ExportFlags = unpack(
             data[tables_fileoffset+0:tables_fileoffset+4])
-        self.TimeStamp = unpackuint32(
+        self.TimeStamp = unpack(
             data[tables_fileoffset+4:tables_fileoffset+8])
-        self.MajorVersion = unpackuint16(
+        self.MajorVersion = unpack(
             data[tables_fileoffset+8:tables_fileoffset+10])
-        self.MinorVersion = unpackuint16(
+        self.MinorVersion = unpack(
             data[tables_fileoffset+10:tables_fileoffset+12])
-        self.NameRVA = unpackuint32(
+        self.NameRVA = unpack(
             data[tables_fileoffset+12:tables_fileoffset+16])
-        self.OrdinalBase = unpackuint32(
+        self.OrdinalBase = unpack(
             data[tables_fileoffset+16:tables_fileoffset+20])
-        self.NumberOfFunctions = unpackuint32(
+        self.NumberOfFunctions = unpack(
             data[tables_fileoffset+20:tables_fileoffset+24])
-        self.NumberOfNames = unpackuint32(
+        self.NumberOfNames = unpack(
             data[tables_fileoffset+24:tables_fileoffset+28])
-        self.FunctionsRVA = unpackuint32(
+        self.FunctionsRVA = unpack(
             data[tables_fileoffset+28:tables_fileoffset+32])
-        self.NamesRVA = unpackuint32(
+        self.NamesRVA = unpack(
             data[tables_fileoffset+32:tables_fileoffset+36])
-        self.OrdinalsRVA = unpackuint32(
+        self.OrdinalsRVA = unpack(
             data[tables_fileoffset+36:tables_fileoffset+40])
 
         # read offsets
@@ -409,12 +413,12 @@ class EXPORTTABLE:
         # read names and corresponding indexes
         numberofnames = self.NumberOfNames
         for i in range(self.NumberOfNames):
-            NamesAndOrdinals[unpackuint16(data[OrdinalsFileOffset+i*2:OrdinalsFileOffset+i*2+2])
-                             ] = unpackuint32(data[NamesFileOffset+i*4:NamesFileOffset+i*4+4])
+            NamesAndOrdinals[unpack(data[OrdinalsFileOffset+i*2:OrdinalsFileOffset+i*2+2])
+                             ] = unpack(data[NamesFileOffset+i*4:NamesFileOffset+i*4+4])
 
         # create export table
         for i in range(self.NumberOfFunctions):
-            FunctionAddress = unpackuint32(
+            FunctionAddress = unpack(
                 data[FunctionsFileOffset+i*4:FunctionsFileOffset+i*4+4])
             if FunctionAddress == 0:  # there are sometimes zero reserved entries for future use, which are currently not in use
                 continue
@@ -455,15 +459,15 @@ class IMPORTDIRECTORYTABLE:
         self.nameOfDLL = ""
         self.numberOfImportObjects = 0
 
-        self.ILTRVA = unpackuint32(data[0+offset:4+offset])
+        self.ILTRVA = unpack(data[0+offset:4+offset])
 
         # -1 if bound import
-        self.TimeStamp = unpackuint32(data[4+offset:8+offset])
+        self.TimeStamp = unpack(data[4+offset:8+offset])
 
         # -1 if bound import : not important
-        self.ForwarderChain = unpackuint32(data[8+offset:12+offset])
-        self.NameRVA = unpackuint32(data[12+offset:16+offset])
-        self.IATRVA = unpackuint32(data[16+offset:20+offset])
+        self.ForwarderChain = unpack(data[8+offset:12+offset])
+        self.NameRVA = unpack(data[12+offset:16+offset])
+        self.IATRVA = unpack(data[16+offset:20+offset])
 
         if (self.ILTRVA | self.TimeStamp | self.ForwarderChain | self.NameRVA | self.IATRVA) == 0:
             self.isEmpty = True
@@ -519,18 +523,18 @@ class IMPORTTABLE:
                 iatrva = 0
                 value = 0
                 if mode64:
-                    iltentry = unpackuint64(data[offsetILT+j*8:offsetILT+j*8+8])
+                    iltentry = unpack(data[offsetILT+j*8:offsetILT+j*8+8])
                     importbyordinal = iltentry & IMPORTTABLE.IMPORT_BY_ORDINAL_64BIT
                     iatrva = importdirectorytable.IATRVA+j*8
                     valueoffset = convertRVAToOffset(iatrva, sections)
-                    value = unpackuint64(data[valueoffset:valueoffset+8])
+                    value = unpack(data[valueoffset:valueoffset+8])
 
                 else:
-                    iltentry = unpackuint32(data[offsetILT+j*4:offsetILT+j*4+4])
+                    iltentry = unpack(data[offsetILT+j*4:offsetILT+j*4+4])
                     importbyordinal = iltentry & IMPORTTABLE.IMPORT_BY_ORDINAL_32BIT
                     iatrva = importdirectorytable.IATRVA+j*4
                     valueoffset = convertRVAToOffset(iatrva, sections)
-                    value = unpackuint32(data[valueoffset:valueoffset+4])
+                    value = unpack(data[valueoffset:valueoffset+4])
 
                 if iltentry == 0:  # last entry for this .dll
                     break
@@ -550,7 +554,7 @@ class IMPORTTABLE:
                 # import by name
                 else:
                     nametableoffset = convertRVAToOffset((iltentry & 0x7FFFFFFF), sections)
-                    hint = unpackuint16(data[nametableoffset:nametableoffset+2])
+                    hint = unpack(data[nametableoffset:nametableoffset+2])
                     name = readstring(data, nametableoffset+2)
                     importObjects.append(ImportObject(iatrva, 0, (iltentry & 0x7FFFFFFF), hint, name, 0, value))
 
@@ -565,14 +569,14 @@ class DELAYIMPORTDESCRIPTOR:
     def __init__(self, data, offset):
         self.numberOfImportObjects = 0
         self.importObjects = []
-        self.Attributes = unpackuint32(data[0+offset:4+offset])
-        self.NameRVA = unpackuint32(data[4+offset:8+offset])
-        self.ModuleHandle = unpackuint32(data[8+offset:12+offset])
-        self.DelayIAT = unpackuint32(data[12+offset:16+offset])
-        self.DelayINT = unpackuint32(data[16+offset:20+offset])
-        self.BoundDelayImportTable = unpackuint32(data[20+offset:24+offset])
-        self.UnloadDelayImportTable = unpackuint32(data[24+offset:28+offset])
-        self.TimeStamp = unpackuint32(data[28+offset:32+offset])
+        self.Attributes = unpack(data[0+offset:4+offset])
+        self.NameRVA = unpack(data[4+offset:8+offset])
+        self.ModuleHandle = unpack(data[8+offset:12+offset])
+        self.DelayIAT = unpack(data[12+offset:16+offset])
+        self.DelayINT = unpack(data[16+offset:20+offset])
+        self.BoundDelayImportTable = unpack(data[20+offset:24+offset])
+        self.UnloadDelayImportTable = unpack(data[24+offset:28+offset])
+        self.TimeStamp = unpack(data[28+offset:32+offset])
         if (self.Attributes | self.NameRVA | self.ModuleHandle | self.DelayINT | self.DelayIAT | self.BoundDelayImportTable | self.UnloadDelayImportTable | self.TimeStamp) == 0:
             self.isEmpty = True
         else:
@@ -612,20 +616,20 @@ class DELAYIMPORTTABLE:
                 importbyordinal = 0
                 value = 0
                 if mode64:
-                    intentry = unpackuint64(
+                    intentry = unpack(
                         data[namesoffset+8*j:namesoffset+8*j+8])
                     # is the import by ordinal bit set?
                     importbyordinal = intentry & 0x8000000000000000
                     iatrva = delayIAT+j*8
                     valueoffset = convertRVAToOffset(iatrva, sections)
-                    value = unpackuint64(data[valueoffset:valueoffset+8])
+                    value = unpack(data[valueoffset:valueoffset+8])
                 else:
-                    intentry = unpackuint32(
+                    intentry = unpack(
                         data[namesoffset+4*j:namesoffset+4*j+4])
                     importbyordinal = intentry & 0x80000000  # same as above. but for 32 bit PE
                     iatrva = delayIAT+j*4
                     valueoffset = convertRVAToOffset(iatrva, sections)
-                    value = unpackuint32(data[valueoffset:valueoffset+4])
+                    value = unpack(data[valueoffset:valueoffset+4])
 
                 if intentry == 0:
                     break
@@ -639,7 +643,7 @@ class DELAYIMPORTTABLE:
                 else:
                     nametableoffset = convertRVAToOffset(
                         (intentry & 0x7FFFFFFF), sections)
-                    hint = unpackuint16(
+                    hint = unpack(
                         data[nametableoffset:nametableoffset+2])  # read hint
                     name = readstring(data, nametableoffset+2)
                     importObjectsappend(ImportObject(
@@ -656,21 +660,21 @@ class TLSObject:
     def __init__(self, data, offset,  mode):
         idx = 16
         if mode:
-            self.RawDataStartVA = unpackuint64(data[0+offset:8+offset])
-            self.RawDataEndVA = unpackuint64(data[8+offset:16+offset])
-            self.AddressOfIndex = unpackuint64(data[16+offset:24+offset])
-            self.AddressOfCallbacks = unpackuint64(data[24+offset:32+offset])
+            self.RawDataStartVA = unpack(data[0+offset:8+offset])
+            self.RawDataEndVA = unpack(data[8+offset:16+offset])
+            self.AddressOfIndex = unpack(data[16+offset:24+offset])
+            self.AddressOfCallbacks = unpack(data[24+offset:32+offset])
             idx = 32
 
         else:
 
-            self.RawDataStartVA = unpackuint32(data[offset:offset+4])
-            self.RawDataEndVA = unpackuint32(data[4+offset:8+offset])
-            self.AddressOfIndex = unpackuint32(data[8+offset:12+offset])
-            self.AddressOfCallbacks = unpackuint32(data[12+offset:16+offset])
+            self.RawDataStartVA = unpack(data[offset:offset+4])
+            self.RawDataEndVA = unpack(data[4+offset:8+offset])
+            self.AddressOfIndex = unpack(data[8+offset:12+offset])
+            self.AddressOfCallbacks = unpack(data[12+offset:16+offset])
 
-        self.SizeOfZeroFill = unpackuint32(data[offset+idx:offset+idx+4])
-        self.Characteristics = unpackuint32(data[offset+idx+4:offset+idx+8])
+        self.SizeOfZeroFill = unpack(data[offset+idx:offset+idx+4])
+        self.Characteristics = unpack(data[offset+idx+4:offset+idx+8])
         if (self.RawDataStartVA | self.RawDataEndVA | self.AddressOfIndex | self.AddressOfCallbacks | self.SizeOfZeroFill | self.Characteristics) == 0:
             self.isEmpty = True
         else:
@@ -766,9 +770,9 @@ class UnwindInfoObject:
 
 class ExceptionObject:
     def __init__(self, data, offset):
-        self.StartRVA = unpackuint32(data[0+offset:4+offset])
-        self.EndRVA = unpackuint32(data[4+offset:8+offset])
-        self.UnwindInfoPtr = unpackuint32(data[8+offset:12+offset])
+        self.StartRVA = unpack(data[0+offset:4+offset])
+        self.EndRVA = unpack(data[4+offset:8+offset])
+        self.UnwindInfoPtr = unpack(data[8+offset:12+offset])
         self.UnwindInfo = None
         self.isEmpty = False
         if self.StartRVA | self.EndRVA | self.UnwindInfoPtr == 0:
@@ -788,14 +792,14 @@ class EXCEPTIONTABLE:
 
             unwindinfooff = convertRVAToOffset(object.UnwindInfoPtr, sections)
 
-            t = unpackuint8(data[unwindinfooff:unwindinfooff+1])
+            t = unpack(data[unwindinfooff:unwindinfooff+1])
 
             version = t & 0b00000111
             flags = (t & 0b11111000) >> 3
 
-            szprolog = unpackuint8(data[unwindinfooff+1:unwindinfooff+2])
-            countofcodes = unpackuint8(data[unwindinfooff+2:unwindinfooff+3])
-            t = unpackuint8(data[unwindinfooff+3:unwindinfooff+4])
+            szprolog = unpack(data[unwindinfooff+1:unwindinfooff+2])
+            countofcodes = unpack(data[unwindinfooff+2:unwindinfooff+3])
+            t = unpack(data[unwindinfooff+3:unwindinfooff+4])
 
             frameregister = t & 0b00001111
             frameregisteroff = (t & 0b11110000) >> 4
@@ -804,7 +808,7 @@ class EXCEPTIONTABLE:
             codes = []
             codesoffset = unwindinfooff+4
             for j in range(countofcodes):
-                codes.append(unpackuint16(
+                codes.append(unpack(
                     data[codesoffset+j*2:codesoffset+2+j*2]))
 
             handler = None
@@ -813,10 +817,10 @@ class EXCEPTIONTABLE:
                 # the rva of the handler must be aligned after the code
                 handlerreloffset = (countofcodes % 2+countofcodes)*2
                 handlerinfooffset = codesoffset+handlerreloffset
-                exceptharva = unpackuint32(
+                exceptharva = unpack(
                     data[handlerinfooffset:handlerinfooffset+4])
 
-                count = unpackuint32(
+                count = unpack(
                     data[handlerinfooffset+4:handlerinfooffset+8])
                 scoptableoffset = handlerinfooffset+8
                 scopetables = []
@@ -828,13 +832,13 @@ class EXCEPTIONTABLE:
                     for i in range(count):
                         scopes = i*16
 
-                        startrva = unpackuint32(
+                        startrva = unpack(
                             data[scoptableoffset+scopes:scoptableoffset+scopes+4])
-                        endrva = unpackuint32(
+                        endrva = unpack(
                             data[scoptableoffset+4+scopes:scoptableoffset+8+scopes])
-                        handlerrva = unpackuint32(
+                        handlerrva = unpack(
                             data[scoptableoffset+8+scopes:scoptableoffset+12+scopes])
-                        jumptarget = unpackuint32(
+                        jumptarget = unpack(
                             data[scoptableoffset+12+scopes:scoptableoffset+16+scopes])
                         scopetables.append(ScopeTable(
                             startrva, endrva, handlerrva, jumptarget))
@@ -860,7 +864,6 @@ class PeParser:
     def __init__(self, buffer):
         try:
 
-            log("Parsing PE...")
             self.buffer = buffer
             self.DOSHEADER_ = DOSHEADER(self.buffer)
             # next header at offset field
@@ -945,15 +948,8 @@ class PeParser:
         return self.buffer
 
     def __str__(self):
-        out = self.NTHEADER_.FILEHEADER_.GetMachine()
-        out += self.NTHEADER_.FILEHEADER_.GetCharacteristics()
-        out += "ImageBase:\n\t%s\n" % hex(self.NTHEADER_.OPTIONALHEADER_.ImageBase)
-        out += "BaseOfCode:\n\t%s\n" % hex(self.NTHEADER_.OPTIONALHEADER_.BaseOfCode)
-
-        out += "EntryPoint:\n\t%s\n" % hex(self.NTHEADER_.OPTIONALHEADER_.AddressOfEntryPoint)
-        out += self.NTHEADER_.OPTIONALHEADER_.GetSubsystem()
-        out += self.NTHEADER_.OPTIONALHEADER_.GetDllCharacteristics()
-        out += self.NTHEADER_.OPTIONALHEADER_.GetDataDirectories()
+        out = str(self.NTHEADER_.FILEHEADER_)
+        out += str(self.NTHEADER_.OPTIONALHEADER_)
         out += self.GetSections()
 
         # write out information about dictionaries
@@ -1139,13 +1135,11 @@ class PeParser:
         return self.export_dic, self.import_dic, self.delayimport_dic, self.delayimport_stubs_dic, self.tls_dic, self.exception_dic
 
     def GetCodeSections(self):
-        NumberOfSections = len(self.SECTIONHEADERS_)
         sections = []
-        for i in range(NumberOfSections):
-            # either code or executable
-            if (self.SECTIONHEADERS_[i].Characteristics & 0x20000020) > 0:
-                if self.SECTIONHEADERS_[i].PointerToRawData != 0:
-                    sections.append(self.SECTIONHEADERS_[i])
+        for sh in self.SECTIONHEADERS_:
+            if (sh.Characteristics & 0x20000020) > 0:
+                if sh.PointerToRawData != 0:
+                    sections.append(sh)
         return sections
 
     def GetImports(self):

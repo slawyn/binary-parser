@@ -6,6 +6,7 @@ from random import randint
 import json
 
 STRUCT_FORMAT = {1: "B", 2: "H", 4: "I", 8: "Q"}
+STRUCT_FORMAT_SIGNED = {1: "b", 2: "h", 4: "i", 8: "q"}
 
 
 def log(*args):
@@ -57,57 +58,36 @@ def unpack_str(buffer):
     return struct.unpack("s", buffer)
 
 
-def unpack(buffer, little_endian=True):
+def unpack(buffer, little_endian=True, unsigned=True):
     '''Unpack buffer
     '''
     idx = len(buffer)
-    if idx in STRUCT_FORMAT:
+    if idx not in STRUCT_FORMAT:
+        return buffer
+
+    if unsigned:
         if little_endian:
             return struct.unpack("<" + STRUCT_FORMAT[idx], buffer)[0]
         return struct.unpack(">" + STRUCT_FORMAT[idx], buffer)[0]
-    return buffer
+    else:
+        if little_endian:
+            return struct.unpack("<" + STRUCT_FORMAT_SIGNED[idx], buffer)[0]
+        return struct.unpack(">" + STRUCT_FORMAT_SIGNED[idx], buffer)[0]
 
 
-def pack(data, size, little_endian=True):
+def pack(data, size, little_endian=True, unsigned=True):
     '''Pack data into buffer
     '''
-    if size in STRUCT_FORMAT:
+    if size not in STRUCT_FORMAT:
+        return data
+    if unsigned:
         if little_endian:
             return struct.pack("<" + STRUCT_FORMAT[size], data)
         return struct.pack(">" + STRUCT_FORMAT[size], data)
-    return data
-
-
-def unpackuint8(data):
-    return struct.unpack("<B", data)[0]
-
-
-def unpackint8(data):
-    return struct.unpack("<b", data)[0]
-
-
-def unpackuint16(data):
-    return struct.unpack("<H", data)[0]
-
-
-def unpackint16(data):
-    return struct.unpack("<h", data)[0]
-
-
-def unpackuint32(data):
-    return struct.unpack("<I", data)[0]
-
-
-def unpackint32(data):
-    return struct.unpack("<i", data)[0]
-
-
-def unpackuint64(data):
-    return struct.unpack("<Q", data)[0]
-
-
-def unpackint64(data):
-    return struct.unpack("<q", data)[0]
+    else:
+        if little_endian:
+            return struct.pack("<" + STRUCT_FORMAT_SIGNED[size], data)
+        return struct.pack(">" + STRUCT_FORMAT_SIGNED[size], data)
 
 
 def readstring(data, offset):
