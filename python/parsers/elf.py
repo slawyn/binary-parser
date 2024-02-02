@@ -50,6 +50,18 @@ def formatter(string, value, table=None, hex=False, mask=False):
         return f"{string:40} {value}\n"
 
 
+class Segment:
+    
+    def __init__(self, start_address, data):
+        self.data = data
+        self.start_address = start_address
+        
+    def get_address(self):
+        return self.start_address
+    
+    def get_data(self):
+        return self.data
+
 class Crc32:
     ''' Corresponds to address:4,crc32:Li,0xFFFFFFFFF;start_address-end_address
     '''
@@ -720,14 +732,15 @@ class ElfParser:
         for idx, sh in enumerate(self.section_headers):
             _start = sh.get_offset()
             _end = _start + sh.get_size()
-            sh_data = SectionData(self.binary[_start:_end])
-            sh_data.add_section_header(sh)
-            self.section_data.append(sh_data)
-
-            if sh.get_type() not in [SectionHeader.TYPE_SHT_NOBITS, SectionHeader.TYPE_SHT_NULL]:
-                if idx == self.elf_header.get_stridx() and sh.get_type() == SectionHeader.TYPE_SHT_STRTAB:
-                    self.strtab = sh
-                    self.strtab_data = sh_data
+            type = sh.get_type()
+            if type not in [SectionHeader.TYPE_SHT_NOBITS, SectionHeader.TYPE_SHT_NULL]:
+                sh_data = SectionData(self.binary[_start:_end])
+                sh_data.add_section_header(sh)
+                self.section_data.append(sh_data)
+                if type not in [SectionHeader.TYPE_SHT_NOBITS, SectionHeader.TYPE_SHT_NULL]:
+                    if idx == self.elf_header.get_stridx():
+                        self.strtab = sh
+                        self.strtab_data = sh_data
 
         if self.strtab is None:
             raise Exception("ERROR: Symbol or String table not found")
@@ -855,48 +868,94 @@ class ElfParser:
 
         checksum = self.crc32.calculate(binary)
         self.add(target_address, utils.convert_int_to_list(checksum))
+        return checksum
 
-    def add(self, start_address, data_to_write,  can_overwrite=True):
-        ''' Adds data to .elf
+    def get_segments(self):
+        segments = []
+        for data in sorted(self.section_data, key=lambda x: x.get_vaddr()):
+            s_addr, e_addr = data.get_address_range()
+            if s_addr<e_addr:
+                segments.append(Segment(s_addr, data.get_data()))
+        return segments
+            
+    def get(self, start_address, size):
+        '''Get data by address
+            -> start_address: address at which the data can be found
+            -> size: size of data to read
+            <- : data buffer
         '''
-
-        end_address = start_address + len(data_to_write)
+        end_address = start_address + size
+        o_data = []
+        for data in sorted(self.section_data, key=lambda x: x.get_vaddr()):
+             s_addr, e_addr = data.get_address_range()
+             if s_addr<e_addr:
+                if s_addr <= start_address < e_addr:
+                    _offset_start = start_address - s_addr
+                    _offset_end = start_address - s_addr + size
+                    o_data.extend(data.get_data()[_offset_start:_offset_end])
+                    break
+        return o_data
+    
+    def add(self, start_address, buffer,  can_overwrite=True):
+        ''' Adds data by address
+            -> start_address: address to which data should be written 
+            -> buffer: data to write
+            -> can_overwrite: if data exists, it should be overwritten
+        '''
+        end_address = start_address + len(buffer)
         idx = 0
-        while idx < len(self.section_data) and len(data_to_write) > 0:
-            data = self.section_data[idx]
+        section_data = sorted(self.section_data, key=lambda x: x.get_vaddr()) 
+        while idx < len(section_data) and len(buffer) > 0:
+            data = section_data[idx]
             idx += 1
             s_addr, e_addr = data.get_address_range()
-            if s_addr <= start_address < e_addr:
-                if end_address <= e_addr:
-                    data_to_write = self._overwrite_data_overlap(data_to_write,
-                                                                 data.get_data(),
-                                                                 can_overwrite,
-                                                                 start_address - s_addr)
-                    idx = 0
-                else:
-                    data_to_write = self._overwrite_data_backward_overlap(data_to_write,
+            
+            if s_addr<e_addr:
+                # Full:
+                if s_addr <= start_address < end_address <= e_addr:
+                    buffer = self._overwrite_data_overlap(buffer,
+                                                                     data.get_data(),
+                                                                     can_overwrite,
+                                                                     start_address - s_addr)
+                # Partial 
+                elif s_addr <= start_address < e_addr < end_address:
+                    buffer = self._overwrite_data_backward_overlap(buffer,
                                                                           data.get_data(),
                                                                           can_overwrite,
                                                                           (start_address - s_addr),
-                                                                          data.get_size() - (start_address - s_addr))
+                                                                          e_addr - start_address)
                     start_address = e_addr
+
+
+                # Full before block 
+                elif start_address < end_address <= s_addr:
+                    self._create_data(start_address, buffer)
+                    buffer = []
+
+                # Partial block: forward
+                elif start_address < s_addr < end_address:
+                    _slice_idx = s_addr-start_address
+                    _slice, buffer = buffer[:_slice_idx], buffer[_slice_idx:]
+                    self._create_data(start_address, _slice)
+                    start_address = s_addr
                     idx = 0
-            elif s_addr < end_address <= e_addr:
-                data_to_write = self._overwrite_data_forward_overlap(data_to_write,
-                                                                     data.get_data(),
-                                                                     can_overwrite,
-                                                                     0,
-                                                                     len(data_to_write) - (end_address - s_addr))
-                idx = 0
-                end_address = s_addr
+                
+        
+                
+                
+        # Block could not be created, probably outside of the parsed range
+        if len(buffer) > 0:
+            self._create_data(start_address, buffer)
 
-        if len(data_to_write) > 0:
-            self._create_data(start_address, data_to_write)
-
-    def _write_section_data(self, binary):
-        '''Write section data
+    def write_data_to_file(self, elf_out="", hex_out="", bin_out=""):
+        '''Write data to file
         '''
+        # Initialize binary
+        binary = [0] * self.elf_header.get_size()
+
+        # Write data
         for data in sorted(self.section_data, key=lambda x: x.get_offset()):
+
             # Add alignment bytes
             alignment = data.get_alignment()
             if alignment > 0:
