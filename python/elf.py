@@ -2,52 +2,9 @@
 import struct
 import sys
 from intelhex import IntelHex
-import utils
+from utils import log, convert_int_to_list
 
-
-class Packer:
-    is_64bit = False
-    is_little_endian = False
-
-    def set(is_64bit, is_little_endian):
-        Packer.is_64bit = is_64bit
-        Packer.is_little_endian = is_little_endian
-
-    def unpack(buffer):
-        return utils.unpack(buffer, little_endian=Packer.is_little_endian)
-
-    def pack(data, size):
-        return utils.pack(data, size, little_endian=Packer.is_little_endian)
-
-    def get(key):
-        if Packer.is_64bit == True:
-            return key.upper() + "_64SZ"
-        return key.upper() + "_SZ"
-
-
-def formatter(string, value, table=None, hex=False, mask=False):
-    if table != None:
-        _value = value
-        out = ""
-        if mask:
-            for flag in table:
-                if (_value & flag) == flag:
-                    out += table[_value & flag] + " "
-                    _value = (_value & ~flag)
-                if _value == 0:
-                    break
-        else:
-            if _value in table:
-                out = table[_value]
-                _value = 0
-
-        if out == "" or _value != 0:
-            return f"{string:40} {value:x}\n"
-        return f"{string:40} {out}\n"
-    elif hex:
-        return f"{string:40} {value:x}\n"
-    else:
-        return f"{string:40} {value}\n"
+STRUCT_FORMAT = {1: "B", 2: "H", 4: "I", 8: "Q"}
 
 
 class Segment:
@@ -113,6 +70,36 @@ class Crc32:
         return mSum
 
 
+def read_string(data, offset):
+    i = 0
+    string = ""
+
+    while data[offset + i] != 0:
+        if 32 <= data[offset + i] <= 126:
+            string += chr(data[offset + i])
+        else:
+            string += str(data[offset + i])
+        i += 1
+
+    return string
+
+
+def read_binary(file_path):
+    with open(file_path, 'rb') as f:
+        return bytearray(f.read())
+
+
+def compare(first, second):
+    if len(first) != len(second):
+        return False
+    else:
+        for fidx in range(len(first)):
+            if first[fidx] != second[fidx]:
+                return False
+
+    return True
+
+
 def update(source, destination, offset):
     for idx in range(len(source)):
         if (offset + idx) >= len(destination):
@@ -121,67 +108,49 @@ def update(source, destination, offset):
             destination[offset + idx] = source[idx]
 
 
+def unpack(buffer):
+    '''Unpack buffer
+    '''
+    idx = len(buffer)
+    if idx in STRUCT_FORMAT:
+        return struct.unpack("<" + STRUCT_FORMAT[idx], buffer)[0]
+    return buffer
+
+
+def pack(data, size):
+    '''Pack data into buffer
+    '''
+    if size in STRUCT_FORMAT:
+        return struct.pack("<" + STRUCT_FORMAT[size], data)
+    return data
+
+
 class SectionHeader:
     '''Section Header
     '''
-    SH_NAME = 0x00  # .shstrab offset
-    SH_NAME_OFF_SZ = 4
+    SH_NAME = 0x00
+    SH_NAME_OFF_SZ = 4  # .shstrab offset
+    SH_TYPE = 0x04
     SH_TYPE_SZ = 4
+
+    SH_FLAGS = 0x08
     SH_FLAGS_SZ = 4
+
+    SH_ADDR = 0x0C
     SH_ADDR_SZ = 4
+    SH_OFFSET = 0x10
     SH_OFFSET_SZ = 4
+    SH_SIZE = 0x14
     SH_SIZE_SZ = 4
+    SH_LINK = 0x18
     SH_LINK_SZ = 4
+    SH_INFO = 0x1C
     SH_INFO_SZ = 4
+    SH_ADDRALIGN = 0x20
     SH_ADDRALIGN_SZ = 4
+    SH_ENTSIZE = 0x24
     SH_ENTSIZE_SZ = 4
 
-    SH_NAME_OFF_64SZ = 4
-    SH_TYPE_64SZ = 4
-    SH_FLAGS_64SZ = 8
-    SH_ADDR_64SZ = 8
-    SH_OFFSET_64SZ = 8
-    SH_SIZE_64SZ = 8
-    SH_LINK_64SZ = 4
-    SH_INFO_64SZ = 4
-    SH_ADDRALIGN_64SZ = 8
-    SH_ENTSIZE_64SZ = 8
-
-    SH_TYPE_T = {0x00: "SHT_NULL (Unused)",
-                 0x01: "SHT_PROGBITS (Program data)",
-                 0x02: "SHT_SYMTAB (Symbol table)",
-                 0x03: "SHT_STRTAB (String table)",
-                 0x04: "SHT_RELA (Relocation entries with addends)",
-                 0x05: "SHT_HASH (Symbol hash table)",
-                 0x06: "SHT_DYNAMIC (Dynamic linking inmformation)",
-                 0x07: "SHT_NOTE (Notes)",
-                 0x08: "SHT_NOBITS (bss)",
-                 0x09: "SHT_REL (Relocation entries, no addends)",
-                 0x0A: "SHT_SHLIB (Reserved)",
-                 0x0B: "SHT_DYNSYM (Dynamic linker symbol table)",
-                 0x0E: "SHT_INIT_ARRAY (Array of constructors)",
-                 0x0F: "SHT_FINI_ARRAY (Array of destructors)",
-                 0x10: "SHT_PREINIT_ARRAY (Array of pre-constructors)",
-                 0x11: "SHT_GROUP (Section group)",
-                 0x12: "SHT_SYMTAB_SHDX (Extended section indices)",
-                 0x13: "SHT_NUM (Number of defined types)",
-                 0x60000000: "Start OS-specific"}
-
-    SH_FLAGS_T = {0x01: "SHF_WRITE (Writable)",
-                  0x02: "SHF_ALLOC (Occupies memory during execution)",
-                  0x04: "SHF_EXECINSTR (Executable)",
-                  0x10: "SHF_MERGE (Might be merged)",
-                  0x20: "SHF_STRINGS (Null-terminated strings)",
-                  0x40: "SHF_INFO_LINK (\'sh_info\' contains SHT index)",
-                  0x80: "SHF_LINK_ORDER (Preserved order after combining)",
-                  0x100: "SHF_OS_NONCONFORMING (Non-standard OS specific handling required)",
-                  0x200: "SHF_GROUP (Section is member of a group)",
-                  0x400: "SHF_TLS (Section hold thread-local data)",
-                  0x0FF00000: "SHF_MASKOS (OS-specific)",
-                  0xF0000000: "SHF_MASKPROC (Processor-specific)",
-                  0x800: "SHF_COMPRESSED (Compressed)",
-                  0x4000000: "SHF_ORDERED (Special ordering requirement (Solaris))",
-                  0x8000000: "SHF_EXCLUDE (Section is excluded unless referenced or allocated (Solaris))"}
     TYPE_SHT_NULL = 0x00
     TYPE_SHT_PROGBITS = 0x01
     TYPE_SHT_STRTAB = 0x03
@@ -206,13 +175,13 @@ class SectionHeader:
     def unpack(self, buffer):
         offset = SectionHeader.SH_NAME
         for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(SectionHeader, Packer.get(key))])
-            offset += getattr(SectionHeader, Packer.get(key))
+            self.members[key] = unpack(buffer[offset:offset + getattr(SectionHeader, f"{key.upper()}_SZ")])
+            offset += getattr(SectionHeader, f"{key.upper()}_SZ")
 
     def pack(self):
         buffer = []
         for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(SectionHeader, Packer.get(key))))
+            buffer.extend(pack(self.members[key], getattr(SectionHeader, f"{key.upper()}_SZ")))
         return buffer
 
     def get_size(self):
@@ -239,22 +208,9 @@ class SectionHeader:
     def set_size(self, size):
         self.members["sh_size"] = size
 
-    def __str__(self):
-        out = ""
-        out += formatter("Offset:", self.members["sh_name_off"])
-        out += formatter("Type:", self.members["sh_type"], table=SectionHeader.SH_TYPE_T)
-        out += formatter("File offset:", self.members["sh_offset"], hex=True)
-        out += formatter("File size:", self.members["sh_size"], hex=True)
-        out += formatter("Physical address:", self.members["sh_addr"], hex=True)
-        out += formatter("Link:", self.members["sh_link"], hex=True)
-        out += formatter("Info:", self.members["sh_info"], hex=True)
-        out += formatter("Flags:", self.members["sh_flags"], table=SectionHeader.SH_FLAGS_T, mask=True)
-        out += formatter("Entry Size:", self.members["sh_entsize"], hex=True)
-        return out
-
 
 class ProgramHeader:
-    '''Program header
+    '''Program header0x04
     '''
     PH_TYPE = 0x00
     PH_TYPE_SZ = 4
@@ -266,73 +222,32 @@ class ProgramHeader:
     PH_FLAGS_SZ = 4
     PH_ALIGN_SZ = 4
 
-    PH_TYPE_64SZ = 4
-    PH_FLAGS_64SZ = 4
-    PH_OFFSET_64SZ = 8
-    PH_VADDR_64SZ = 8
-    PH_PADDR_64SZ = 8
-    PH_FILESZ_64SZ = 8
-    PH_MEMSZ_64SZ = 8
-    PH_ALIGN_64SZ = 8
-
     PT_LOAD = 0x00000001
-    PT_PHDR = 0x00000006
-    PH_TYPE_T = {0x00000000: "PT_NULL (Unused)",
-                 0x00000001: "PT_LOAD (Loadable segment)",
-                 0x00000002: "PT_DYNAMIC (Dynamic linking information)",
-                 0x00000003: "PT_INTERP (Interpreter information)",
-                 0x00000004: "PT_NOTE (Auxiliary information)",
-                 0x00000005: "PT_SHLIB (Reserved)",
-                 0x00000006: "PT_PHDR (Contains program header table)",
-                 0x00000007: "PT_TLS (Thread-Local Storage template)",
-                 0x60000000: "PT_LOOS (OS specific)",
-                 0x6474e550: "PT_GNU_EH_FRAME (Unwind information)",
-                 0x6474e551: "PT_GNU_STACK (Stack flags)",
-                 0x6474e552: "PT_GNU_RELRO (Read-only after relocation)",
-                 0x6474e553: "PT_GNU_PROPERTY (Comment)",
-                 0x6FFFFFFF: "PT_HIOS (OS specific)",
-                 0x70000000: "PT_LOPROC (CPU specific)",
-                 0x7FFFFFFF: "PT_HIPROC (CPU specific)"}
-    PH_FLAGS_T = {0x01: "X", 0x02: "W", 0x04: "R", 0xf0000000: "U", }
 
     def __init__(self, ph_type=0, ph_flags=0, ph_offset=0, ph_vaddr=0, ph_paddr=0, ph_filesz=0, ph_memsz=0, ph_align=0):
-        if Packer.is_64bit:
-            self.members = {"ph_type": ph_type,
-                            "ph_flags": ph_flags,
-                            "ph_offset": ph_offset,
-                            "ph_vaddr": ph_vaddr,
-                            "ph_paddr": ph_paddr,
-                            "ph_filesz": ph_filesz,
-                            "ph_memsz": ph_memsz,
-                            "ph_align": ph_align}
-
-        else:
-            self.members = {"ph_type": ph_type,
-                            "ph_offset": ph_offset,
-                            "ph_vaddr": ph_vaddr,
-                            "ph_paddr": ph_paddr,
-                            "ph_filesz": ph_filesz,
-                            "ph_memsz": ph_memsz,
-                            "ph_flags": ph_flags,
-                            "ph_align": ph_align}
+        self.members = {"ph_type": ph_type,
+                        "ph_offset": ph_offset,
+                        "ph_vaddr": ph_vaddr,
+                        "ph_paddr": ph_paddr,
+                        "ph_filesz": ph_filesz,
+                        "ph_memsz": ph_memsz,
+                        "ph_flags": ph_flags,
+                        "ph_align": ph_align}
 
     def unpack(self, buffer):
         offset = ProgramHeader.PH_TYPE
         for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(ProgramHeader,  Packer.get(key))])
-            offset += getattr(ProgramHeader,  Packer.get(key))
+            self.members[key] = unpack(buffer[offset:offset + getattr(ProgramHeader, f"{key.upper()}_SZ")])
+            offset += getattr(ProgramHeader, f"{key.upper()}_SZ")
 
     def pack(self):
         buffer = []
         for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(ProgramHeader,  Packer.get(key))))
+            buffer.extend(pack(self.members[key], getattr(ProgramHeader, f"{key.upper()}_SZ")))
         return buffer
 
     def get_offset(self):
         return self.members["ph_offset"]
-
-    def get_type(self):
-        return self.members["ph_type"]
 
     def get_vaddr(self):
         return self.members["ph_vaddr"]
@@ -349,55 +264,49 @@ class ProgramHeader:
     def set_offset(self, offset):
         self.members["ph_offset"] = offset
 
-    def __str__(self):
-        out = ""
-        out += formatter("Type:", self.members["ph_type"], table=ProgramHeader.PH_TYPE_T)
-        out += formatter("File offset:", self.members["ph_offset"], hex=True)
-        out += formatter("File size:", self.members["ph_filesz"], hex=True)
-        out += formatter("Physical address:", self.members["ph_paddr"], hex=True)
-        out += formatter("Virtual address:", self.members["ph_vaddr"], hex=True)
-        out += formatter("Memory size:", self.members["ph_memsz"], hex=True)
-        out += formatter("Flags:", self.members["ph_flags"], table=ProgramHeader.PH_FLAGS_T, mask=True)
-        out += formatter("Align:", self.members["ph_align"], hex=True)
-        return out
 
-
-class ElfIdent:
+class ElfHeader:
     ELF_MAGIC = 0x464C457F
     EI_MAGIC = 0x0
     EI_MAGIC_SZ = 4
+    EI_CLASS = EI_MAGIC + EI_MAGIC_SZ
     EI_CLASS_SZ = 1
+    EI_DATA = EI_CLASS + EI_CLASS_SZ
     EI_DATA_SZ = 1
+    EI_VERSION = EI_DATA + EI_DATA_SZ
     EI_VERSION_SZ = 1
+    EI_OSABI = EI_VERSION + EI_VERSION_SZ
     EI_OSABI_SZ = 1
+    EI_ABIVERSION = EI_OSABI + EI_OSABI_SZ
     EI_ABIVERSION_SZ = 1
+    EI_PAD = EI_ABIVERSION + EI_ABIVERSION_SZ
     EI_PAD_SZ = 7
-
-    EI_CLASS_T = {1: "ELF32", 2: "ELF64"}
-    EI_DATA_T = {1: "Little Endian", 2: "Big Endian"}
-    EI_VERSION_T = {0: "0 (Old)", 1: "1 (Current)"}
-    EI_OSABI_T = {0x00: "System V",
-                  0x01: "HP-UX",
-                  0x02: "NetBSD",
-                  0x03: "Linux",
-                  0x04: "GNU Hurd",
-                  0x06: "Solaris",
-                  0x07: "AIX",
-                  0x08: "IRIX",
-                  0x09: "FreeBSD",
-                  0x0A: "Tru64",
-                  0x0B: "Novell Modesto",
-                  0x0C: "OpenBSD",
-                  0x0D: "OpenVMS",
-                  0x0E: "NonStop Kernel",
-                  0x0F: "AROS",
-                  0x10: "FenixOS",
-                  0x011: "Nuxi CloudABI",
-                  0x12: "Stratus Technologies OpenVOS"}
-    EI_ABIVERSION_T = {0: "0 (Standard)"}
-
-    DATA_LITTLE_ENDIAN = 0x01
-    CLASS_64_BIT = 0x02
+    E_TYPE = EI_PAD + EI_PAD_SZ
+    E_TYPE_SZ = 2
+    E_MACHINE = E_TYPE + E_TYPE_SZ
+    E_MACHINE_SZ = 2
+    E_VERSION = E_MACHINE + E_MACHINE_SZ
+    E_VERSION_SZ = 4
+    E_ENTRY = E_VERSION + E_VERSION_SZ
+    E_ENTRY_SZ = 4
+    E_PH_OFF = E_ENTRY + E_ENTRY_SZ
+    E_PH_OFF_SZ = 4
+    E_SH_OFF = E_PH_OFF + E_PH_OFF_SZ
+    E_SH_OFF_SZ = 4
+    E_FLAGS = E_SH_OFF + E_SH_OFF_SZ
+    E_FLAGS_SZ = 4
+    E_EH_SIZE = E_FLAGS + E_FLAGS_SZ
+    E_EH_SIZE_SZ = 2
+    E_PH_ENT_SIZE = E_EH_SIZE + E_EH_SIZE_SZ
+    E_PH_ENT_SIZE_SZ = 2
+    E_PH_COUNT = E_PH_ENT_SIZE + E_PH_ENT_SIZE_SZ
+    E_PH_COUNT_SZ = 2
+    E_SH_ENT_SIZE = E_PH_COUNT + E_PH_COUNT_SZ
+    E_SH_ENT_SIZE_SZ = 2
+    E_SH_COUNT = E_SH_ENT_SIZE + E_SH_ENT_SIZE_SZ
+    E_SH_COUNT_SZ = 2
+    E_SH_STRNDX = E_SH_COUNT + E_SH_COUNT_SZ
+    E_SH_STRNDX_SZ = 2
 
     def __init__(self):
         self.members = {
@@ -407,86 +316,7 @@ class ElfIdent:
             "ei_version": 0,
             "ei_osabi": 0,
             "ei_abiversion": 0,
-            "ei_pad": 0
-        }
-
-    def unpack(self, buffer):
-        offset = ElfIdent.EI_MAGIC
-        for key in self.members:
-            self.members[key] = utils.unpack(buffer[offset:offset + getattr(ElfIdent,  Packer.get(key))])
-            offset += getattr(ElfIdent, Packer.get(key))
-
-        if self.members["ei_magic"] != ElfIdent.ELF_MAGIC:
-            raise Exception("Not an Elf file")
-
-        # Update Packer settings
-        Packer.set(is_little_endian=(self.members['ei_data'] == ElfIdent.DATA_LITTLE_ENDIAN),
-                   is_64bit=(self.members['ei_class'] == ElfIdent.CLASS_64_BIT))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(utils.pack(self.members[key], getattr(ElfIdent,  Packer.get(key))))
-        return buffer
-
-    def get_size(self):
-        return sum([getattr(ElfIdent,  Packer.get(key)) for key in self.members])
-
-    def __str__(self):
-        out = "\n[Elf Identification]\n"
-        out += formatter("Class:", self.members['ei_class'], table=ElfIdent.EI_CLASS_T)
-        out += formatter("Data:", self.members['ei_data'], table=ElfIdent.EI_DATA_T)
-        out += formatter("Version:", self.members['ei_version'], table=ElfIdent.EI_VERSION_T)
-        out += formatter("OSABI:", self.members['ei_osabi'], table=ElfIdent.EI_OSABI_T)
-        out += formatter("Abi Version:", self.members['ei_abiversion'], table=ElfIdent.EI_ABIVERSION_T)
-        return out
-
-
-class ElfHeader:
-    E_TYPE = 16
-    E_TYPE_SZ = 2
-    E_MACHINE_SZ = 2
-    E_VERSION_SZ = 4
-    E_ENTRY_SZ = 4
-    E_PH_OFF_SZ = 4
-    E_SH_OFF_SZ = 4
-    E_FLAGS_SZ = 4
-    E_EH_SIZE_SZ = 2
-    E_PH_ENT_SIZE_SZ = 2
-    E_PH_COUNT_SZ = 2
-    E_SH_ENT_SIZE_SZ = 2
-    E_SH_COUNT_SZ = 2
-    E_SH_STRNDX_SZ = 2
-
-    E_TYPE_64SZ = 2
-    E_MACHINE_64SZ = 2
-    E_VERSION_64SZ = 4
-    E_ENTRY_64SZ = 8
-    E_PH_OFF_64SZ = 8
-    E_SH_OFF_64SZ = 8
-    E_FLAGS_64SZ = 4
-    E_EH_SIZE_64SZ = 2
-    E_PH_ENT_SIZE_64SZ = 2
-    E_PH_COUNT_64SZ = 2
-    E_SH_ENT_SIZE_64SZ = 2
-    E_SH_COUNT_64SZ = 2
-    E_SH_STRNDX_64SZ = 2
-
-    E_TYPE_T = {0x00: "ET_NONE (Unknown)", 0x01: "ET_REL (Relocatable file)", 0x02: "ET_EXEC (Executable file)", 0x03: "ET_DYN (Shared object)", 0x04: "ET_CORE (Core file)", 0xFE00: "ET_LOOS (OS Specific)", 0xFEFF: "ET_HIOS (OS Specific)", 0xFF00: "ET_LOPROC (CPU specific)", 0xFFFF: "ET_HIPROC (CPU specific)"}
-    E_MACHINE_T = {0x00: "Not Specified", 0x01: "AT&T WE 32100", 0x02: "SPARC", 0x03: "x86", 0x04: "Motorola 68000 (M68k)", 0x05: "Motorola 68000 (M88k)",
-                   0x06: "Intel MCU", 0x07: "Intel 80860", 0x08: "MIPS", 0x09: "IBM System370", 0x0A: "MIPS RS3000 Little-endian", 0x0B: "Future use", 0x0C: "Future use",
-                   0x0D: "Future use", 0x0E: "Hewlett-Packard PA-RISC", 0x0F: "Future use", 0x13: "Intel 80960", 0x14: "PowerPC", 0x15: "PowerPC(64-bit)", 0x16: "S390, S390x",
-                   0x17: "IBM SPU/SPC", 0x18: "Future use", 0x19: "Future use", 0x1A: "Future use", 0x1B: "Future use", 0x1C: "Future use", 0x1D: "Future use", 0x1E: "Future use",
-                   0x1F: "Future use", 0x20: "Future use", 0x21: "Future use", 0x22: "Future use", 0x23: "Future use", 0x24: "NEC V800", 0x25: "Fujitsu FR20", 0x26: "TRW RH-32",
-                   0x27: "Motorola RCE", 0x28: "ARM (up to ARMv7/Aarch32)", 0x29: "Digital Alpha", 0x2A: "SuperH", 0x2B: "SPARC Version 9", 0x2C: "Siemens TriCore", 0x2D: "Argonaut RISC Core",
-                   0x2E: "Hitachi H8/300", 0x2F: "Hitachi H8/300H", 0x30: "Hitachi H8S", 0x31: "Hitachi H8/500", 0x32: "IA-64", 0x33: "Stanford MIPS-X", 0x34: "Motorola ColdFire",
-                   0x35: "Motorola M68HC12", 0x36: "Fujitsu MMA Multimedia Accelerator", 0x37: "Siemens PCP", 0x38: "Sony nCPU embedded RISC processor", 0x39: "Denso NDR1 microprocessor",
-                   0x3A: "Motorola Star*Core processor", 0x3B: "Toyota ME16 processor", 0x3C: "STMicroelectronics ST100 processor", 0x3D: "Advanced Logic Corp. TinyJ embedded processor family",
-                   0x3E: "AMD x86-64", 0x8C: "TMS320C6000 Family", 0xAF: "MCST Elbrus e2k", 0xB7: "ARM 64-bits (ARMv8/Aarch64)", 0xF3: "RISC-V", 0xF7: "Berkeley Packet Filter", 0x101: "WDC 65C816"}
-    E_VERSION_T = {0x01: "1 (Original)"}
-
-    def __init__(self):
-        self.members = {
+            "ei_pad": 0,
             "e_type": 0,
             "e_machine": 0,
             "e_version": 0,
@@ -503,15 +333,18 @@ class ElfHeader:
         }
 
     def unpack(self, buffer):
-        offset = ElfHeader.E_TYPE
+        offset = ElfHeader.EI_MAGIC
         for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(ElfHeader, Packer.get(key))])
-            offset += getattr(ElfHeader,  Packer.get(key))
+            self.members[key] = unpack(buffer[offset:offset + getattr(ElfHeader, f"{key.upper()}_SZ")])
+            offset += getattr(ElfHeader, f"{key.upper()}_SZ")
+
+        if self.members["ei_magic"] != ElfHeader.ELF_MAGIC:
+            raise Exception("Not an Elf file")
 
     def pack(self):
         buffer = []
         for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(ElfHeader, Packer.get(key))))
+            buffer.extend(pack(self.members[key], getattr(ElfHeader, f"{key.upper()}_SZ")))
         return buffer
 
     def set_ph_offset(self, ph_offset):
@@ -551,21 +384,7 @@ class ElfHeader:
         return self.members["e_sh_strndx"]
 
     def __str__(self):
-        out = "\n[Elf Header]\n"
-        out += formatter("Type:", self.members['e_type'], table=ElfHeader.E_TYPE_T)
-        out += formatter("Machine:", self.members['e_machine'], table=ElfHeader.E_MACHINE_T)
-        out += formatter("Version:", self.members['e_version'], table=ElfHeader.E_VERSION_T)
-        out += formatter("Entry point address:", self.members['e_entry'], hex=True)
-        out += formatter("Program headers file offset:", self.members['e_ph_off'], hex=True)
-        out += formatter("Section headers file offset:", self.members['e_sh_off'], hex=True)
-        out += formatter("Flags:", self.members['e_flags'], hex=True)
-        out += formatter("Size of this header:", self.members['e_eh_size'])
-        out += formatter("Size of program headers:", self.members['e_ph_ent_size'], hex=True)
-        out += formatter("Number of program headers:", self.members['e_ph_count'])
-        out += formatter("Size of section headers:", self.members['e_sh_ent_size'], hex=True)
-        out += formatter("Number of section headers:", self.members['e_sh_count'])
-        out += formatter("Section header string table index:", self.members['e_sh_strndx'], hex=True)
-        return out
+        return str(self.members)
 
 
 class SectionData:
@@ -670,38 +489,27 @@ class SectionData:
         return self.section_headers
 
 
-class ElfParser:
-    """Elf Parser
-       https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
-       https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-83432/index.html
-    """
+class Elf:
+    '''Elf file
+    '''
 
-    def __init__(self, buffer):
-        self.binary = buffer
+    def __init__(self, filein):
+        self.binary = read_binary(filein)
+        self.elf_header = ElfHeader()
+        self.elf_header.unpack(self.binary)
         self.section_data = []
+
         self.strtab = None
         self.strtab_data = None
 
-        self.elf_ident = self._load_identification()
-        self.elf_header = self._load_elf_header()
-        self.program_headers = self._load_program_headers()
-        self.section_headers = self._load_section_headers()
+        self.program_headers = self.load_program_headers()
+        self.section_headers = self.load_section_headers()
 
         self.load_section_data()
 
         self.crc32 = Crc32()
 
-    def _load_identification(self):
-        ident = ElfIdent()
-        ident.unpack(self.binary)
-        return ident
-
-    def _load_elf_header(self):
-        header = ElfHeader()
-        header.unpack(self.binary)
-        return header
-
-    def _load_program_headers(self):
+    def load_program_headers(self):
         '''Loads program headers from .elf
         '''
         program_headers = []
@@ -713,7 +521,7 @@ class ElfParser:
             program_headers.append(ph)
         return program_headers
 
-    def _load_section_headers(self):
+    def load_section_headers(self):
         '''Loads section headers from .elf
         '''
         section_headers = []
@@ -728,8 +536,10 @@ class ElfParser:
     def load_section_data(self):
         '''Loads section data from .elf
         '''
+        strtab_data = []
+        strtab = []
 
-        for idx, sh in enumerate(self.section_headers):
+        for sh in self.section_headers:
             _start = sh.get_offset()
             _end = _start + sh.get_size()
             type = sh.get_type()
@@ -737,8 +547,10 @@ class ElfParser:
                 sh_data = SectionData(self.binary[_start:_end])
                 sh_data.add_section_header(sh)
                 self.section_data.append(sh_data)
-                if type not in [SectionHeader.TYPE_SHT_NOBITS, SectionHeader.TYPE_SHT_NULL]:
-                    if idx == self.elf_header.get_stridx():
+                if type== SectionHeader.TYPE_SHT_STRTAB:
+                    strtab.append(sh)
+                    strtab_data.append(sh_data)
+                    if len(strtab) == self.elf_header.get_stridx():
                         self.strtab = sh
                         self.strtab_data = sh_data
 
@@ -762,7 +574,7 @@ class ElfParser:
                     data.add_program_header(ph)
 
             if not found:
-                print(f"WARNING: couldn't place {ph.get_type()} {_start:x}-{_end:x}")
+                raise Exception(f"ERROR: couldn't place {_start:x}-{_end:x}")
 
     def _create_data(self, address, new_data):
         '''Create data
@@ -833,17 +645,23 @@ class ElfParser:
         return []
 
     def fill(self, start_address, end_address, byte):
-        ''' Fill section
+        ''' Fill range
+            -> start_address: start address of the range
+            -> end_address: end address of the range
+            -> byte: filling byte
         '''
         length = end_address - start_address
         new_data = []
         new_data.extend([byte]*length)
         self.add(start_address, new_data, can_overwrite=False)
 
-    def calculate_checksum(self, start_address, end_address, target_address):
-
+    def calculate_checksum(self, start_address, end_address, crc_address):
+        ''' Calculates checksum for range and places at an address
+            -> start_address: starting address of the range
+            -> end_address: ending address of the range, excluded
+            -> crc_address: address to which the crc should be written to 
+        '''
         binary = []
-
         total_length = end_address - start_address
         for data in sorted(self.section_data, key=lambda x: x.get_addr()):
             s_addr, e_addr = data.get_address_range()
@@ -867,9 +685,9 @@ class ElfParser:
             raise Exception(f"ERROR: Data not available for checksum starting from {start_address:x}")
 
         checksum = self.crc32.calculate(binary)
-        self.add(target_address, utils.convert_int_to_list(checksum))
+        self.add(crc_address, convert_int_to_list(checksum))
         return checksum
-
+    
     def get_segments(self):
         segments = []
         for data in sorted(self.section_data, key=lambda x: x.get_vaddr()):
@@ -967,30 +785,27 @@ class ElfParser:
             data.update(len(binary))
             binary.extend(data.get_data())
 
-    def write_data_to_file(self, elf_out="", hex_out=""):
-        '''Write data to file
-        '''
-        # Initialize binary
-        binary = [0] * (self.elf_ident.get_size() + self.elf_header.get_size())
-
-        self._write_section_data(binary)
         self._write_program_headers(binary)
         self._write_section_headers(binary)
-        self._update_elf_ident(binary)
         self._update_elf_header(binary)
 
+        # .elf
         if elf_out != "":
             with open(elf_out, 'wb') as f:
                 f.write(bytes(binary))
 
+        # .hex and .bin
+        ihex = IntelHex()
+        for data in sorted(self.section_data, key=lambda x: x.get_vaddr()):
+            address = data.get_vaddr()
+            if address != 0:
+                ihex.frombytes(data.get_data(), offset=address)
+                
         if hex_out != "":
-            ihex = IntelHex()
-
-            for data in sorted(self.section_data, key=lambda x: x.get_vaddr()):
-                address = data.get_vaddr()
-                if address == 0:
-                    ihex.frombytes(data.get_data(), offset=address)
             ihex.write_hex_file(hex_out)
+        
+        if bin_out != "":
+             ihex.tobinfile(bin_out)
 
     def _write_program_headers(self, binary):
         self.elf_header.set_ph_count(len(self.program_headers))
@@ -1007,36 +822,17 @@ class ElfParser:
             binary.extend(buffer)
 
     def _update_elf_header(self, binary):
-        update(self.elf_header.pack(), binary, self.elf_ident.get_size())
-
-    def _update_elf_ident(self, binary):
-        update(self.elf_ident.pack(), binary, 0)
+        update(self.elf_header.pack(), binary, 0)
 
     def get_section_data(self, section_name):
         for sd in self.section_data:
             for sh in sd.get_section_headers():
                 idx = sh.get_name_off()
-                string = utils.readstring(self.strtab_data.get_data(), idx)
+                string = read_string(self.strtab_data.get_data(), idx)
                 if section_name in string:
                     return sd.get_data()
 
         raise Exception(f"ERROR: section data was not found for name {section_name}")
-
-    def __str__(self):
-        out = ""
-        out += str(self.elf_ident)
-        out += str(self.elf_header)
-        out += "\n[Program Headers]\n"
-        for idx, program_header in enumerate(self.program_headers):
-            out += f"[{idx}]\n"
-            out += str(program_header)
-
-        out += "\n[Section Headers]\n"
-        for idx, section_header in enumerate(self.section_headers):
-            out += f"\n[{idx}] {utils.readstring(self.strtab_data.get_data(), section_header.get_name_off())}\n"
-            out += str(section_header)
-
-        return out
 
 
 if __name__ == "__main__":
@@ -1044,8 +840,7 @@ if __name__ == "__main__":
     fileout = sys.argv[2]
     fileout_hex = sys.argv[3]
 
-    elf = ElfParser(filein)
-    # print(elf)
+    elf = Elf(filein)
     elf.calculate_checksum(start_address=0x8004000, end_address=0x080040C8, target_address=0x080040C8)
 
     elf.fill(start_address=0x8010000, end_address=0x8060000, byte=0xFF)
@@ -1055,5 +850,6 @@ if __name__ == "__main__":
     elf.fill(start_address=0x807fff8, end_address=0x807fffc, byte=0x5A)
     elf.calculate_checksum(start_address=0x8060000, end_address=0x807fffc, target_address=0x807fffC)
 
-    d = elf.get_section_data("partial")
+    # d = elf.get_section_data("partial")
+
     elf.write_data_to_file(fileout, fileout_hex)
