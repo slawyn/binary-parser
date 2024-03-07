@@ -25,6 +25,32 @@ class Packer:
         return key.upper() + "_SZ"
 
 
+def formatter2(format, value, table=None, mask=False):
+    _value = value
+    if table != None:
+        out = ""
+        if mask:
+            for flag in table:
+                if (_value & flag) == flag:
+                    out += table[_value & flag] + " "
+                    _value = (_value & ~flag)
+
+                if _value == 0:
+                    break
+            
+            if _value !=0:
+                out += hex(_value)
+            
+            if out == "":
+                out += hex(_value)
+            _value = out
+        else:
+            if _value in table:
+                _value = table[_value]
+
+       
+    return format%_value
+
 def formatter(string, value, table=None, hex=False, mask=False):
     if table != None:
         _value = value
@@ -121,6 +147,157 @@ def update(source, destination, offset):
             destination[offset + idx] = source[idx]
 
 
+class SymTable:
+    def __init__(self, section_header, section_data):
+        self.symbols = []
+        count = int(section_data.get_size() / section_header.get_entry_size())
+        for sidx in range(count):
+            _start = sidx * section_header.get_entry_size()
+            _end = _start + section_header.get_entry_size()
+            symbol = Symbol()
+            binary = section_data.get_data()
+            symbol.unpack(binary[_start:_end])
+            self.symbols.append(symbol)
+
+    def get_symbols(self):
+        return self.symbols
+    
+class StringTable:
+
+    def __init__(self, section_header, section_data):
+        self.section_header= section_header
+        self.section_data = section_data
+
+    def find_string(self,str_idx):
+        return utils.readstring(self.section_data.get_data(), str_idx)
+    
+    def add_string(self):
+        str_idx = self.section_data.get_size()
+        update(f".partial_{str_idx:x}\0".encode(), self.section_data.get_data(), str_idx)
+        self.section_header.set_size(self.section_data.get_size())
+        return str_idx
+
+class Symbol:
+    ST_NAME = 0x0
+    ST_NAME_SZ = 0x4
+    ST_VALUE_SZ = 0x4
+    ST_SIZE_SZ = 0x4
+    ST_INFO_SZ = 0x1
+    ST_OTHER_SZ = 0x1
+    ST_SHNDX_SZ = 0x4
+
+    ST_NAME_64SZ = 0x8
+    ST_OTHER_64SZ = 0x1
+    ST_SHNDX_64SZ = 0x1
+    ST_VALUE_64SZ = 0x8
+    ST_SIZE_64SZ = 0x8
+    ST_INFO_64SZ = 0x8
+
+    ST_INFO_BIND_M = 0xF0
+    ST_INFO_TYPE_M = 0x0F
+
+    ST_BIND_T = {
+                0x00: "STB_LOCAL",
+                0x10: "STB_GLOBAL",
+                0x20: "STB_WEAK",
+                0xA0: "STB_LOOS",
+                0xC0: "STB_HIOS",
+                0xD0: "STB_LOPROC",
+                0xF0: "STB_HIPROC"
+    }
+
+    ST_OTHER_T = {
+                0: "STV_DEFAULT",
+                1: "STV_INTERNAL",
+                2: "STV_HIDDEN",
+                3: "STV_PROTECTED",
+                4: "STV_EXPORTED",
+                5: "STV_SINGLETON",
+                6: "STV_ELIMINATE"
+    }
+
+    ST_TYPE_T = {
+                0: "STT_NOTYPE",
+                1: "STT_OBJECT",
+                2: "STT_FUNC",
+                3: "STT_SECTION",
+                4: "STT_FILE",
+                5: "STT_COMMON",
+                6: "STT_TLS",
+                10: "STT_LOOS",
+                12: "STT_HIOS",
+                13: "STT_LOPROC",
+                14: "STT_SPARC_REGISTER",
+                15: "STT_HIPROC"
+    }
+
+    ST_SHNDX_T = {
+                0x0000: "SHN_UNDEF",
+                0xFFF1: "SHN_ABS",
+                0xFF00: "SHN_LOPROC",
+                0xFF1F: "SHN_HIPROC",
+                0xFF20: "HN_LIVEPATCH",
+                0xFFF1: "SHN_ABS",
+                0xFFF2: "SHN_COMMON",
+                0xFFFF: "SHN_HIRESERVE"
+    }
+
+    def __init__(self, st_name="", st_value=0, st_size=0, st_info=0, st_other=0, st_shndx=0):
+        self.members = {
+            "st_name": st_name,
+            "st_value": st_value,
+            "st_size": st_size,
+            "st_info": st_info,
+            "st_other": st_other,
+            "st_shndx": st_shndx
+        }
+
+        self.syminfo = {
+            "si_boundto":0,
+            "si_flags":0
+        }
+
+    def unpack(self, buffer):
+        offset = Symbol.ST_NAME
+        for key in self.members:
+            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(Symbol, Packer.get(key))])
+            offset += getattr(Symbol, Packer.get(key))
+
+    def pack(self):
+        buffer = []
+        for key in self.members:
+            buffer.extend(Packer.pack(self.members[key], getattr(Symbol, Packer.get(key))))
+        return buffer
+    
+    def get_column_titles():
+        out = ""
+        out += formatter2("%-10s","[Value]")
+        out += formatter2("%-10s","[Size]")
+        out += formatter2("%-20s","[Bind]")
+        out += formatter2("%-20s","[Info]")
+        out += formatter2("%-20s","[Other]")
+        out += formatter2("%-10s","[Ndx]")
+        out += formatter2("%-10s","[Name]")
+        return out
+    
+    def get_name_idx(self):
+        return self.members["st_name"]
+
+    def set_resolved_name(self, name):
+        self.members["st_name"] = name
+
+    def __str__(self):
+        out=""
+        out += formatter2("%-010x", self.members["st_value"])
+        out += formatter2("%-10s", self.members["st_size"])
+        out += formatter2("%-20s", self.members["st_info"]&Symbol.ST_INFO_BIND_M, table=Symbol.ST_BIND_T)
+        out += formatter2("%-20s", self.members["st_info"]&Symbol.ST_INFO_TYPE_M, table=Symbol.ST_TYPE_T)
+        out += formatter2("%-20s", self.members["st_other"], table=Symbol.ST_OTHER_T)
+        out += formatter2("%-10s", self.members["st_shndx"], table=Symbol.ST_SHNDX_T)
+        out += formatter2("%-10s", self.members["st_name"])
+        return out
+    
+    
 class SectionHeader:
     '''Section Header
     '''
@@ -167,7 +344,8 @@ class SectionHeader:
                  0x13: "SHT_NUM (Number of defined types)",
                  0x60000000: "Start OS-specific"}
 
-    SH_FLAGS_T = {0x01: "SHF_WRITE (Writable)",
+
+    _FLAGS_FULL = {0x01: "SHF_WRITE (Writable)",
                   0x02: "SHF_ALLOC (Occupies memory during execution)",
                   0x04: "SHF_EXECINSTR (Executable)",
                   0x10: "SHF_MERGE (Might be merged)",
@@ -182,8 +360,25 @@ class SectionHeader:
                   0x800: "SHF_COMPRESSED (Compressed)",
                   0x4000000: "SHF_ORDERED (Special ordering requirement (Solaris))",
                   0x8000000: "SHF_EXCLUDE (Section is excluded unless referenced or allocated (Solaris))"}
+
+    SH_FLAGS_T = {0x01: "SHF_WRITE",
+                  0x02: "SHF_ALLOC",
+                  0x04: "SHF_EXECINSTR",
+                  0x10: "SHF_MERGE",
+                  0x20: "SHF_STRINGS",
+                  0x40: "SHF_INFO_LINK",
+                  0x80: "SHF_LINK_ORDER",
+                  0x100: "SHF_OS_NONCONFORMING",
+                  0x200: "SHF_GROUP",
+                  0x400: "SHF_TLS",
+                  0x0FF00000: "SHF_MASKOS",
+                  0xF0000000: "SHF_MASKPROC",
+                  0x800: "SHF_COMPRESSED",
+                  0x4000000: "SHF_ORDERED",
+                  0x8000000: "SHF_EXCLUDE"}
     TYPE_SHT_NULL = 0x00
     TYPE_SHT_PROGBITS = 0x01
+    TYPE_SHT_SYMTAB = 0x02
     TYPE_SHT_STRTAB = 0x03
     TYPE_SHT_NOBITS = 0x08
     FLAGS_SHF_ALLOC = 0x02
@@ -217,6 +412,9 @@ class SectionHeader:
 
     def get_size(self):
         return self.members["sh_size"]
+    
+    def get_entry_size(self):
+        return self.members["sh_entsize"]
 
     def get_offset(self):
         return self.members["sh_offset"]
@@ -239,17 +437,30 @@ class SectionHeader:
     def set_size(self, size):
         self.members["sh_size"] = size
 
+    def get_column_titles():
+        out = ""
+        out += formatter2("%-10s","[Offset]")
+        out += formatter2("%-20s","[File offset]")
+        out += formatter2("%-20s","[File size]")
+        out += formatter2("%-20s","[Physical address]")
+        out += formatter2("%-10s","[Link]")
+        out += formatter2("%-10s","[Info]")
+        out += formatter2("%-20s","[Entry Size]")
+        out += formatter2("%-30s","[Type]")
+        out += formatter2("%-30s","[Flags]")
+        return out
+    
     def __str__(self):
         out = ""
-        out += formatter("Offset:", self.members["sh_name_off"])
-        out += formatter("Type:", self.members["sh_type"], table=SectionHeader.SH_TYPE_T)
-        out += formatter("File offset:", self.members["sh_offset"], hex=True)
-        out += formatter("File size:", self.members["sh_size"], hex=True)
-        out += formatter("Physical address:", self.members["sh_addr"], hex=True)
-        out += formatter("Link:", self.members["sh_link"], hex=True)
-        out += formatter("Info:", self.members["sh_info"], hex=True)
-        out += formatter("Flags:", self.members["sh_flags"], table=SectionHeader.SH_FLAGS_T, mask=True)
-        out += formatter("Entry Size:", self.members["sh_entsize"], hex=True)
+        out += formatter2("%-10s", self.members["sh_name_off"])
+        out += formatter2("%-20x", self.members["sh_offset"])
+        out += formatter2("%-20x", self.members["sh_size"])
+        out += formatter2("%-20x", self.members["sh_addr"])
+        out += formatter2("%-10x", self.members["sh_link"])
+        out += formatter2("%-10x", self.members["sh_info"])
+        out += formatter2("%-20x", self.members["sh_entsize"])
+        out += formatter2("%-30s", self.members["sh_type"], table=SectionHeader.SH_TYPE_T)
+        out += formatter2("%-30s", self.members["sh_flags"], table=SectionHeader.SH_FLAGS_T, mask=True)
         return out
 
 
@@ -349,16 +560,28 @@ class ProgramHeader:
     def set_offset(self, offset):
         self.members["ph_offset"] = offset
 
+    def get_column_titles():
+        out = ""
+        out += formatter2("%-20s","[File offset]")
+        out += formatter2("%-20s","[File size]")
+        out += formatter2("%-20s","[Physical address]")
+        out += formatter2("%-20s","[Virtual address]")
+        out += formatter2("%-20s","[Memory size]")
+        out += formatter2("%-10s","[Align]")
+        out += formatter2("%-30s","[Type]")
+        out += formatter2("%-10s","[Flags]")
+        return out
+    
     def __str__(self):
         out = ""
-        out += formatter("Type:", self.members["ph_type"], table=ProgramHeader.PH_TYPE_T)
-        out += formatter("File offset:", self.members["ph_offset"], hex=True)
-        out += formatter("File size:", self.members["ph_filesz"], hex=True)
-        out += formatter("Physical address:", self.members["ph_paddr"], hex=True)
-        out += formatter("Virtual address:", self.members["ph_vaddr"], hex=True)
-        out += formatter("Memory size:", self.members["ph_memsz"], hex=True)
-        out += formatter("Flags:", self.members["ph_flags"], table=ProgramHeader.PH_FLAGS_T, mask=True)
-        out += formatter("Align:", self.members["ph_align"], hex=True)
+        out += formatter2("%-20x", self.members["ph_offset"])
+        out += formatter2("%-20x", self.members["ph_filesz"])
+        out += formatter2("%-20x", self.members["ph_paddr"])
+        out += formatter2("%-20x", self.members["ph_vaddr"])
+        out += formatter2("%-20x", self.members["ph_memsz"])
+        out += formatter2("%-10x", self.members["ph_align"])
+        out += formatter2("%-30s", self.members["ph_type"], table=ProgramHeader.PH_TYPE_T)
+        out += formatter2("%-10s", self.members["ph_flags"], table=ProgramHeader.PH_FLAGS_T, mask=True)
         return out
 
 
@@ -679,15 +902,17 @@ class ElfParser:
     def __init__(self, buffer):
         self.binary = buffer
         self.section_data = []
+        self.shstrtab = None
+        self.symtab = None
         self.strtab = None
-        self.strtab_data = None
 
         self.elf_ident = self._load_identification()
         self.elf_header = self._load_elf_header()
         self.program_headers = self._load_program_headers()
         self.section_headers = self._load_section_headers()
 
-        self.load_section_data()
+        self._load_section_data()
+        self._load_symbols()
 
         self.crc32 = Crc32()
 
@@ -700,6 +925,12 @@ class ElfParser:
         header = ElfHeader()
         header.unpack(self.binary)
         return header
+
+    def _load_symbols(self):
+        '''Loads symbols .elf
+        '''
+        for _idx, symbol in enumerate(self.symtab.get_symbols()):
+            symbol.set_resolved_name(self.strtab.find_string(symbol.get_name_idx()))
 
     def _load_program_headers(self):
         '''Loads program headers from .elf
@@ -725,7 +956,7 @@ class ElfParser:
             section_headers.append(sh)
         return section_headers
 
-    def load_section_data(self):
+    def _load_section_data(self):
         '''Loads section data from .elf
         '''
 
@@ -737,12 +968,22 @@ class ElfParser:
                 sh_data = SectionData(self.binary[_start:_end])
                 sh_data.add_section_header(sh)
                 self.section_data.append(sh_data)
-                if type not in [SectionHeader.TYPE_SHT_NOBITS, SectionHeader.TYPE_SHT_NULL]:
-                    if idx == self.elf_header.get_stridx():
-                        self.strtab = sh
-                        self.strtab_data = sh_data
 
-        if self.strtab is None:
+                ## strtab
+                if type == SectionHeader.TYPE_SHT_STRTAB:
+                    if idx == self.elf_header.get_stridx():
+                        self.shstrtab = StringTable(sh, sh_data)
+                    else:
+                        self.strtab = StringTable(sh, sh_data)
+                
+                ## symtab
+                if type == SectionHeader.TYPE_SHT_SYMTAB:
+                    if self.symtab is not None:
+                        print("WARNING: only one symtab is supported at the moment")
+                    else:
+                        self.symtab = SymTable(sh, sh_data)
+
+        if self.shstrtab is None:
             raise Exception("ERROR: Symbol or String table not found")
 
         self._place_program_headers()
@@ -768,7 +1009,7 @@ class ElfParser:
         '''Create data
         '''
         section_data = self._create_section_data(new_data)
-        strindex = self._update_string_table()
+        strindex = self.shstrtab.add_string()
 
         offset = sum(_sd.get_size() for _sd in self.section_data)
         size = len(new_data)
@@ -785,12 +1026,6 @@ class ElfParser:
         section_data = SectionData(new_data)
         self.section_data.append(section_data)
         return section_data
-
-    def _update_string_table(self):
-        strindex = self.strtab.get_size()
-        update(f".partial_{strindex:x}\0".encode(), self.strtab_data.get_data(), strindex)
-        self.strtab.set_size(self.strtab_data.get_size())
-        return strindex
 
     def _create_section_header(self, strindex, size, offset, address):
         return SectionHeader(
@@ -940,9 +1175,6 @@ class ElfParser:
                     start_address = s_addr
                     idx = 0
                 
-        
-                
-                
         # Block could not be created, probably outside of the parsed range
         if len(buffer) > 0:
             self._create_data(start_address, buffer)
@@ -1015,26 +1247,38 @@ class ElfParser:
     def get_section_data(self, section_name):
         for sd in self.section_data:
             for sh in sd.get_section_headers():
-                idx = sh.get_name_off()
-                string = utils.readstring(self.strtab_data.get_data(), idx)
+                string = self.shstrtab.find_string(idx = sh.get_name_off())
                 if section_name in string:
                     return sd.get_data()
 
         raise Exception(f"ERROR: section data was not found for name {section_name}")
 
+
     def __str__(self):
+        name_fmt = "%-40s"
         out = ""
         out += str(self.elf_ident)
         out += str(self.elf_header)
-        out += "\n[Program Headers]\n"
+        out += f"\n[Program Headers] ({len(self.program_headers)})\n"
+        out += name_fmt % ("[Segment Name]") + ProgramHeader.get_column_titles() + "\n"
         for idx, program_header in enumerate(self.program_headers):
-            out += f"[{idx}]\n"
+            out += name_fmt % f"[{idx}][{program_header.get_vaddr():x}-{program_header.get_vaddr() +program_header.get_memsz():x}]"
             out += str(program_header)
+            out +="\n"
 
-        out += "\n[Section Headers]\n"
+        out += f"\n[Section Headers] ({len(self.section_headers)})\n"
+        out += name_fmt % ("[Section Name]") + SectionHeader.get_column_titles() + "\n"
         for idx, section_header in enumerate(self.section_headers):
-            out += f"\n[{idx}] {utils.readstring(self.strtab_data.get_data(), section_header.get_name_off())}\n"
+            out += name_fmt % f"[{idx}] {self.shstrtab.find_string(section_header.get_name_off())} [{section_header.get_offset():x}-{section_header.get_offset() + section_header.get_size():x}]"
             out += str(section_header)
+            out +="\n"
+
+        out += f"\n[Symtable] ({len(self.symtab.get_symbols())})\n"
+        out += name_fmt % ("[Idx]") + Symbol.get_column_titles() + "\n"
+        for idx, symbol in enumerate(self.symtab.get_symbols()):
+            out += name_fmt % f"[{idx}]" 
+            out += str(symbol)
+            out +="\n"
 
         return out
 
