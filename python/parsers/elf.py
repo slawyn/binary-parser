@@ -186,12 +186,12 @@ class Symbol:
     ST_OTHER_SZ = 0x1
     ST_SHNDX_SZ = 0x4
 
-    ST_NAME_64SZ = 0x8
+    ST_NAME_64SZ = 0x4
+    ST_INFO_64SZ = 0x1
     ST_OTHER_64SZ = 0x1
-    ST_SHNDX_64SZ = 0x1
+    ST_SHNDX_64SZ = 0x2
     ST_VALUE_64SZ = 0x8
     ST_SIZE_64SZ = 0x8
-    ST_INFO_64SZ = 0x8
 
     ST_INFO_BIND_M = 0xF0
     ST_INFO_TYPE_M = 0x0F
@@ -243,14 +243,24 @@ class Symbol:
     }
 
     def __init__(self, st_name="", st_value=0, st_size=0, st_info=0, st_other=0, st_shndx=0):
-        self.members = {
-            "st_name": st_name,
-            "st_value": st_value,
-            "st_size": st_size,
-            "st_info": st_info,
-            "st_other": st_other,
-            "st_shndx": st_shndx
-        }
+        if Packer.is_64bit:
+            self.members = {
+                "st_name": st_name,
+                "st_info": st_info,
+                "st_other": st_other,
+                "st_shndx": st_shndx,
+                "st_value": st_value,
+                "st_size": st_size
+            }
+        else:
+            self.members = {
+                "st_name": st_name,
+                "st_value": st_value,
+                "st_size": st_size,
+                "st_info": st_info,
+                "st_other": st_other,
+                "st_shndx": st_shndx
+            }
 
         self.syminfo = {
             "si_boundto":0,
@@ -381,22 +391,38 @@ class SectionHeader:
     TYPE_SHT_SYMTAB = 0x02
     TYPE_SHT_STRTAB = 0x03
     TYPE_SHT_NOBITS = 0x08
+    TYPE_SHT_DYNSYM = 0x0B
     FLAGS_SHF_ALLOC = 0x02
     FLAGS_SHF_EXECINSTR = 0x04
 
     def __init__(self, sh_name_off=0, sh_type=0, sh_flags=0, sh_size=0, sh_offset=0, sh_addr=0):
-        self.members = {
-            "sh_name_off": sh_name_off,
-            "sh_type": sh_type,
-            "sh_flags": sh_flags,
-            "sh_addr": sh_addr,
-            "sh_offset": sh_offset,
-            "sh_size": sh_size,
-            "sh_link": 0,
-            "sh_info": 0,
-            "sh_addralign": 0,
-            "sh_entsize": 0
-        }
+        if Packer.is_64bit:
+            self.members = {
+                "sh_name_off": sh_name_off,
+                "sh_type": sh_type,
+                "sh_flags": sh_flags,
+                "sh_addr": sh_addr,
+                "sh_offset": sh_offset,
+                "sh_size": sh_size,
+                "sh_link": 0,
+                "sh_info": 0,
+                "sh_addralign": 0,
+                "sh_entsize": 0
+            }
+
+        else:
+            self.members = {
+                "sh_name_off": sh_name_off,
+                "sh_type": sh_type,
+                "sh_flags": sh_flags,
+                "sh_addr": sh_addr,
+                "sh_offset": sh_offset,
+                "sh_size": sh_size,
+                "sh_link": 0,
+                "sh_info": 0,
+                "sh_addralign": 0,
+                "sh_entsize": 0
+            }
 
     def unpack(self, buffer):
         offset = SectionHeader.SH_NAME
@@ -904,6 +930,7 @@ class ElfParser:
         self.section_data = []
         self.shstrtab = None
         self.symtab = None
+        self.dynsymtab = None
         self.strtab = None
 
         self.elf_ident = self._load_identification()
@@ -929,8 +956,13 @@ class ElfParser:
     def _load_symbols(self):
         '''Loads symbols .elf
         '''
-        for _idx, symbol in enumerate(self.symtab.get_symbols()):
-            symbol.set_resolved_name(self.strtab.find_string(symbol.get_name_idx()))
+        if self.symtab is not None:
+            for _idx, symbol in enumerate(self.symtab.get_symbols()):
+                symbol.set_resolved_name(self.strtab.find_string(symbol.get_name_idx()))
+
+        if self.dynsymtab is not None:
+            for _idx, symbol in enumerate(self.dynsymtab.get_symbols()):
+                symbol.set_resolved_name(self.strtab.find_string(symbol.get_name_idx()))
 
     def _load_program_headers(self):
         '''Loads program headers from .elf
@@ -975,13 +1007,20 @@ class ElfParser:
                         self.shstrtab = StringTable(sh, sh_data)
                     else:
                         self.strtab = StringTable(sh, sh_data)
-                
+       
+
+
                 ## symtab
                 if type == SectionHeader.TYPE_SHT_SYMTAB:
                     if self.symtab is not None:
                         print("WARNING: only one symtab is supported at the moment")
                     else:
                         self.symtab = SymTable(sh, sh_data)
+                elif type == SectionHeader.TYPE_SHT_DYNSYM:
+                    if self.dynsymtab is not None:
+                        print("WARNING: only one dynsymtab is supported at the moment")
+                    else:
+                        self.dynsymtab = SymTable(sh, sh_data)
 
         if self.shstrtab is None:
             raise Exception("ERROR: Symbol or String table not found")
@@ -1273,13 +1312,22 @@ class ElfParser:
             out += str(section_header)
             out +="\n"
 
-        out += f"\n[Symtable] ({len(self.symtab.get_symbols())})\n"
-        out += name_fmt % ("[Idx]") + Symbol.get_column_titles() + "\n"
-        for idx, symbol in enumerate(self.symtab.get_symbols()):
-            out += name_fmt % f"[{idx}]" 
-            out += str(symbol)
-            out +="\n"
+        # Symbol table is optional
+        if self.symtab is not None:
+            out += f"\n[Symtable] ({len(self.symtab.get_symbols())})\n"
+            out += name_fmt % ("[Idx]") + Symbol.get_column_titles() + "\n"
+            for idx, symbol in enumerate(self.symtab.get_symbols()):
+                out += name_fmt % f"[{idx}]" 
+                out += str(symbol)
+                out +="\n"
 
+        if self.dynsymtab is not None:
+            out += f"\n[DynSymtable] ({len(self.dynsymtab.get_symbols())})\n"
+            out += name_fmt % ("[Idx]") + Symbol.get_column_titles() + "\n"
+            for idx, symbol in enumerate(self.dynsymtab.get_symbols()):
+                out += name_fmt % f"[{idx}]" 
+                out += str(symbol)
+                out +="\n"
         return out
 
 
