@@ -148,8 +148,9 @@ def update(source, destination, offset):
 
 
 class SymTable:
-    def __init__(self, section_header, section_data):
+    def __init__(self, section_header, section_data, linked_str_tab_idx):
         self.symbols = []
+        self.linked_str_tab_idx = linked_str_tab_idx
         count = int(section_data.get_size() / section_header.get_entry_size())
         for sidx in range(count):
             _start = sidx * section_header.get_entry_size()
@@ -161,6 +162,87 @@ class SymTable:
 
     def get_symbols(self):
         return self.symbols
+    
+    def get_strtab_idx(self):
+        return self.linked_str_tab_idx
+    
+class DynamicEntry:
+    D_TAG = 0x00
+    D_TAG_SZ = 4
+    D_VAL_SZ = 2
+    D_PTR_SZ = 4
+    D_OFF_SZ = 4
+
+    D_TAG_64SZ = 8
+    D_VAL_64SZ = 2
+    D_PTR_64SZ = 4
+
+    D_TAG_T = {
+                0: 'DT_NULL',
+                1: 'DT_NEEDED',
+                2: 'DT_PLTRELSZ',
+                4: 'DT_HASH',
+                5: 'DT_STRTAB',
+                6: 'DT_SYMTAB',
+    }
+
+    def __init__(self, d_tag=0, d_val=0, d_ptr=0, d_off=0):
+        if Packer.is_64bit:
+            self.members = {
+                "d_tag": d_tag,
+                "d_val": d_val,
+                "d_ptr": d_ptr
+            }
+        else:
+            self.members = {
+                "d_tag": d_tag,
+                "d_val": d_val,
+                "d_ptr": d_ptr,
+                "d_off": d_off
+            }
+
+    def unpack(self, buffer):
+        offset = DynamicEntry.D_TAG
+        for key in self.members:
+            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DynamicEntry, Packer.get(key))])
+            offset += getattr(DynamicEntry, Packer.get(key))
+
+    def pack(self):
+        buffer = []
+        for key in self.members:
+            buffer.extend(Packer.pack(self.members[key], getattr(DynamicEntry, Packer.get(key))))
+        return buffer
+
+    def get_column_titles():
+        out = ""
+        out += formatter2("%-20s","[Tag]")
+        out += formatter2("%-10s","[Value]")
+        out += formatter2("%-10s","[Pointer]")
+        out += formatter2("%-20s","[Offset]")
+        return out
+
+    def __str__(self):
+        out=""
+        out += formatter2("%-20s", self.members["d_tag"],  table=DynamicEntry.D_TAG_T)
+        out += formatter2("%-10x", self.members["d_val"])
+        out += formatter2("%-10x", self.members["d_ptr"])
+        out += formatter2("%-20s", self.members.get("d_off", "NONE"))
+        return out
+
+class Dynamic:
+    def __init__(self, section_header, section_data):
+        self.entries = []
+        count = int(section_data.get_size() / section_header.get_entry_size())
+        for sidx in range(count):
+            _start = sidx * section_header.get_entry_size()
+            _end = _start + section_header.get_entry_size()
+            entry = DynamicEntry()
+            binary = section_data.get_data()
+            entry.unpack(binary[_start:_end])
+            self.entries.append(entry)
+
+    def get_entries(self):
+        return self.entries
     
 class StringTable:
 
@@ -250,7 +332,7 @@ class Symbol:
                 "st_other": st_other,
                 "st_shndx": st_shndx,
                 "st_value": st_value,
-                "st_size": st_size
+                "st_size": st_size,
             }
         else:
             self.members = {
@@ -292,6 +374,9 @@ class Symbol:
     
     def get_name_idx(self):
         return self.members["st_name"]
+    
+    def get_strtab_idx(self):
+        return self.members["st_shndx"]
 
     def set_resolved_name(self, name):
         self.members["st_name"] = name
@@ -392,6 +477,7 @@ class SectionHeader:
     TYPE_SHT_STRTAB = 0x03
     TYPE_SHT_NOBITS = 0x08
     TYPE_SHT_DYNSYM = 0x0B
+    TYPE_SHT_DYNAMIC = 0x06
     FLAGS_SHF_ALLOC = 0x02
     FLAGS_SHF_EXECINSTR = 0x04
 
@@ -453,6 +539,9 @@ class SectionHeader:
 
     def get_addr(self):
         return self.members["sh_addr"]
+    
+    def get_link(self):
+        return self.members["sh_link"]
 
     def set_offset(self, offset):
         self.members["sh_offset"] = offset
@@ -923,6 +1012,7 @@ class ElfParser:
     """Elf Parser
        https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
        https://docs.oracle.com/cd/E19683-01/816-1386/chapter6-83432/index.html
+       https://www.uclibc.org/docs/elf-64-gen.pdf
     """
 
     def __init__(self, buffer):
@@ -931,7 +1021,8 @@ class ElfParser:
         self.shstrtab = None
         self.symtab = None
         self.dynsymtab = None
-        self.strtab = None
+        self.dynamic = None
+        self.strtab = {}
 
         self.elf_ident = self._load_identification()
         self.elf_header = self._load_elf_header()
@@ -956,13 +1047,15 @@ class ElfParser:
     def _load_symbols(self):
         '''Loads symbols .elf
         '''
-        if self.symtab is not None:
-            for _idx, symbol in enumerate(self.symtab.get_symbols()):
-                symbol.set_resolved_name(self.strtab.find_string(symbol.get_name_idx()))
-
-        if self.dynsymtab is not None:
+        if self.dynsymtab:
+            strtab = self.strtab[self.dynsymtab.get_strtab_idx()]
             for _idx, symbol in enumerate(self.dynsymtab.get_symbols()):
-                symbol.set_resolved_name(self.strtab.find_string(symbol.get_name_idx()))
+                symbol.set_resolved_name(strtab.find_string(symbol.get_name_idx()))
+
+        if self.symtab:
+            strtab = self.strtab[self.symtab.get_strtab_idx()]
+            for _idx, symbol in enumerate(self.symtab.get_symbols()):
+                symbol.set_resolved_name(strtab.find_string(symbol.get_name_idx()))
 
     def _load_program_headers(self):
         '''Loads program headers from .elf
@@ -1003,24 +1096,29 @@ class ElfParser:
 
                 ## strtab
                 if type == SectionHeader.TYPE_SHT_STRTAB:
+                    strtab = StringTable(sh, sh_data)
+                    self.strtab[idx] = strtab
                     if idx == self.elf_header.get_stridx():
-                        self.shstrtab = StringTable(sh, sh_data)
-                    else:
-                        self.strtab = StringTable(sh, sh_data)
-       
-
-
+                        self.shstrtab = strtab
+                    
                 ## symtab
-                if type == SectionHeader.TYPE_SHT_SYMTAB:
+                elif type == SectionHeader.TYPE_SHT_SYMTAB:
                     if self.symtab is not None:
                         print("WARNING: only one symtab is supported at the moment")
                     else:
-                        self.symtab = SymTable(sh, sh_data)
+                        self.symtab = SymTable(sh, sh_data, sh.get_link())
+
                 elif type == SectionHeader.TYPE_SHT_DYNSYM:
                     if self.dynsymtab is not None:
                         print("WARNING: only one dynsymtab is supported at the moment")
                     else:
-                        self.dynsymtab = SymTable(sh, sh_data)
+                        self.dynsymtab = SymTable(sh, sh_data, sh.get_link())
+                
+                elif type == SectionHeader.TYPE_SHT_DYNAMIC:
+                    if self.dynamic is not None:
+                        print("WARNING: only one dynamic is supported at the moment")
+                    else:
+                        self.dynamic = Dynamic(sh, sh_data)
 
         if self.shstrtab is None:
             raise Exception("ERROR: Symbol or String table not found")
@@ -1313,7 +1411,7 @@ class ElfParser:
             out +="\n"
 
         # Symbol table is optional
-        if self.symtab is not None:
+        if self.symtab:
             out += f"\n[Symtable] ({len(self.symtab.get_symbols())})\n"
             out += name_fmt % ("[Idx]") + Symbol.get_column_titles() + "\n"
             for idx, symbol in enumerate(self.symtab.get_symbols()):
@@ -1321,10 +1419,18 @@ class ElfParser:
                 out += str(symbol)
                 out +="\n"
 
-        if self.dynsymtab is not None:
+        if self.dynsymtab:
             out += f"\n[DynSymtable] ({len(self.dynsymtab.get_symbols())})\n"
             out += name_fmt % ("[Idx]") + Symbol.get_column_titles() + "\n"
             for idx, symbol in enumerate(self.dynsymtab.get_symbols()):
+                out += name_fmt % f"[{idx}]" 
+                out += str(symbol)
+                out +="\n"
+
+        if self.dynamic:
+            out += f"\n[Dynamic] ({len(self.dynamic.get_entries())})\n"
+            out += name_fmt % ("[Idx]") + DynamicEntry.get_column_titles() + "\n"
+            for idx, symbol in enumerate(self.dynamic.get_entries()):
                 out += name_fmt % f"[{idx}]" 
                 out += str(symbol)
                 out +="\n"
