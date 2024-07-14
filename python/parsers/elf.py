@@ -19,8 +19,8 @@ class Packer:
     def pack(data, size):
         return utils.pack(data, size, little_endian=Packer.is_little_endian)
 
-    def get(key):
-        if Packer.is_64bit == True:
+    def get(key, override=False):
+        if not override and Packer.is_64bit == True:
             return key.upper() + "_64SZ"
         return key.upper() + "_SZ"
 
@@ -160,9 +160,20 @@ class SymTable:
             symbol.unpack(binary[_start:_end])
             self.symbols.append(symbol)
 
-    def get_symbols(self):
+    def get_entries(self):
         return self.symbols
-    
+
+    def get_column_titles(self):
+        out = ""
+        out += formatter2("%-10s","[Value]")
+        out += formatter2("%-10s","[Size]")
+        out += formatter2("%-20s","[Bind]")
+        out += formatter2("%-20s","[Info]")
+        out += formatter2("%-20s","[Other]")
+        out += formatter2("%-10s","[Ndx]")
+        out += formatter2("%-10s","[Name]")
+        return out
+
     def get_strtab_idx(self):
         return self.linked_str_tab_idx
     
@@ -185,6 +196,8 @@ class DynamicEntry:
                 5: 'DT_STRTAB',
                 6: 'DT_SYMTAB',
     }
+
+
 
     def __init__(self, d_tag=0, d_val=0, d_ptr=0, d_off=0):
         if Packer.is_64bit:
@@ -213,14 +226,6 @@ class DynamicEntry:
             buffer.extend(Packer.pack(self.members[key], getattr(DynamicEntry, Packer.get(key))))
         return buffer
 
-    def get_column_titles():
-        out = ""
-        out += formatter2("%-20s","[Tag]")
-        out += formatter2("%-10s","[Value]")
-        out += formatter2("%-10s","[Pointer]")
-        out += formatter2("%-20s","[Offset]")
-        return out
-
     def __str__(self):
         out=""
         out += formatter2("%-20s", self.members["d_tag"],  table=DynamicEntry.D_TAG_T)
@@ -240,6 +245,14 @@ class Dynamic:
             binary = section_data.get_data()
             entry.unpack(binary[_start:_end])
             self.entries.append(entry)
+
+    def get_column_titles(self):
+        out = ""
+        out += formatter2("%-20s","[Tag]")
+        out += formatter2("%-10s","[Value]")
+        out += formatter2("%-10s","[Pointer]")
+        out += formatter2("%-20s","[Offset]")
+        return out
 
     def get_entries(self):
         return self.entries
@@ -360,17 +373,7 @@ class Symbol:
         for key in self.members:
             buffer.extend(Packer.pack(self.members[key], getattr(Symbol, Packer.get(key))))
         return buffer
-    
-    def get_column_titles():
-        out = ""
-        out += formatter2("%-10s","[Value]")
-        out += formatter2("%-10s","[Size]")
-        out += formatter2("%-20s","[Bind]")
-        out += formatter2("%-20s","[Info]")
-        out += formatter2("%-20s","[Other]")
-        out += formatter2("%-10s","[Ndx]")
-        out += formatter2("%-10s","[Name]")
-        return out
+   
     
     def get_name_idx(self):
         return self.members["st_name"]
@@ -482,6 +485,7 @@ class SectionHeader:
     FLAGS_SHF_EXECINSTR = 0x04
 
     def __init__(self, sh_name_off=0, sh_type=0, sh_flags=0, sh_size=0, sh_offset=0, sh_addr=0):
+        self.name = ""
         if Packer.is_64bit:
             self.members = {
                 "sh_name_off": sh_name_off,
@@ -543,6 +547,9 @@ class SectionHeader:
     def get_link(self):
         return self.members["sh_link"]
 
+    def is_allocatable(self):
+        return self.members["sh_flags"] & SectionHeader.FLAGS_SHF_ALLOC
+
     def set_offset(self, offset):
         self.members["sh_offset"] = offset
 
@@ -551,6 +558,12 @@ class SectionHeader:
 
     def set_size(self, size):
         self.members["sh_size"] = size
+
+    def resolve_name(self, name):
+        self.name = name
+
+    def get_name(self):
+        return self.name
 
     def get_column_titles():
         out = ""
@@ -698,6 +711,145 @@ class ProgramHeader:
         out += formatter2("%-30s", self.members["ph_type"], table=ProgramHeader.PH_TYPE_T)
         out += formatter2("%-10s", self.members["ph_flags"], table=ProgramHeader.PH_FLAGS_T, mask=True)
         return out
+
+
+
+class Abreviation:
+
+    DW_AT_PRODUCER_SZ = 4
+    DW_AT_LANGUAGE_SZ = 1
+    DW_AT_NAME_SZ = 4
+    DW_AT_COMP_DIR_SZ = 4
+    DW_AT_LOW_PC_SZ = 8
+    DW_AT_HIGH_PC_SZ = 8
+    DW_AT_STMT_SZ = 4
+
+    def __init__(self, type):
+        pass
+
+
+    
+
+class CompileUnitHeader:
+
+    CU_POINTER_SIZE_OFFSET = 0
+    CU_POINTER_SIZE_SZ = 1
+    CU_ABBREV_OFFSET_SZ = 4
+
+    CU_POINTER_SIZE_64SZ = 1
+    CU_ABBREV_OFFSET_64SZ = 4
+
+    def __init__(self):
+        self.members = {
+                        "cu_pointer_size": 0,
+                        "cu_abbrev_offset": 0
+                        }
+        
+    def unpack(self, buffer):
+        offset = CompileUnitHeader.CU_POINTER_SIZE_OFFSET
+        for key in self.members:
+            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(CompileUnitHeader,  Packer.get(key))])
+            offset += getattr(CompileUnitHeader,  Packer.get(key))
+             
+    def pack(self):
+        buffer = []
+        for key in self.members:
+            buffer.extend(Packer.pack(self.members[key], getattr(CompileUnitHeader,  Packer.get(key))))
+        return buffer
+    
+    def get_abbrev_offset(self):
+        return self.members["cu_abbrev_offset"]
+    
+    def get_header_size(self):
+        return CompileUnitHeader.CU_POINTER_SIZE_SZ + CompileUnitHeader.CU_ABBREV_OFFSET_SZ
+
+    def __str__(self):
+        out = ""
+        out += formatter("Pointer Size", self.members["cu_pointer_size"])
+        out += formatter("Abbrev. Offset", self.members["cu_abbrev_offset"])
+        return out
+
+class CompileUnit:
+    CU_LENGTH_OFFSET = 0
+
+    CU_LENGTH_SZ = 4
+    CU_VERSION_SZ = 2
+    CU_UNIT_TYPE_SZ = 1
+
+    DW_UNIT_TYPES = {
+        1: "DW_UT_COMPILE"
+    }
+
+    SUPPORTED_VERSIONS = [5]
+
+    def __init__(self):
+        self.abbreviations = []
+        self.members = {
+                        "cu_length": 0,
+                        "cu_version": 0,
+                        "cu_unit_type": 0
+        }
+
+        self.cu_header = CompileUnitHeader()
+     
+    def unpack(self, buffer):
+        offset = CompileUnit.CU_LENGTH_OFFSET
+        for key in self.members:
+            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(CompileUnit,  Packer.get(key, override=True))])
+            offset += getattr(CompileUnit,  Packer.get(key, override=True))
+
+        if self.members["cu_version"] in CompileUnit.SUPPORTED_VERSIONS and self.members["cu_unit_type"] in CompileUnit.DW_UNIT_TYPES:
+            self.cu_header.unpack(buffer[offset:])
+
+            # Init values before parsing abbreviations
+            header_size = self.cu_header.get_header_size() 
+            abbrev_offset = self.cu_header.get_abbrev_offset() 
+            offset += abbrev_offset +  header_size 
+            length = self.members["cu_length"]
+
+            #
+            buffer[offset: offset + length]
+        else:
+            raise Exception(f'ERROR: unsupported Compilation Unit version:{self.members["cu_version"]} unit:{self.members["cu_unit_type"]}')
+    def pack(self):
+        buffer = []
+        for key in self.members:
+            buffer.extend(Packer.pack(self.members[key], getattr(CompileUnit,  Packer.get(key))))
+
+        buffer.extend(self.cu_header.pack())
+        return buffer
+
+    def __str__(self):
+        out = ""
+        out += formatter("Length", self.members["cu_length"], hex=True)
+        out += formatter("Version", self.members["cu_version"])
+        out += formatter("Unit Type", self.members["cu_unit_type"], table=CompileUnit.DW_UNIT_TYPES)
+        out += str(self.cu_header)
+        return out
+    
+        
+class Dwarf:
+    def __init__(self):
+        self.entries = []
+        self.section_headers = []
+        self.section_data = []
+
+    def add_debug_section(self, sh, sh_data):
+        self.section_headers.append(sh)
+        self.section_data.append(sh_data)
+
+    def get_entries(self):
+        return self.entries
+
+    def get_column_titles(self):
+        return ""
+
+    def parse_debug_info(self):
+        for sh, sh_data in zip(self.section_headers, self.section_data):
+            if "debug_info" in sh.get_name():
+                unit = CompileUnit()
+                unit.unpack(sh_data.get_data())
+                self.entries.append(unit)
 
 
 class ElfIdent:
@@ -1022,6 +1174,7 @@ class ElfParser:
         self.symtab = None
         self.dynsymtab = None
         self.dynamic = None
+        self.dwarf  = Dwarf()
         self.strtab = {}
 
         self.elf_ident = self._load_identification()
@@ -1031,6 +1184,7 @@ class ElfParser:
 
         self._load_section_data()
         self._load_symbols()
+        self._load_debug_info()
 
         self.crc32 = Crc32()
 
@@ -1049,13 +1203,16 @@ class ElfParser:
         '''
         if self.dynsymtab:
             strtab = self.strtab[self.dynsymtab.get_strtab_idx()]
-            for _idx, symbol in enumerate(self.dynsymtab.get_symbols()):
+            for _idx, symbol in enumerate(self.dynsymtab.get_entries()):
                 symbol.set_resolved_name(strtab.find_string(symbol.get_name_idx()))
 
         if self.symtab:
             strtab = self.strtab[self.symtab.get_strtab_idx()]
-            for _idx, symbol in enumerate(self.symtab.get_symbols()):
+            for _idx, symbol in enumerate(self.symtab.get_entries()):
                 symbol.set_resolved_name(strtab.find_string(symbol.get_name_idx()))
+
+    def _load_debug_info(self):
+        self.dwarf.parse_debug_info()
 
     def _load_program_headers(self):
         '''Loads program headers from .elf
@@ -1120,8 +1277,17 @@ class ElfParser:
                     else:
                         self.dynamic = Dynamic(sh, sh_data)
 
+                elif type == SectionHeader.TYPE_SHT_PROGBITS:
+                    if not sh.is_allocatable():
+                        self.dwarf.add_debug_section(sh, sh_data)
+
         if self.shstrtab is None:
             raise Exception("ERROR: Symbol or String table not found")
+
+        else:
+            # Resolve names of the section headers
+            for idx, sh in enumerate(self.section_headers):
+                sh.resolve_name(self.shstrtab.find_string(sh.get_name_off()))
 
         self._place_program_headers()
 
@@ -1406,34 +1572,32 @@ class ElfParser:
         out += f"\n[Section Headers] ({len(self.section_headers)})\n"
         out += name_fmt % ("[Section Name]") + SectionHeader.get_column_titles() + "\n"
         for idx, section_header in enumerate(self.section_headers):
-            out += name_fmt % f"[{idx}] {self.shstrtab.find_string(section_header.get_name_off())} [{section_header.get_offset():x}-{section_header.get_offset() + section_header.get_size():x}]"
+            out += name_fmt % f"[{idx}] {section_header.get_name()} [{section_header.get_offset():x}-{section_header.get_offset() + section_header.get_size():x}]"
             out += str(section_header)
             out +="\n"
 
-        # Symbol table is optional
-        if self.symtab:
-            out += f"\n[Symtable] ({len(self.symtab.get_symbols())})\n"
-            out += name_fmt % ("[Idx]") + Symbol.get_column_titles() + "\n"
-            for idx, symbol in enumerate(self.symtab.get_symbols()):
-                out += name_fmt % f"[{idx}]" 
-                out += str(symbol)
+        
+        special_sections = {"Symtable":self.symtab,\
+                            "DynSymtable":self.dynsymtab,\
+                            "Dynamic":self.dynamic
+                            }
+        for key, tab in special_sections.items():
+            if tab:
+                out += f"\n[{key}] ({len(tab.get_entries())})\n"
+                out += name_fmt % ("[Idx]") + tab.get_column_titles() + "\n"
+                for idx, symbol in enumerate(tab.get_entries()):
+                    out += name_fmt % f"[{idx}]" 
+                    out += str(symbol)
+                    out +="\n"   
+
+        if self.dwarf:
+            out += f"\n[Debug] ({len(self.dwarf.get_entries())})\n"
+            for idx, tab in enumerate(self.dwarf.get_entries()):
+                out += name_fmt % f"[{idx}]"
+                out +="\n"
+                out += str(tab)
                 out +="\n"
 
-        if self.dynsymtab:
-            out += f"\n[DynSymtable] ({len(self.dynsymtab.get_symbols())})\n"
-            out += name_fmt % ("[Idx]") + Symbol.get_column_titles() + "\n"
-            for idx, symbol in enumerate(self.dynsymtab.get_symbols()):
-                out += name_fmt % f"[{idx}]" 
-                out += str(symbol)
-                out +="\n"
-
-        if self.dynamic:
-            out += f"\n[Dynamic] ({len(self.dynamic.get_entries())})\n"
-            out += name_fmt % ("[Idx]") + DynamicEntry.get_column_titles() + "\n"
-            for idx, symbol in enumerate(self.dynamic.get_entries()):
-                out += name_fmt % f"[{idx}]" 
-                out += str(symbol)
-                out +="\n"
         return out
 
 
