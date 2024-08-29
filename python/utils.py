@@ -168,3 +168,75 @@ def compare(first, second):
                 return False
 
     return True
+
+def format_array(_list):
+    out = ""
+    for element in _list:
+        out +=hex(element) + " "
+    return out
+
+def formatter(string, value, table=None, hex=False, mask=False):
+    if value == b'':
+        return ""
+    if string == "":
+        return f"({value})\n"
+
+
+    if table != None:
+        _value = value
+        out = ""
+        if mask:
+            for flag in table:
+                if (_value & flag) == flag:
+                    out += table[_value & flag] + " "
+                    _value = (_value & ~flag)
+                if _value == 0:
+                    break
+        else:
+            if _value in table:
+                out = table[_value]
+                _value = 0
+
+        if out == "" or _value != 0:
+            return f"{string:40} {value:x}\n"
+        return f"{string:40} {out}\n"
+    elif hex:
+        return f"{string:40} {value:x}\n"
+    else:
+        return f"{string:40} {value}\n"
+    
+def formatter2(format, value, table=None, mask=False):
+    if value == b'':
+        return value
+    
+    _value = value
+    if table != None:
+        out = ""
+        if mask:
+            for flag in table:
+                if (_value & flag) == flag:
+                    out += table[_value & flag] + " "
+                    _value = (_value & ~flag)
+
+                if _value == 0:
+                    break
+
+            if _value != 0:
+                out += hex(_value)
+
+            if out == "":
+                out += hex(_value)
+            _value = out
+        else:
+            if _value in table:
+                _value = table[_value]
+
+    return format % _value
+
+
+def update(source, destination, offset):
+    for idx in range(len(source)):
+        if (offset + idx) >= len(destination):
+            destination.extend(source[idx:])
+        else:
+            destination[offset + idx] = source[idx]

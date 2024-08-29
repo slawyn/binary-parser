@@ -3,149 +3,20 @@ import struct
 import sys
 from intelhex import IntelHex
 import utils
-
-
-class Packer:
-    is_64bit = False
-    is_little_endian = False
-
-    def set(is_64bit, is_little_endian):
-        Packer.is_64bit = is_64bit
-        Packer.is_little_endian = is_little_endian
-
-    def unpack(buffer):
-        return utils.unpack(buffer, little_endian=Packer.is_little_endian)
-
-    def pack(data, size):
-        return utils.pack(data, size, little_endian=Packer.is_little_endian)
-
-    def get(key, override=False):
-        if not override and Packer.is_64bit == True:
-            return key.upper() + "_64SZ"
-        return key.upper() + "_SZ"
-
-
-def formatter2(format, value, table=None, mask=False):
-    _value = value
-    if table != None:
-        out = ""
-        if mask:
-            for flag in table:
-                if (_value & flag) == flag:
-                    out += table[_value & flag] + " "
-                    _value = (_value & ~flag)
-
-                if _value == 0:
-                    break
-            
-            if _value !=0:
-                out += hex(_value)
-            
-            if out == "":
-                out += hex(_value)
-            _value = out
-        else:
-            if _value in table:
-                _value = table[_value]
-
-       
-    return format%_value
-
-def formatter(string, value, table=None, hex=False, mask=False):
-    if table != None:
-        _value = value
-        out = ""
-        if mask:
-            for flag in table:
-                if (_value & flag) == flag:
-                    out += table[_value & flag] + " "
-                    _value = (_value & ~flag)
-                if _value == 0:
-                    break
-        else:
-            if _value in table:
-                out = table[_value]
-                _value = 0
-
-        if out == "" or _value != 0:
-            return f"{string:40} {value:x}\n"
-        return f"{string:40} {out}\n"
-    elif hex:
-        return f"{string:40} {value:x}\n"
-    else:
-        return f"{string:40} {value}\n"
-
+from packer import Packer
+from parsers.dwarf import CompilationUnit
+from crc import Crc32
 
 class Segment:
-    
     def __init__(self, start_address, data):
         self.data = data
         self.start_address = start_address
-        
+
     def get_address(self):
         return self.start_address
-    
+
     def get_data(self):
         return self.data
-
-class Crc32:
-    ''' Corresponds to address:4,crc32:Li,0xFFFFFFFFF;start_address-end_address
-    '''
-
-    def __init__(self, size=4, unit_size=4, start_value=0xFFFFFFFF):
-        self.size = size
-        self.unit_size = unit_size
-        self.start_value = start_value
-        self.table = []
-        self._create_lookup_table()
-
-    def _mirror(self, orig, size):
-        one = 1
-        d = 0
-        r = 0
-        for d in range(8 * size):
-
-            if (orig & (one << d)):
-                r |= ((one << (8 * size - 1)) >> d)
-
-        return r
-
-    def _create_lookup_table(self):
-        rem = 0
-        mask = 1
-        left = (self.size - 1) * 8
-        mask <<= (self.size * 8 - 1)
-        for i in range(256):
-            rem = i << left
-            for j in range(8):
-                if (rem & mask):
-                    rem = (rem << 1) ^ 0x4C11DB7
-                else:
-                    rem <<= 1
-
-            self.table.append(rem)
-
-    def calculate(self, buf):
-        mSum = self.start_value
-        stack = []
-        for byte in buf:
-            stack.append(byte)
-            if len(stack) == self.unit_size:
-                while len(stack) > 0:
-                    index = ((mSum >> 24) ^ stack.pop()) & 0xFF
-                    t = self.table[index]
-                    mSum = (t ^ (mSum << 8)) & 0xFFFFFFFF
-
-        return mSum
-
-
-def update(source, destination, offset):
-    for idx in range(len(source)):
-        if (offset + idx) >= len(destination):
-            destination.extend(source[idx:])
-        else:
-            destination[offset + idx] = source[idx]
-
 
 class SymTable:
     def __init__(self, section_header, section_data, linked_str_tab_idx):
@@ -165,18 +36,19 @@ class SymTable:
 
     def get_column_titles(self):
         out = ""
-        out += formatter2("%-10s","[Value]")
-        out += formatter2("%-10s","[Size]")
-        out += formatter2("%-20s","[Bind]")
-        out += formatter2("%-20s","[Info]")
-        out += formatter2("%-20s","[Other]")
-        out += formatter2("%-10s","[Ndx]")
-        out += formatter2("%-10s","[Name]")
+        out += utils.formatter2("%-10s", "[Value]")
+        out += utils.formatter2("%-10s", "[Size]")
+        out += utils.formatter2("%-20s", "[Bind]")
+        out += utils.formatter2("%-20s", "[Info]")
+        out += utils.formatter2("%-20s", "[Other]")
+        out += utils.formatter2("%-10s", "[Ndx]")
+        out += utils.formatter2("%-10s", "[Name]")
         return out
 
     def get_strtab_idx(self):
         return self.linked_str_tab_idx
-    
+
+
 class DynamicEntry:
     D_TAG = 0x00
     D_TAG_SZ = 4
@@ -189,15 +61,13 @@ class DynamicEntry:
     D_PTR_64SZ = 4
 
     D_TAG_T = {
-                0: 'DT_NULL',
-                1: 'DT_NEEDED',
-                2: 'DT_PLTRELSZ',
-                4: 'DT_HASH',
-                5: 'DT_STRTAB',
-                6: 'DT_SYMTAB',
+        0: 'DT_NULL',
+        1: 'DT_NEEDED',
+        2: 'DT_PLTRELSZ',
+        4: 'DT_HASH',
+        5: 'DT_STRTAB',
+        6: 'DT_SYMTAB',
     }
-
-
 
     def __init__(self, d_tag=0, d_val=0, d_ptr=0, d_off=0):
         if Packer.is_64bit:
@@ -227,12 +97,13 @@ class DynamicEntry:
         return buffer
 
     def __str__(self):
-        out=""
-        out += formatter2("%-20s", self.members["d_tag"],  table=DynamicEntry.D_TAG_T)
-        out += formatter2("%-10x", self.members["d_val"])
-        out += formatter2("%-10x", self.members["d_ptr"])
-        out += formatter2("%-20s", self.members.get("d_off", "NONE"))
+        out = ""
+        out += utils.formatter2("%-20s", self.members["d_tag"],  table=DynamicEntry.D_TAG_T)
+        out += utils.formatter2("%-10x", self.members["d_val"])
+        out += utils.formatter2("%-10x", self.members["d_ptr"])
+        out += utils.formatter2("%-20s", self.members.get("d_off", "NONE"))
         return out
+
 
 class Dynamic:
     def __init__(self, section_header, section_data):
@@ -248,29 +119,31 @@ class Dynamic:
 
     def get_column_titles(self):
         out = ""
-        out += formatter2("%-20s","[Tag]")
-        out += formatter2("%-10s","[Value]")
-        out += formatter2("%-10s","[Pointer]")
-        out += formatter2("%-20s","[Offset]")
+        out += utils.formatter2("%-20s", "[Tag]")
+        out += utils.formatter2("%-10s", "[Value]")
+        out += utils.formatter2("%-10s", "[Pointer]")
+        out += utils.formatter2("%-20s", "[Offset]")
         return out
 
     def get_entries(self):
         return self.entries
-    
+
+
 class StringTable:
 
     def __init__(self, section_header, section_data):
-        self.section_header= section_header
+        self.section_header = section_header
         self.section_data = section_data
 
-    def find_string(self,str_idx):
+    def find_string(self, str_idx):
         return utils.readstring(self.section_data.get_data(), str_idx)
-    
+
     def add_string(self):
         str_idx = self.section_data.get_size()
-        update(f".partial_{str_idx:x}\0".encode(), self.section_data.get_data(), str_idx)
+        utils.update(f".partial_{str_idx:x}\0".encode(), self.section_data.get_data(), str_idx)
         self.section_header.set_size(self.section_data.get_size())
         return str_idx
+
 
 class Symbol:
     ST_NAME = 0x0
@@ -292,49 +165,49 @@ class Symbol:
     ST_INFO_TYPE_M = 0x0F
 
     ST_BIND_T = {
-                0x00: "STB_LOCAL",
-                0x10: "STB_GLOBAL",
-                0x20: "STB_WEAK",
-                0xA0: "STB_LOOS",
-                0xC0: "STB_HIOS",
-                0xD0: "STB_LOPROC",
-                0xF0: "STB_HIPROC"
+        0x00: "STB_LOCAL",
+        0x10: "STB_GLOBAL",
+        0x20: "STB_WEAK",
+        0xA0: "STB_LOOS",
+        0xC0: "STB_HIOS",
+        0xD0: "STB_LOPROC",
+        0xF0: "STB_HIPROC"
     }
 
     ST_OTHER_T = {
-                0: "STV_DEFAULT",
-                1: "STV_INTERNAL",
-                2: "STV_HIDDEN",
-                3: "STV_PROTECTED",
-                4: "STV_EXPORTED",
-                5: "STV_SINGLETON",
-                6: "STV_ELIMINATE"
+        0: "STV_DEFAULT",
+        1: "STV_INTERNAL",
+        2: "STV_HIDDEN",
+        3: "STV_PROTECTED",
+        4: "STV_EXPORTED",
+        5: "STV_SINGLETON",
+        6: "STV_ELIMINATE"
     }
 
     ST_TYPE_T = {
-                0: "STT_NOTYPE",
-                1: "STT_OBJECT",
-                2: "STT_FUNC",
-                3: "STT_SECTION",
-                4: "STT_FILE",
-                5: "STT_COMMON",
-                6: "STT_TLS",
-                10: "STT_LOOS",
-                12: "STT_HIOS",
-                13: "STT_LOPROC",
-                14: "STT_SPARC_REGISTER",
-                15: "STT_HIPROC"
+        0: "STT_NOTYPE",
+        1: "STT_OBJECT",
+        2: "STT_FUNC",
+        3: "STT_SECTION",
+        4: "STT_FILE",
+        5: "STT_COMMON",
+        6: "STT_TLS",
+        10: "STT_LOOS",
+        12: "STT_HIOS",
+        13: "STT_LOPROC",
+        14: "STT_SPARC_REGISTER",
+        15: "STT_HIPROC"
     }
 
     ST_SHNDX_T = {
-                0x0000: "SHN_UNDEF",
-                0xFFF1: "SHN_ABS",
-                0xFF00: "SHN_LOPROC",
-                0xFF1F: "SHN_HIPROC",
-                0xFF20: "HN_LIVEPATCH",
-                0xFFF1: "SHN_ABS",
-                0xFFF2: "SHN_COMMON",
-                0xFFFF: "SHN_HIRESERVE"
+        0x0000: "SHN_UNDEF",
+        0xFFF1: "SHN_ABS",
+        0xFF00: "SHN_LOPROC",
+        0xFF1F: "SHN_HIPROC",
+        0xFF20: "HN_LIVEPATCH",
+        0xFFF1: "SHN_ABS",
+        0xFFF2: "SHN_COMMON",
+        0xFFFF: "SHN_HIRESERVE"
     }
 
     def __init__(self, st_name="", st_value=0, st_size=0, st_info=0, st_other=0, st_shndx=0):
@@ -358,8 +231,8 @@ class Symbol:
             }
 
         self.syminfo = {
-            "si_boundto":0,
-            "si_flags":0
+            "si_boundto": 0,
+            "si_flags": 0
         }
 
     def unpack(self, buffer):
@@ -373,11 +246,10 @@ class Symbol:
         for key in self.members:
             buffer.extend(Packer.pack(self.members[key], getattr(Symbol, Packer.get(key))))
         return buffer
-   
-    
+
     def get_name_idx(self):
         return self.members["st_name"]
-    
+
     def get_strtab_idx(self):
         return self.members["st_shndx"]
 
@@ -385,17 +257,17 @@ class Symbol:
         self.members["st_name"] = name
 
     def __str__(self):
-        out=""
-        out += formatter2("%-010x", self.members["st_value"])
-        out += formatter2("%-10s", self.members["st_size"])
-        out += formatter2("%-20s", self.members["st_info"]&Symbol.ST_INFO_BIND_M, table=Symbol.ST_BIND_T)
-        out += formatter2("%-20s", self.members["st_info"]&Symbol.ST_INFO_TYPE_M, table=Symbol.ST_TYPE_T)
-        out += formatter2("%-20s", self.members["st_other"], table=Symbol.ST_OTHER_T)
-        out += formatter2("%-10s", self.members["st_shndx"], table=Symbol.ST_SHNDX_T)
-        out += formatter2("%-10s", self.members["st_name"])
+        out = ""
+        out += utils.formatter2("%-010x", self.members["st_value"])
+        out += utils.formatter2("%-10s", self.members["st_size"])
+        out += utils.formatter2("%-20s", self.members["st_info"] & Symbol.ST_INFO_BIND_M, table=Symbol.ST_BIND_T)
+        out += utils.formatter2("%-20s", self.members["st_info"] & Symbol.ST_INFO_TYPE_M, table=Symbol.ST_TYPE_T)
+        out += utils.formatter2("%-20s", self.members["st_other"], table=Symbol.ST_OTHER_T)
+        out += utils.formatter2("%-10s", self.members["st_shndx"], table=Symbol.ST_SHNDX_T)
+        out += utils.formatter2("%-10s", self.members["st_name"])
         return out
-    
-    
+
+
 class SectionHeader:
     '''Section Header
     '''
@@ -442,22 +314,21 @@ class SectionHeader:
                  0x13: "SHT_NUM (Number of defined types)",
                  0x60000000: "Start OS-specific"}
 
-
     _FLAGS_FULL = {0x01: "SHF_WRITE (Writable)",
-                  0x02: "SHF_ALLOC (Occupies memory during execution)",
-                  0x04: "SHF_EXECINSTR (Executable)",
-                  0x10: "SHF_MERGE (Might be merged)",
-                  0x20: "SHF_STRINGS (Null-terminated strings)",
-                  0x40: "SHF_INFO_LINK (\'sh_info\' contains SHT index)",
-                  0x80: "SHF_LINK_ORDER (Preserved order after combining)",
-                  0x100: "SHF_OS_NONCONFORMING (Non-standard OS specific handling required)",
-                  0x200: "SHF_GROUP (Section is member of a group)",
-                  0x400: "SHF_TLS (Section hold thread-local data)",
-                  0x0FF00000: "SHF_MASKOS (OS-specific)",
-                  0xF0000000: "SHF_MASKPROC (Processor-specific)",
-                  0x800: "SHF_COMPRESSED (Compressed)",
-                  0x4000000: "SHF_ORDERED (Special ordering requirement (Solaris))",
-                  0x8000000: "SHF_EXCLUDE (Section is excluded unless referenced or allocated (Solaris))"}
+                   0x02: "SHF_ALLOC (Occupies memory during execution)",
+                   0x04: "SHF_EXECINSTR (Executable)",
+                   0x10: "SHF_MERGE (Might be merged)",
+                   0x20: "SHF_STRINGS (Null-terminated strings)",
+                   0x40: "SHF_INFO_LINK (\'sh_info\' contains SHT index)",
+                   0x80: "SHF_LINK_ORDER (Preserved order after combining)",
+                   0x100: "SHF_OS_NONCONFORMING (Non-standard OS specific handling required)",
+                   0x200: "SHF_GROUP (Section is member of a group)",
+                   0x400: "SHF_TLS (Section hold thread-local data)",
+                   0x0FF00000: "SHF_MASKOS (OS-specific)",
+                   0xF0000000: "SHF_MASKPROC (Processor-specific)",
+                   0x800: "SHF_COMPRESSED (Compressed)",
+                   0x4000000: "SHF_ORDERED (Special ordering requirement (Solaris))",
+                   0x8000000: "SHF_EXCLUDE (Section is excluded unless referenced or allocated (Solaris))"}
 
     SH_FLAGS_T = {0x01: "SHF_WRITE",
                   0x02: "SHF_ALLOC",
@@ -528,7 +399,7 @@ class SectionHeader:
 
     def get_size(self):
         return self.members["sh_size"]
-    
+
     def get_entry_size(self):
         return self.members["sh_entsize"]
 
@@ -543,7 +414,7 @@ class SectionHeader:
 
     def get_addr(self):
         return self.members["sh_addr"]
-    
+
     def get_link(self):
         return self.members["sh_link"]
 
@@ -567,28 +438,28 @@ class SectionHeader:
 
     def get_column_titles():
         out = ""
-        out += formatter2("%-10s","[Offset]")
-        out += formatter2("%-20s","[File offset]")
-        out += formatter2("%-20s","[File size]")
-        out += formatter2("%-20s","[Physical address]")
-        out += formatter2("%-10s","[Link]")
-        out += formatter2("%-10s","[Info]")
-        out += formatter2("%-20s","[Entry Size]")
-        out += formatter2("%-30s","[Type]")
-        out += formatter2("%-30s","[Flags]")
+        out += utils.formatter2("%-10s", "[Offset]")
+        out += utils.formatter2("%-20s", "[File offset]")
+        out += utils.formatter2("%-20s", "[File size]")
+        out += utils.formatter2("%-20s", "[Physical address]")
+        out += utils.formatter2("%-10s", "[Link]")
+        out += utils.formatter2("%-10s", "[Info]")
+        out += utils.formatter2("%-20s", "[Entry Size]")
+        out += utils.formatter2("%-30s", "[Type]")
+        out += utils.formatter2("%-30s", "[Flags]")
         return out
-    
+
     def __str__(self):
         out = ""
-        out += formatter2("%-10s", self.members["sh_name_off"])
-        out += formatter2("%-20x", self.members["sh_offset"])
-        out += formatter2("%-20x", self.members["sh_size"])
-        out += formatter2("%-20x", self.members["sh_addr"])
-        out += formatter2("%-10x", self.members["sh_link"])
-        out += formatter2("%-10x", self.members["sh_info"])
-        out += formatter2("%-20x", self.members["sh_entsize"])
-        out += formatter2("%-30s", self.members["sh_type"], table=SectionHeader.SH_TYPE_T)
-        out += formatter2("%-30s", self.members["sh_flags"], table=SectionHeader.SH_FLAGS_T, mask=True)
+        out += utils.formatter2("%-10s", self.members["sh_name_off"])
+        out += utils.formatter2("%-20x", self.members["sh_offset"])
+        out += utils.formatter2("%-20x", self.members["sh_size"])
+        out += utils.formatter2("%-20x", self.members["sh_addr"])
+        out += utils.formatter2("%-10x", self.members["sh_link"])
+        out += utils.formatter2("%-10x", self.members["sh_info"])
+        out += utils.formatter2("%-20x", self.members["sh_entsize"])
+        out += utils.formatter2("%-30s", self.members["sh_type"], table=SectionHeader.SH_TYPE_T)
+        out += utils.formatter2("%-30s", self.members["sh_flags"], table=SectionHeader.SH_FLAGS_T, mask=True)
         return out
 
 
@@ -690,144 +561,32 @@ class ProgramHeader:
 
     def get_column_titles():
         out = ""
-        out += formatter2("%-20s","[File offset]")
-        out += formatter2("%-20s","[File size]")
-        out += formatter2("%-20s","[Physical address]")
-        out += formatter2("%-20s","[Virtual address]")
-        out += formatter2("%-20s","[Memory size]")
-        out += formatter2("%-10s","[Align]")
-        out += formatter2("%-30s","[Type]")
-        out += formatter2("%-10s","[Flags]")
+        out += utils.formatter2("%-20s", "[File offset]")
+        out += utils.formatter2("%-20s", "[File size]")
+        out += utils.formatter2("%-20s", "[Physical address]")
+        out += utils.formatter2("%-20s", "[Virtual address]")
+        out += utils.formatter2("%-20s", "[Memory size]")
+        out += utils.formatter2("%-10s", "[Align]")
+        out += utils.formatter2("%-30s", "[Type]")
+        out += utils.formatter2("%-10s", "[Flags]")
         return out
-    
-    def __str__(self):
-        out = ""
-        out += formatter2("%-20x", self.members["ph_offset"])
-        out += formatter2("%-20x", self.members["ph_filesz"])
-        out += formatter2("%-20x", self.members["ph_paddr"])
-        out += formatter2("%-20x", self.members["ph_vaddr"])
-        out += formatter2("%-20x", self.members["ph_memsz"])
-        out += formatter2("%-10x", self.members["ph_align"])
-        out += formatter2("%-30s", self.members["ph_type"], table=ProgramHeader.PH_TYPE_T)
-        out += formatter2("%-10s", self.members["ph_flags"], table=ProgramHeader.PH_FLAGS_T, mask=True)
-        return out
-
-
-
-class Abreviation:
-
-    DW_AT_PRODUCER_SZ = 4
-    DW_AT_LANGUAGE_SZ = 1
-    DW_AT_NAME_SZ = 4
-    DW_AT_COMP_DIR_SZ = 4
-    DW_AT_LOW_PC_SZ = 8
-    DW_AT_HIGH_PC_SZ = 8
-    DW_AT_STMT_SZ = 4
-
-    def __init__(self, type):
-        pass
-
-
-    
-
-class CompileUnitHeader:
-
-    CU_POINTER_SIZE_OFFSET = 0
-    CU_POINTER_SIZE_SZ = 1
-    CU_ABBREV_OFFSET_SZ = 4
-
-    CU_POINTER_SIZE_64SZ = 1
-    CU_ABBREV_OFFSET_64SZ = 4
-
-    def __init__(self):
-        self.members = {
-                        "cu_pointer_size": 0,
-                        "cu_abbrev_offset": 0
-                        }
-        
-    def unpack(self, buffer):
-        offset = CompileUnitHeader.CU_POINTER_SIZE_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(CompileUnitHeader,  Packer.get(key))])
-            offset += getattr(CompileUnitHeader,  Packer.get(key))
-             
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(CompileUnitHeader,  Packer.get(key))))
-        return buffer
-    
-    def get_abbrev_offset(self):
-        return self.members["cu_abbrev_offset"]
-    
-    def get_header_size(self):
-        return CompileUnitHeader.CU_POINTER_SIZE_SZ + CompileUnitHeader.CU_ABBREV_OFFSET_SZ
 
     def __str__(self):
         out = ""
-        out += formatter("Pointer Size", self.members["cu_pointer_size"])
-        out += formatter("Abbrev. Offset", self.members["cu_abbrev_offset"])
+        out += utils.formatter2("%-20x", self.members["ph_offset"])
+        out += utils.formatter2("%-20x", self.members["ph_filesz"])
+        out += utils.formatter2("%-20x", self.members["ph_paddr"])
+        out += utils.formatter2("%-20x", self.members["ph_vaddr"])
+        out += utils.formatter2("%-20x", self.members["ph_memsz"])
+        out += utils.formatter2("%-10x", self.members["ph_align"])
+        out += utils.formatter2("%-30s", self.members["ph_type"], table=ProgramHeader.PH_TYPE_T)
+        out += utils.formatter2("%-10s", self.members["ph_flags"], table=ProgramHeader.PH_FLAGS_T, mask=True)
         return out
 
-class CompileUnit:
-    CU_LENGTH_OFFSET = 0
 
-    CU_LENGTH_SZ = 4
-    CU_VERSION_SZ = 2
-    CU_UNIT_TYPE_SZ = 1
 
-    DW_UNIT_TYPES = {
-        1: "DW_UT_COMPILE"
-    }
 
-    SUPPORTED_VERSIONS = [5]
 
-    def __init__(self):
-        self.abbreviations = []
-        self.members = {
-                        "cu_length": 0,
-                        "cu_version": 0,
-                        "cu_unit_type": 0
-        }
-
-        self.cu_header = CompileUnitHeader()
-     
-    def unpack(self, buffer):
-        offset = CompileUnit.CU_LENGTH_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(CompileUnit,  Packer.get(key, override=True))])
-            offset += getattr(CompileUnit,  Packer.get(key, override=True))
-
-        if self.members["cu_version"] in CompileUnit.SUPPORTED_VERSIONS and self.members["cu_unit_type"] in CompileUnit.DW_UNIT_TYPES:
-            self.cu_header.unpack(buffer[offset:])
-
-            # Init values before parsing abbreviations
-            header_size = self.cu_header.get_header_size() 
-            abbrev_offset = self.cu_header.get_abbrev_offset() 
-            offset += abbrev_offset +  header_size 
-            length = self.members["cu_length"]
-
-            #
-            buffer[offset: offset + length]
-        else:
-            raise Exception(f'ERROR: unsupported Compilation Unit version:{self.members["cu_version"]} unit:{self.members["cu_unit_type"]}')
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(CompileUnit,  Packer.get(key))))
-
-        buffer.extend(self.cu_header.pack())
-        return buffer
-
-    def __str__(self):
-        out = ""
-        out += formatter("Length", self.members["cu_length"], hex=True)
-        out += formatter("Version", self.members["cu_version"])
-        out += formatter("Unit Type", self.members["cu_unit_type"], table=CompileUnit.DW_UNIT_TYPES)
-        out += str(self.cu_header)
-        return out
-    
-        
 class Dwarf:
     def __init__(self):
         self.entries = []
@@ -847,7 +606,7 @@ class Dwarf:
     def parse_debug_info(self):
         for sh, sh_data in zip(self.section_headers, self.section_data):
             if "debug_info" in sh.get_name():
-                unit = CompileUnit()
+                unit = CompilationUnit()
                 unit.unpack(sh_data.get_data())
                 self.entries.append(unit)
 
@@ -924,11 +683,11 @@ class ElfIdent:
 
     def __str__(self):
         out = "\n[Elf Identification]\n"
-        out += formatter("Class:", self.members['ei_class'], table=ElfIdent.EI_CLASS_T)
-        out += formatter("Data:", self.members['ei_data'], table=ElfIdent.EI_DATA_T)
-        out += formatter("Version:", self.members['ei_version'], table=ElfIdent.EI_VERSION_T)
-        out += formatter("OSABI:", self.members['ei_osabi'], table=ElfIdent.EI_OSABI_T)
-        out += formatter("Abi Version:", self.members['ei_abiversion'], table=ElfIdent.EI_ABIVERSION_T)
+        out += utils.formatter("Class:", self.members['ei_class'], table=ElfIdent.EI_CLASS_T)
+        out += utils.formatter("Data:", self.members['ei_data'], table=ElfIdent.EI_DATA_T)
+        out += utils.formatter("Version:", self.members['ei_version'], table=ElfIdent.EI_VERSION_T)
+        out += utils.formatter("OSABI:", self.members['ei_osabi'], table=ElfIdent.EI_OSABI_T)
+        out += utils.formatter("Abi Version:", self.members['ei_abiversion'], table=ElfIdent.EI_ABIVERSION_T)
         return out
 
 
@@ -1042,19 +801,19 @@ class ElfHeader:
 
     def __str__(self):
         out = "\n[Elf Header]\n"
-        out += formatter("Type:", self.members['e_type'], table=ElfHeader.E_TYPE_T)
-        out += formatter("Machine:", self.members['e_machine'], table=ElfHeader.E_MACHINE_T)
-        out += formatter("Version:", self.members['e_version'], table=ElfHeader.E_VERSION_T)
-        out += formatter("Entry point address:", self.members['e_entry'], hex=True)
-        out += formatter("Program headers file offset:", self.members['e_ph_off'], hex=True)
-        out += formatter("Section headers file offset:", self.members['e_sh_off'], hex=True)
-        out += formatter("Flags:", self.members['e_flags'], hex=True)
-        out += formatter("Size of this header:", self.members['e_eh_size'])
-        out += formatter("Size of program headers:", self.members['e_ph_ent_size'], hex=True)
-        out += formatter("Number of program headers:", self.members['e_ph_count'])
-        out += formatter("Size of section headers:", self.members['e_sh_ent_size'], hex=True)
-        out += formatter("Number of section headers:", self.members['e_sh_count'])
-        out += formatter("Section header string table index:", self.members['e_sh_strndx'], hex=True)
+        out += utils.formatter("Type:", self.members['e_type'], table=ElfHeader.E_TYPE_T)
+        out += utils.formatter("Machine:", self.members['e_machine'], table=ElfHeader.E_MACHINE_T)
+        out += utils.formatter("Version:", self.members['e_version'], table=ElfHeader.E_VERSION_T)
+        out += utils.formatter("Entry point address:", self.members['e_entry'], hex=True)
+        out += utils.formatter("Program headers file offset:", self.members['e_ph_off'], hex=True)
+        out += utils.formatter("Section headers file offset:", self.members['e_sh_off'], hex=True)
+        out += utils.formatter("Flags:", self.members['e_flags'], hex=True)
+        out += utils.formatter("Size of this header:", self.members['e_eh_size'])
+        out += utils.formatter("Size of program headers:", self.members['e_ph_ent_size'], hex=True)
+        out += utils.formatter("Number of program headers:", self.members['e_ph_count'])
+        out += utils.formatter("Size of section headers:", self.members['e_sh_ent_size'], hex=True)
+        out += utils.formatter("Number of section headers:", self.members['e_sh_count'])
+        out += utils.formatter("Section header string table index:", self.members['e_sh_strndx'], hex=True)
         return out
 
 
@@ -1174,7 +933,7 @@ class ElfParser:
         self.symtab = None
         self.dynsymtab = None
         self.dynamic = None
-        self.dwarf  = Dwarf()
+        self.dwarf = Dwarf()
         self.strtab = {}
 
         self.elf_ident = self._load_identification()
@@ -1251,14 +1010,14 @@ class ElfParser:
                 sh_data.add_section_header(sh)
                 self.section_data.append(sh_data)
 
-                ## strtab
+                # strtab
                 if type == SectionHeader.TYPE_SHT_STRTAB:
                     strtab = StringTable(sh, sh_data)
                     self.strtab[idx] = strtab
                     if idx == self.elf_header.get_stridx():
                         self.shstrtab = strtab
-                    
-                ## symtab
+
+                # symtab
                 elif type == SectionHeader.TYPE_SHT_SYMTAB:
                     if self.symtab is not None:
                         print("WARNING: only one symtab is supported at the moment")
@@ -1270,7 +1029,7 @@ class ElfParser:
                         print("WARNING: only one dynsymtab is supported at the moment")
                     else:
                         self.dynsymtab = SymTable(sh, sh_data, sh.get_link())
-                
+
                 elif type == SectionHeader.TYPE_SHT_DYNAMIC:
                     if self.dynamic is not None:
                         print("WARNING: only one dynamic is supported at the moment")
@@ -1353,20 +1112,20 @@ class ElfParser:
     def _overwrite_data_forward_overlap(self, source, destination, can_overwrite, offset, split_idx):
         s1, s2 = source[:split_idx], source[split_idx:]
         if can_overwrite:
-            update(s2, destination, offset)
+            utils.update(s2, destination, offset)
 
         return s1
 
     def _overwrite_data_backward_overlap(self, source, destination, can_overwrite, offset, split_idx):
         s1, s2 = source[:split_idx], source[split_idx:]
         if can_overwrite:
-            update(s1, destination, offset)
+            utils.update(s1, destination, offset)
 
         return s2
 
     def _overwrite_data_overlap(self, source, destination, can_overwrite, offset):
         if can_overwrite:
-            update(source, destination, offset)
+            utils.update(source, destination, offset)
 
         return []
 
@@ -1412,10 +1171,10 @@ class ElfParser:
         segments = []
         for data in sorted(self.section_data, key=lambda x: x.get_vaddr()):
             s_addr, e_addr = data.get_address_range()
-            if s_addr<e_addr:
+            if s_addr < e_addr:
                 segments.append(Segment(s_addr, data.get_data()))
         return segments
-            
+
     def get(self, start_address, size):
         '''Get data by address
             -> start_address: address at which the data can be found
@@ -1425,15 +1184,15 @@ class ElfParser:
         end_address = start_address + size
         o_data = []
         for data in sorted(self.section_data, key=lambda x: x.get_vaddr()):
-             s_addr, e_addr = data.get_address_range()
-             if s_addr<e_addr:
+            s_addr, e_addr = data.get_address_range()
+            if s_addr < e_addr:
                 if s_addr <= start_address < e_addr:
                     _offset_start = start_address - s_addr
                     _offset_end = start_address - s_addr + size
                     o_data.extend(data.get_data()[_offset_start:_offset_end])
                     break
         return o_data
-    
+
     def add(self, start_address, buffer,  can_overwrite=True):
         ''' Adds data by address
             -> start_address: address to which data should be written 
@@ -1442,30 +1201,29 @@ class ElfParser:
         '''
         end_address = start_address + len(buffer)
         idx = 0
-        section_data = sorted(self.section_data, key=lambda x: x.get_vaddr()) 
+        section_data = sorted(self.section_data, key=lambda x: x.get_vaddr())
         while idx < len(section_data) and len(buffer) > 0:
             data = section_data[idx]
             idx += 1
             s_addr, e_addr = data.get_address_range()
-            
-            if s_addr<e_addr:
+
+            if s_addr < e_addr:
                 # Full:
                 if s_addr <= start_address < end_address <= e_addr:
                     buffer = self._overwrite_data_overlap(buffer,
-                                                                     data.get_data(),
-                                                                     can_overwrite,
-                                                                     start_address - s_addr)
-                # Partial 
+                                                          data.get_data(),
+                                                          can_overwrite,
+                                                          start_address - s_addr)
+                # Partial
                 elif s_addr <= start_address < e_addr < end_address:
                     buffer = self._overwrite_data_backward_overlap(buffer,
-                                                                          data.get_data(),
-                                                                          can_overwrite,
-                                                                          (start_address - s_addr),
-                                                                          e_addr - start_address)
+                                                                   data.get_data(),
+                                                                   can_overwrite,
+                                                                   (start_address - s_addr),
+                                                                   e_addr - start_address)
                     start_address = e_addr
 
-
-                # Full before block 
+                # Full before block
                 elif start_address < end_address <= s_addr:
                     self._create_data(start_address, buffer)
                     buffer = []
@@ -1477,7 +1235,7 @@ class ElfParser:
                     self._create_data(start_address, _slice)
                     start_address = s_addr
                     idx = 0
-                
+
         # Block could not be created, probably outside of the parsed range
         if len(buffer) > 0:
             self._create_data(start_address, buffer)
@@ -1542,20 +1300,19 @@ class ElfParser:
             binary.extend(buffer)
 
     def _update_elf_header(self, binary):
-        update(self.elf_header.pack(), binary, self.elf_ident.get_size())
+        utils.update(self.elf_header.pack(), binary, self.elf_ident.get_size())
 
     def _update_elf_ident(self, binary):
-        update(self.elf_ident.pack(), binary, 0)
+        utils.update(self.elf_ident.pack(), binary, 0)
 
     def get_section_data(self, section_name):
         for sd in self.section_data:
             for sh in sd.get_section_headers():
-                string = self.shstrtab.find_string(idx = sh.get_name_off())
+                string = self.shstrtab.find_string(idx=sh.get_name_off())
                 if section_name in string:
                     return sd.get_data()
 
         raise Exception(f"ERROR: section data was not found for name {section_name}")
-
 
     def __str__(self):
         name_fmt = "%-40s"
@@ -1567,36 +1324,35 @@ class ElfParser:
         for idx, program_header in enumerate(self.program_headers):
             out += name_fmt % f"[{idx}][{program_header.get_vaddr():x}-{program_header.get_vaddr() +program_header.get_memsz():x}]"
             out += str(program_header)
-            out +="\n"
+            out += "\n"
 
         out += f"\n[Section Headers] ({len(self.section_headers)})\n"
         out += name_fmt % ("[Section Name]") + SectionHeader.get_column_titles() + "\n"
         for idx, section_header in enumerate(self.section_headers):
             out += name_fmt % f"[{idx}] {section_header.get_name()} [{section_header.get_offset():x}-{section_header.get_offset() + section_header.get_size():x}]"
             out += str(section_header)
-            out +="\n"
+            out += "\n"
 
-        
-        special_sections = {"Symtable":self.symtab,\
-                            "DynSymtable":self.dynsymtab,\
-                            "Dynamic":self.dynamic
+        special_sections = {"Symtable": self.symtab,
+                            "DynSymtable": self.dynsymtab,
+                            "Dynamic": self.dynamic
                             }
         for key, tab in special_sections.items():
             if tab:
                 out += f"\n[{key}] ({len(tab.get_entries())})\n"
                 out += name_fmt % ("[Idx]") + tab.get_column_titles() + "\n"
                 for idx, symbol in enumerate(tab.get_entries()):
-                    out += name_fmt % f"[{idx}]" 
+                    out += name_fmt % f"[{idx}]"
                     out += str(symbol)
-                    out +="\n"   
+                    out += "\n"
 
         if self.dwarf:
             out += f"\n[Debug] ({len(self.dwarf.get_entries())})\n"
             for idx, tab in enumerate(self.dwarf.get_entries()):
                 out += name_fmt % f"[{idx}]"
-                out +="\n"
+                out += "\n"
                 out += str(tab)
-                out +="\n"
+                out += "\n"
 
         return out
 
