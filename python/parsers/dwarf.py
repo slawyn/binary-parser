@@ -2,8 +2,7 @@ import utils
 from packer import Packer
 
 
-class DW_TAG_compile_unit:
-    DW_AT_PRODUCER_OFFSET = 0
+class DW_TAG_compile_unit(Packer):
     DW_AT_PRODUCER_SZ = 4
     DW_AT_LANGUAGE_SZ = 1
     DW_AT_NAME_SZ = 4
@@ -13,27 +12,18 @@ class DW_TAG_compile_unit:
     DW_AT_STMT_LIST_SZ = 4
 
     def __init__(self):
-        self.members = {
-            "DW_AT_producer": "",
-            "DW_AT_language": "",
-            "DW_AT_name": "",
-            "DW_AT_comp_dir": "",
-            "DW_AT_low_pc": "",
-            "DW_AT_high_pc": "",
-            "DW_AT_stmt_list": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_compile_unit.DW_AT_PRODUCER_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_compile_unit,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_compile_unit,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_compile_unit,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_producer": "",
+                "DW_AT_language": "",
+                "DW_AT_name": "",
+                "DW_AT_comp_dir": "",
+                "DW_AT_low_pc": "",
+                "DW_AT_high_pc": "",
+                "DW_AT_stmt_list": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_compile_unit.DW_AT_PRODUCER_SZ\
@@ -56,30 +46,20 @@ class DW_TAG_compile_unit:
         return out
 
 
-class DW_TAG_base_type:
-    DW_AT_BYTE_SIZE_OFFSET = 0
+class DW_TAG_base_type(Packer):
     DW_AT_BYTE_SIZE_SZ = 1
     DW_AT_ENCODING_SZ = 1
     DW_AT_NAME_SZ = 4
 
     def __init__(self):
-        self.members = {
-            "DW_AT_byte_size": "",
-            "DW_AT_encoding": "",
-            "DW_AT_name": ""
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_base_type.DW_AT_BYTE_SIZE_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_base_type,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_base_type,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_base_type,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_byte_size": "",
+                "DW_AT_encoding": "",
+                "DW_AT_name": ""
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_base_type.DW_AT_BYTE_SIZE_SZ\
@@ -94,8 +74,7 @@ class DW_TAG_base_type:
         return out
 
 
-class DW_TAG_typedef:
-    DW_AT_NAME_OFFSET = 0
+class DW_TAG_typedef(Packer):
     DW_AT_NAME_SZ = 4
     DW_AT_DECL_FILE_SZ = 1
     DW_AT_DECL_LINE_SZ = 1
@@ -103,25 +82,16 @@ class DW_TAG_typedef:
     DW_AT_TYPE_SZ = 4
 
     def __init__(self):
-        self.members = {
-            "DW_AT_name": "",
-            "DW_AT_decl_file": "",
-            "DW_AT_decl_line": "",
-            "DW_AT_decl_column": "",
-            "DW_AT_type": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_typedef.DW_AT_NAME_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_typedef,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_typedef,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_typedef,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_name": "",
+                "DW_AT_decl_file": "",
+                "DW_AT_decl_line": "",
+                "DW_AT_decl_column": "",
+                "DW_AT_type": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_typedef.DW_AT_NAME_SZ\
@@ -140,26 +110,16 @@ class DW_TAG_typedef:
         return out
 
 
-class DW_TAG_const_type:
-    DW_AT_TYPE_OFFSET = 0
+class DW_TAG_const_type(Packer):
     DW_AT_TYPE_SZ = 4
 
     def __init__(self):
-        self.members = {
-            "DW_AT_type": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_const_type.DW_AT_TYPE_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_const_type,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_const_type,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_const_type,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_type": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_const_type.DW_AT_TYPE_SZ
@@ -170,26 +130,16 @@ class DW_TAG_const_type:
         return out
 
 
-class DW_TAG_formal_parameter:
-    DW_AT_TYPE_OFFSET = 0
+class DW_TAG_formal_parameter(Packer):
     DW_AT_TYPE_SZ = 4
 
     def __init__(self):
-        self.members = {
-            "DW_AT_type": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_formal_parameter.DW_AT_TYPE_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_formal_parameter,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_formal_parameter,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_formal_parameter,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_type": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_formal_parameter.DW_AT_TYPE_SZ
@@ -200,28 +150,18 @@ class DW_TAG_formal_parameter:
         return out
 
 
-class DW_TAG_pointer_type:
-    DW_AT_BYTE_SIZE_OFFSET = 0
+class DW_TAG_pointer_type(Packer):
     DW_AT_BYTE_SIZE_SZ = 1
     DW_AT_TYPE_SZ = 4
 
     def __init__(self):
-        self.members = {
-            "DW_AT_byte_size": "",
-            "DW_AT_type": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_pointer_type.DW_AT_BYTE_SIZE_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_pointer_type,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_pointer_type,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_pointer_type,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_byte_size": "",
+                "DW_AT_type": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_pointer_type.DW_AT_BYTE_SIZE_SZ\
@@ -234,8 +174,7 @@ class DW_TAG_pointer_type:
         return out
 
 
-class DW_TAG_structure_type:
-    DW_AT_BYTE_SIZE_OFFSET = 0
+class DW_TAG_structure_type(Packer):
     DW_AT_BYTE_SIZE_SZ = 1
     DW_AT_DECL_FILE_SZ = 1
     DW_AT_DECL_LINE_SZ = 1
@@ -243,25 +182,16 @@ class DW_TAG_structure_type:
     DW_AT_SIBLING_SZ = 4
 
     def __init__(self):
-        self.members = {
-            "DW_AT_byte_size": "",
-            "DW_AT_decl_file": "",
-            "DW_AT_decl_line": "",
-            "DW_AT_decl_column": "",
-            "DW_AT_sibling": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_structure_type.DW_AT_BYTE_SIZE_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_structure_type,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_structure_type,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_structure_type,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_byte_size": "",
+                "DW_AT_decl_file": "",
+                "DW_AT_decl_line": "",
+                "DW_AT_decl_column": "",
+                "DW_AT_sibling": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_structure_type.DW_AT_BYTE_SIZE_SZ\
@@ -281,8 +211,7 @@ class DW_TAG_structure_type:
         return out
 
 
-class DW_TAG_member:
-    DW_AT_NAME_OFFSET = 0
+class DW_TAG_member(Packer):
     DW_AT_NAME_SZ = 4
     DW_AT_DECL_FILE_SZ = 1
     DW_AT_DECL_LINE_SZ = 1
@@ -291,26 +220,17 @@ class DW_TAG_member:
     DW_AT_DATA_MEMBER_LOCATION_SZ = 1
 
     def __init__(self):
-        self.members = {
-            "DW_AT_name": "",
-            "DW_AT_decl_file": "",
-            "DW_AT_decl_line": "",
-            "DW_AT_decl_column": "",
-            "DW_AT_type": "",
-            "DW_AT_data_member_location": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_member.DW_AT_NAME_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_member,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_member,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_member,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_name": "",
+                "DW_AT_decl_file": "",
+                "DW_AT_decl_line": "",
+                "DW_AT_decl_column": "",
+                "DW_AT_type": "",
+                "DW_AT_data_member_location": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_member.DW_AT_NAME_SZ\
@@ -332,8 +252,7 @@ class DW_TAG_member:
         return out
 
 
-class DW_TAG_variable_9:
-    DW_AT_NAME_OFFSET = 0
+class DW_TAG_variable_9(Packer):
     DW_AT_NAME_SZ = 4
     DW_AT_DECL_FILE_SZ = 1
     DW_AT_DECL_LINE_SZ = 1
@@ -343,27 +262,18 @@ class DW_TAG_variable_9:
     DW_AT_LOCATION_SZ = 8
 
     def __init__(self):
-        self.members = {
-            "DW_AT_name": "",
-            "DW_AT_decl_file": "",
-            "DW_AT_decl_line": "",
-            "DW_AT_decl_column": "",
-            "DW_AT_type": "",
-            "DW_AT_external": "",
-            "DW_AT_location": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_variable_9.DW_AT_NAME_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_variable_9,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_variable_9,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_variable_9,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_name": "",
+                "DW_AT_decl_file": "",
+                "DW_AT_decl_line": "",
+                "DW_AT_decl_column": "",
+                "DW_AT_type": "",
+                "DW_AT_external": "",
+                "DW_AT_location": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_variable_9.DW_AT_NAME_SZ\
@@ -387,7 +297,7 @@ class DW_TAG_variable_9:
         return out
 
 
-class DW_TAG_variable_15:
+class DW_TAG_variable_15(Packer):
     DW_AT_NAME_OFFSET = 0
     DW_AT_NAME_SZ = 4
     DW_AT_DECL_FILE_SZ = 1
@@ -397,26 +307,17 @@ class DW_TAG_variable_15:
     DW_AT_LOCATION_SZ = 8
 
     def __init__(self):
-        self.members = {
-            "DW_AT_name": "",
-            "DW_AT_decl_file": "",
-            "DW_AT_decl_line": "",
-            "DW_AT_decl_column": "",
-            "DW_AT_type": "",
-            "DW_AT_location": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_variable_15.DW_AT_NAME_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_variable_15,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_variable_15,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_variable_15,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_name": "",
+                "DW_AT_decl_file": "",
+                "DW_AT_decl_line": "",
+                "DW_AT_decl_column": "",
+                "DW_AT_type": "",
+                "DW_AT_location": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_variable_15.DW_AT_NAME_SZ\
@@ -438,8 +339,7 @@ class DW_TAG_variable_15:
         return out
 
 
-class DW_TAG_subprogram_10:
-    DW_AT_EXTERNAL_OFFSET = 0
+class DW_TAG_subprogram_10(Packer):
     DW_AT_EXTERNAL_SZ = 0
     DW_AT_NAME_SZ = 4
     DW_AT_DECL_FILE_SZ = 1
@@ -449,27 +349,18 @@ class DW_TAG_subprogram_10:
     DW_AT_SIBLING_SZ = 4
 
     def __init__(self):
-        self.members = {
-            "DW_AT_external": "",
-            "DW_AT_name": "",
-            "DW_AT_decl_file": "",
-            "DW_AT_decl_line": "",
-            "DW_AT_decl_column": "",
-            "DW_AT_declaration": "",
-            "DW_AT_sibling": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_subprogram_10.DW_AT_EXTERNAL_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_subprogram_10,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_subprogram_10,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_subprogram_10,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_external": "",
+                "DW_AT_name": "",
+                "DW_AT_decl_file": "",
+                "DW_AT_decl_line": "",
+                "DW_AT_decl_column": "",
+                "DW_AT_declaration": "",
+                "DW_AT_sibling": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_subprogram_10.DW_AT_EXTERNAL_SZ\
@@ -493,8 +384,7 @@ class DW_TAG_subprogram_10:
         return out
 
 
-class DW_TAG_subprogram_11:
-    DW_AT_EXTERNAL_OFFSET = 0
+class DW_TAG_subprogram_11(Packer):
     DW_AT_EXTERNAL_SZ = 0
     DW_AT_NAME_SZ = 4
     DW_AT_DECL_FILE_SZ = 1
@@ -505,28 +395,19 @@ class DW_TAG_subprogram_11:
     DW_AT_SIBLING_SZ = 4
 
     def __init__(self):
-        self.members = {
-            "DW_AT_external": "",
-            "DW_AT_name": "",
-            "DW_AT_decl_file": "",
-            "DW_AT_decl_line": "",
-            "DW_AT_decl_column": "",
-            "DW_AT_type": "",
-            "DW_AT_declaration": "",
-            "DW_AT_sibling": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_subprogram_11.DW_AT_EXTERNAL_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_subprogram_11,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_subprogram_11,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_subprogram_11,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_external": "",
+                "DW_AT_name": "",
+                "DW_AT_decl_file": "",
+                "DW_AT_decl_line": "",
+                "DW_AT_decl_column": "",
+                "DW_AT_type": "",
+                "DW_AT_declaration": "",
+                "DW_AT_sibling": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_subprogram_11.DW_AT_EXTERNAL_SZ\
@@ -552,8 +433,7 @@ class DW_TAG_subprogram_11:
         return out
 
 
-class DW_TAG_subprogram_14:
-    DW_AT_EXTERNAL_OFFSET = 0
+class DW_TAG_subprogram_14(Packer):
     DW_AT_EXTERNAL_SZ = 0
     DW_AT_NAME_SZ = 4
     DW_AT_DECL_FILE_SZ = 1
@@ -565,29 +445,20 @@ class DW_TAG_subprogram_14:
     DW_AT_CALL_ALL_TAIL_CALLS_SZ = 0
 
     def __init__(self):
-        self.members = {
-            "DW_AT_external": "",
-            "DW_AT_name": "",
-            "DW_AT_decl_file": "",
-            "DW_AT_decl_line": "",
-            "DW_AT_decl_column": "",
-            "DW_AT_low_pc": "",
-            "DW_AT_high_pc": "",
-            "DW_AT_frame_base": "",
-            "DW_AT_call_all_tail_calls": "",
-        }
-
-    def unpack(self, buffer):
-        offset = DW_TAG_subprogram_14.DW_AT_EXTERNAL_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DW_TAG_subprogram_14,  Packer.get(key, override=True))])
-            offset += getattr(DW_TAG_subprogram_14,  Packer.get(key, override=True))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DW_TAG_subprogram_14,  Packer.get(key, override=True))))
-        return buffer
+        super().__init__(
+            {
+                "DW_AT_external": "",
+                "DW_AT_name": "",
+                "DW_AT_decl_file": "",
+                "DW_AT_decl_line": "",
+                "DW_AT_decl_column": "",
+                "DW_AT_low_pc": "",
+                "DW_AT_high_pc": "",
+                "DW_AT_frame_base": "",
+                "DW_AT_call_all_tail_calls": "",
+            },
+            always_bit32=True
+        )
 
     def get_size(self):
         return DW_TAG_subprogram_14.DW_AT_EXTERNAL_SZ\
@@ -615,9 +486,7 @@ class DW_TAG_subprogram_14:
         return out
 
 
-class CompilationUnitHeader:
-
-    CU_POINTER_SIZE_OFFSET = 0
+class CompilationUnitHeader(Packer):
     CU_POINTER_SIZE_SZ = 1
     CU_ABBREV_OFFSET_SZ = 4
 
@@ -625,22 +494,13 @@ class CompilationUnitHeader:
     CU_ABBREV_OFFSET_64SZ = 4
 
     def __init__(self):
-        self.members = {
-            "cu_pointer_size": 0,
-            "cu_abbrev_offset": 0
-        }
-
-    def unpack(self, buffer):
-        offset = CompilationUnitHeader.CU_POINTER_SIZE_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(CompilationUnitHeader,  Packer.get(key))])
-            offset += getattr(CompilationUnitHeader,  Packer.get(key))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(CompilationUnitHeader,  Packer.get(key))))
-        return buffer
+        super().__init__(
+            {
+                "cu_pointer_size": 0,
+                "cu_abbrev_offset": 0
+            },
+            always_bit32=True
+        )
 
     def get_abbrev_offset(self):
         return self.members["cu_abbrev_offset"]
@@ -655,9 +515,7 @@ class CompilationUnitHeader:
         return out
 
 
-class CompilationUnit:
-    CU_LENGTH_OFFSET = 0
-
+class CompilationUnit(Packer):
     CU_LENGTH_SZ = 4
     CU_VERSION_SZ = 2
     CU_UNIT_TYPE_SZ = 1
@@ -689,20 +547,19 @@ class CompilationUnit:
 
     def __init__(self):
         self.abbreviations = []
-        self.members = {
-            "cu_length": 0,
-            "cu_version": 0,
-            "cu_unit_type": 0
-        }
+        super().__init__(
+            {
+                "cu_length": 0,
+                "cu_version": 0,
+                "cu_unit_type": 0
+            },  always_bit32=True
+        )
 
         self.cu_header = CompilationUnitHeader()
         self.compilation_units = []
 
     def unpack(self, buffer):
-        offset = CompilationUnit.CU_LENGTH_OFFSET
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(CompilationUnit,  Packer.get(key, override=True))])
-            offset += getattr(CompilationUnit,  Packer.get(key, override=True))
+        offset = super().unpack(buffer)
 
         if self.members["cu_version"] in CompilationUnit.SUPPORTED_VERSIONS and self.members["cu_unit_type"] in CompilationUnit.DW_UNIT_TYPES:
             self.cu_header.unpack(buffer[offset:])
@@ -716,7 +573,7 @@ class CompilationUnit:
             # Compilation units
             end_offset = offset + length
             while offset < end_offset:
-                print(f"[{offset:x}] ", utils.format_array(buffer[offset:end_offset]))
+                # print(f"[{offset:x}] ", utils.format_array(buffer[offset:end_offset]))
                 type = buffer[offset]
                 offset += 1
                 if type in CompilationUnit.COMPILATION_UNITS:
@@ -724,20 +581,14 @@ class CompilationUnit:
                     cu.unpack(buffer[offset:])
                     self.compilation_units.append(cu)
                     offset += cu.get_size()
-                    print(cu)
-                elif type == CompilationUnit.DW_TAG_termination_zero or type == CompilationUnit.DW_TAG_unspecified_parameters:
-                    pass
-                else:
+                elif type != CompilationUnit.DW_TAG_termination_zero and type != CompilationUnit.DW_TAG_unspecified_parameters:
                     raise Exception(f"ERROR: unknown compilation unit {type}")
 
         else:
             raise Exception(f'ERROR: unsupported Compilation Unit version:{self.members["cu_version"]} unit:{self.members["cu_unit_type"]}')
 
     def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(CompilationUnit,  Packer.get(key))))
-
+        buffer = self.pack()
         buffer.extend(self.cu_header.pack())
         return buffer
 

@@ -7,6 +7,7 @@ from packer import Packer
 from parsers.dwarf import CompilationUnit
 from crc import Crc32
 
+
 class Segment:
     def __init__(self, start_address, data):
         self.data = data
@@ -17,6 +18,7 @@ class Segment:
 
     def get_data(self):
         return self.data
+
 
 class SymTable:
     def __init__(self, section_header, section_data, linked_str_tab_idx):
@@ -49,8 +51,7 @@ class SymTable:
         return self.linked_str_tab_idx
 
 
-class DynamicEntry:
-    D_TAG = 0x00
+class DynamicEntry(Packer):
     D_TAG_SZ = 4
     D_VAL_SZ = 2
     D_PTR_SZ = 4
@@ -71,30 +72,22 @@ class DynamicEntry:
 
     def __init__(self, d_tag=0, d_val=0, d_ptr=0, d_off=0):
         if Packer.is_64bit:
-            self.members = {
-                "d_tag": d_tag,
-                "d_val": d_val,
-                "d_ptr": d_ptr
-            }
+            super().__init__(
+                {
+                    "d_tag": d_tag,
+                    "d_val": d_val,
+                    "d_ptr": d_ptr
+                }
+            )
         else:
-            self.members = {
-                "d_tag": d_tag,
-                "d_val": d_val,
-                "d_ptr": d_ptr,
-                "d_off": d_off
-            }
-
-    def unpack(self, buffer):
-        offset = DynamicEntry.D_TAG
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(DynamicEntry, Packer.get(key))])
-            offset += getattr(DynamicEntry, Packer.get(key))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(DynamicEntry, Packer.get(key))))
-        return buffer
+            super().__init__(
+                {
+                    "d_tag": d_tag,
+                    "d_val": d_val,
+                    "d_ptr": d_ptr,
+                    "d_off": d_off
+                }
+            )
 
     def __str__(self):
         out = ""
@@ -145,8 +138,7 @@ class StringTable:
         return str_idx
 
 
-class Symbol:
-    ST_NAME = 0x0
+class Symbol(Packer):
     ST_NAME_SZ = 0x4
     ST_VALUE_SZ = 0x4
     ST_SIZE_SZ = 0x4
@@ -212,7 +204,8 @@ class Symbol:
 
     def __init__(self, st_name="", st_value=0, st_size=0, st_info=0, st_other=0, st_shndx=0):
         if Packer.is_64bit:
-            self.members = {
+            super().__init__(
+{
                 "st_name": st_name,
                 "st_info": st_info,
                 "st_other": st_other,
@@ -220,8 +213,10 @@ class Symbol:
                 "st_value": st_value,
                 "st_size": st_size,
             }
+        )
         else:
-            self.members = {
+            super().__init__(
+{
                 "st_name": st_name,
                 "st_value": st_value,
                 "st_size": st_size,
@@ -229,23 +224,12 @@ class Symbol:
                 "st_other": st_other,
                 "st_shndx": st_shndx
             }
+        )
 
         self.syminfo = {
             "si_boundto": 0,
             "si_flags": 0
         }
-
-    def unpack(self, buffer):
-        offset = Symbol.ST_NAME
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(Symbol, Packer.get(key))])
-            offset += getattr(Symbol, Packer.get(key))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(Symbol, Packer.get(key))))
-        return buffer
 
     def get_name_idx(self):
         return self.members["st_name"]
@@ -268,10 +252,9 @@ class Symbol:
         return out
 
 
-class SectionHeader:
+class SectionHeader(Packer):
     '''Section Header
     '''
-    SH_NAME = 0x00  # .shstrab offset
     SH_NAME_OFF_SZ = 4
     SH_TYPE_SZ = 4
     SH_FLAGS_SZ = 4
@@ -358,44 +341,36 @@ class SectionHeader:
     def __init__(self, sh_name_off=0, sh_type=0, sh_flags=0, sh_size=0, sh_offset=0, sh_addr=0):
         self.name = ""
         if Packer.is_64bit:
-            self.members = {
-                "sh_name_off": sh_name_off,
-                "sh_type": sh_type,
-                "sh_flags": sh_flags,
-                "sh_addr": sh_addr,
-                "sh_offset": sh_offset,
-                "sh_size": sh_size,
-                "sh_link": 0,
-                "sh_info": 0,
-                "sh_addralign": 0,
-                "sh_entsize": 0
-            }
+            super().__init__(
+                {
+                    "sh_name_off": sh_name_off,
+                    "sh_type": sh_type,
+                    "sh_flags": sh_flags,
+                    "sh_addr": sh_addr,
+                    "sh_offset": sh_offset,
+                    "sh_size": sh_size,
+                    "sh_link": 0,
+                    "sh_info": 0,
+                    "sh_addralign": 0,
+                    "sh_entsize": 0
+                }
+            )
 
         else:
-            self.members = {
-                "sh_name_off": sh_name_off,
-                "sh_type": sh_type,
-                "sh_flags": sh_flags,
-                "sh_addr": sh_addr,
-                "sh_offset": sh_offset,
-                "sh_size": sh_size,
-                "sh_link": 0,
-                "sh_info": 0,
-                "sh_addralign": 0,
-                "sh_entsize": 0
-            }
-
-    def unpack(self, buffer):
-        offset = SectionHeader.SH_NAME
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(SectionHeader, Packer.get(key))])
-            offset += getattr(SectionHeader, Packer.get(key))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(SectionHeader, Packer.get(key))))
-        return buffer
+            super().__init__(
+                {
+                    "sh_name_off": sh_name_off,
+                    "sh_type": sh_type,
+                    "sh_flags": sh_flags,
+                    "sh_addr": sh_addr,
+                    "sh_offset": sh_offset,
+                    "sh_size": sh_size,
+                    "sh_link": 0,
+                    "sh_info": 0,
+                    "sh_addralign": 0,
+                    "sh_entsize": 0
+                }
+            )
 
     def get_size(self):
         return self.members["sh_size"]
@@ -463,10 +438,9 @@ class SectionHeader:
         return out
 
 
-class ProgramHeader:
+class ProgramHeader(Packer):
     '''Program header
     '''
-    PH_TYPE = 0x00
     PH_TYPE_SZ = 4
     PH_OFFSET_SZ = 4
     PH_VADDR_SZ = 4
@@ -507,36 +481,26 @@ class ProgramHeader:
 
     def __init__(self, ph_type=0, ph_flags=0, ph_offset=0, ph_vaddr=0, ph_paddr=0, ph_filesz=0, ph_memsz=0, ph_align=0):
         if Packer.is_64bit:
-            self.members = {"ph_type": ph_type,
-                            "ph_flags": ph_flags,
-                            "ph_offset": ph_offset,
-                            "ph_vaddr": ph_vaddr,
-                            "ph_paddr": ph_paddr,
-                            "ph_filesz": ph_filesz,
-                            "ph_memsz": ph_memsz,
-                            "ph_align": ph_align}
+            super().__init__({"ph_type": ph_type,
+                              "ph_flags": ph_flags,
+                              "ph_offset": ph_offset,
+                              "ph_vaddr": ph_vaddr,
+                              "ph_paddr": ph_paddr,
+                              "ph_filesz": ph_filesz,
+                              "ph_memsz": ph_memsz,
+                              "ph_align": ph_align}
+                             )
 
         else:
-            self.members = {"ph_type": ph_type,
-                            "ph_offset": ph_offset,
-                            "ph_vaddr": ph_vaddr,
-                            "ph_paddr": ph_paddr,
-                            "ph_filesz": ph_filesz,
-                            "ph_memsz": ph_memsz,
-                            "ph_flags": ph_flags,
-                            "ph_align": ph_align}
-
-    def unpack(self, buffer):
-        offset = ProgramHeader.PH_TYPE
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(ProgramHeader,  Packer.get(key))])
-            offset += getattr(ProgramHeader,  Packer.get(key))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(ProgramHeader,  Packer.get(key))))
-        return buffer
+            super().__init__({"ph_type": ph_type,
+                              "ph_offset": ph_offset,
+                              "ph_vaddr": ph_vaddr,
+                              "ph_paddr": ph_paddr,
+                              "ph_filesz": ph_filesz,
+                              "ph_memsz": ph_memsz,
+                              "ph_flags": ph_flags,
+                              "ph_align": ph_align}
+                             )
 
     def get_offset(self):
         return self.members["ph_offset"]
@@ -584,9 +548,6 @@ class ProgramHeader:
         return out
 
 
-
-
-
 class Dwarf:
     def __init__(self):
         self.entries = []
@@ -611,9 +572,8 @@ class Dwarf:
                 self.entries.append(unit)
 
 
-class ElfIdent:
-    ELF_MAGIC = 0x464C457F
-    EI_MAGIC = 0x0
+class ElfIdent(Packer):
+    ELF_MAGIC = 0x7F454C46
     EI_MAGIC_SZ = 4
     EI_CLASS_SZ = 1
     EI_DATA_SZ = 1
@@ -649,7 +609,7 @@ class ElfIdent:
     CLASS_64_BIT = 0x02
 
     def __init__(self):
-        self.members = {
+        super().__init__({
             "ei_magic": 0,
             "ei_class": 0,
             "ei_data": 0,
@@ -658,25 +618,16 @@ class ElfIdent:
             "ei_abiversion": 0,
             "ei_pad": 0
         }
-
+        )
     def unpack(self, buffer):
-        offset = ElfIdent.EI_MAGIC
-        for key in self.members:
-            self.members[key] = utils.unpack(buffer[offset:offset + getattr(ElfIdent,  Packer.get(key))])
-            offset += getattr(ElfIdent, Packer.get(key))
+        super().unpack(buffer)
 
         if self.members["ei_magic"] != ElfIdent.ELF_MAGIC:
-            raise Exception("Not an Elf file")
+            raise Exception(f"ERROR: Not an Elf file with tag {self.members['ei_magic']:x}")
 
         # Update Packer settings
         Packer.set(is_little_endian=(self.members['ei_data'] == ElfIdent.DATA_LITTLE_ENDIAN),
                    is_64bit=(self.members['ei_class'] == ElfIdent.CLASS_64_BIT))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(utils.pack(self.members[key], getattr(ElfIdent,  Packer.get(key))))
-        return buffer
 
     def get_size(self):
         return sum([getattr(ElfIdent,  Packer.get(key)) for key in self.members])
@@ -691,8 +642,7 @@ class ElfIdent:
         return out
 
 
-class ElfHeader:
-    E_TYPE = 16
+class ElfHeader(Packer):
     E_TYPE_SZ = 2
     E_MACHINE_SZ = 2
     E_VERSION_SZ = 4
@@ -735,7 +685,7 @@ class ElfHeader:
     E_VERSION_T = {0x01: "1 (Original)"}
 
     def __init__(self):
-        self.members = {
+        super().__init__({
             "e_type": 0,
             "e_machine": 0,
             "e_version": 0,
@@ -749,19 +699,8 @@ class ElfHeader:
             "e_sh_ent_size": 0,
             "e_sh_count": 0,
             "e_sh_strndx": 0
-        }
-
-    def unpack(self, buffer):
-        offset = ElfHeader.E_TYPE
-        for key in self.members:
-            self.members[key] = Packer.unpack(buffer[offset:offset + getattr(ElfHeader, Packer.get(key))])
-            offset += getattr(ElfHeader,  Packer.get(key))
-
-    def pack(self):
-        buffer = []
-        for key in self.members:
-            buffer.extend(Packer.pack(self.members[key], getattr(ElfHeader, Packer.get(key))))
-        return buffer
+        }, start_offset=16
+        )
 
     def set_ph_offset(self, ph_offset):
         self.members["e_ph_off"] = ph_offset
