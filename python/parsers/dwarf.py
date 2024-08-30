@@ -490,9 +490,6 @@ class CompilationUnitHeader(Packer):
     CU_POINTER_SIZE_SZ = 1
     CU_ABBREV_OFFSET_SZ = 4
 
-    CU_POINTER_SIZE_64SZ = 1
-    CU_ABBREV_OFFSET_64SZ = 4
-
     def __init__(self):
         super().__init__(
             {
@@ -601,3 +598,27 @@ class CompilationUnit(Packer):
         for cu in self.compilation_units:
             out += str(cu)
         return out
+
+
+class Dwarf:
+    def __init__(self):
+        self.entries = []
+        self.section_headers = []
+        self.section_data = []
+
+    def add_debug_section(self, sh, sh_data):
+        self.section_headers.append(sh)
+        self.section_data.append(sh_data)
+
+    def get_entries(self):
+        return self.entries
+
+    def get_column_titles(self):
+        return ""
+
+    def parse_debug_info(self):
+        for sh, sh_data in zip(self.section_headers, self.section_data):
+            if "debug_info" in sh.get_name():
+                unit = CompilationUnit()
+                unit.unpack(sh_data.get_data())
+                self.entries.append(unit)

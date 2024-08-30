@@ -4,10 +4,14 @@ class Packer:
     is_64bit = False
     is_little_endian = False
 
-    def __init__(self, members, start_offset=0, always_bit32=False):
+    def __init__(self, members_32bit, members_64bit={}, start_offset=0, always_bit32=False):
         self.always_bit32 = always_bit32
         self.start_offset = start_offset
-        self.members = members
+
+        if not self.always_bit32 and Packer.is_64bit and members_64bit:
+            self.members = members_64bit
+        else:
+            self.members = members_32bit
 
     def set(is_64bit, is_little_endian):
         Packer.is_64bit = is_64bit
@@ -20,7 +24,7 @@ class Packer:
         return utils.pack(data, size, little_endian=Packer.is_little_endian)
     
     def _get(self, key):
-        if not self.always_bit32 and Packer.is_64bit == True:
+        if not self.always_bit32 and Packer.is_64bit:
             return key.upper() + "_64SZ"
         return key.upper() + "_SZ"
 

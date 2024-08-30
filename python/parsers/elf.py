@@ -4,7 +4,7 @@ import sys
 from intelhex import IntelHex
 import utils
 from packer import Packer
-from parsers.dwarf import CompilationUnit
+from parsers.dwarf import Dwarf
 from crc import Crc32
 
 
@@ -71,23 +71,19 @@ class DynamicEntry(Packer):
     }
 
     def __init__(self, d_tag=0, d_val=0, d_ptr=0, d_off=0):
-        if Packer.is_64bit:
-            super().__init__(
-                {
-                    "d_tag": d_tag,
-                    "d_val": d_val,
-                    "d_ptr": d_ptr
-                }
-            )
-        else:
-            super().__init__(
-                {
-                    "d_tag": d_tag,
-                    "d_val": d_val,
-                    "d_ptr": d_ptr,
-                    "d_off": d_off
-                }
-            )
+        super().__init__(
+            {
+                "d_tag": d_tag,
+                "d_val": d_val,
+                "d_ptr": d_ptr,
+                "d_off": d_off
+            },
+            {
+                "d_tag": d_tag,
+                "d_val": d_val,
+                "d_ptr": d_ptr
+            }
+        )
 
     def __str__(self):
         out = ""
@@ -203,26 +199,22 @@ class Symbol(Packer):
     }
 
     def __init__(self, st_name="", st_value=0, st_size=0, st_info=0, st_other=0, st_shndx=0):
-        if Packer.is_64bit:
-            super().__init__(
-{
-                "st_name": st_name,
-                "st_info": st_info,
-                "st_other": st_other,
-                "st_shndx": st_shndx,
-                "st_value": st_value,
-                "st_size": st_size,
-            }
-        )
-        else:
-            super().__init__(
-{
+        super().__init__(
+            {
                 "st_name": st_name,
                 "st_value": st_value,
                 "st_size": st_size,
                 "st_info": st_info,
                 "st_other": st_other,
                 "st_shndx": st_shndx
+            },
+            {
+                "st_name": st_name,
+                "st_info": st_info,
+                "st_other": st_other,
+                "st_shndx": st_shndx,
+                "st_value": st_value,
+                "st_size": st_size,
             }
         )
 
@@ -340,37 +332,32 @@ class SectionHeader(Packer):
 
     def __init__(self, sh_name_off=0, sh_type=0, sh_flags=0, sh_size=0, sh_offset=0, sh_addr=0):
         self.name = ""
-        if Packer.is_64bit:
-            super().__init__(
-                {
-                    "sh_name_off": sh_name_off,
-                    "sh_type": sh_type,
-                    "sh_flags": sh_flags,
-                    "sh_addr": sh_addr,
-                    "sh_offset": sh_offset,
-                    "sh_size": sh_size,
-                    "sh_link": 0,
-                    "sh_info": 0,
-                    "sh_addralign": 0,
-                    "sh_entsize": 0
-                }
-            )
-
-        else:
-            super().__init__(
-                {
-                    "sh_name_off": sh_name_off,
-                    "sh_type": sh_type,
-                    "sh_flags": sh_flags,
-                    "sh_addr": sh_addr,
-                    "sh_offset": sh_offset,
-                    "sh_size": sh_size,
-                    "sh_link": 0,
-                    "sh_info": 0,
-                    "sh_addralign": 0,
-                    "sh_entsize": 0
-                }
-            )
+        super().__init__(
+            {
+                "sh_name_off": sh_name_off,
+                "sh_type": sh_type,
+                "sh_flags": sh_flags,
+                "sh_addr": sh_addr,
+                "sh_offset": sh_offset,
+                "sh_size": sh_size,
+                "sh_link": 0,
+                "sh_info": 0,
+                "sh_addralign": 0,
+                "sh_entsize": 0
+            },
+            {
+                "sh_name_off": sh_name_off,
+                "sh_type": sh_type,
+                "sh_flags": sh_flags,
+                "sh_addr": sh_addr,
+                "sh_offset": sh_offset,
+                "sh_size": sh_size,
+                "sh_link": 0,
+                "sh_info": 0,
+                "sh_addralign": 0,
+                "sh_entsize": 0
+            }
+        )
 
     def get_size(self):
         return self.members["sh_size"]
@@ -480,27 +467,28 @@ class ProgramHeader(Packer):
     PH_FLAGS_T = {0x01: "X", 0x02: "W", 0x04: "R", 0xf0000000: "U", }
 
     def __init__(self, ph_type=0, ph_flags=0, ph_offset=0, ph_vaddr=0, ph_paddr=0, ph_filesz=0, ph_memsz=0, ph_align=0):
-        if Packer.is_64bit:
-            super().__init__({"ph_type": ph_type,
-                              "ph_flags": ph_flags,
-                              "ph_offset": ph_offset,
-                              "ph_vaddr": ph_vaddr,
-                              "ph_paddr": ph_paddr,
-                              "ph_filesz": ph_filesz,
-                              "ph_memsz": ph_memsz,
-                              "ph_align": ph_align}
-                             )
-
-        else:
-            super().__init__({"ph_type": ph_type,
-                              "ph_offset": ph_offset,
-                              "ph_vaddr": ph_vaddr,
-                              "ph_paddr": ph_paddr,
-                              "ph_filesz": ph_filesz,
-                              "ph_memsz": ph_memsz,
-                              "ph_flags": ph_flags,
-                              "ph_align": ph_align}
-                             )
+        super().__init__(
+            {
+                "ph_type": ph_type,
+                "ph_offset": ph_offset,
+                "ph_vaddr": ph_vaddr,
+                "ph_paddr": ph_paddr,
+                "ph_filesz": ph_filesz,
+                "ph_memsz": ph_memsz,
+                "ph_flags": ph_flags,
+                "ph_align": ph_align
+            },
+            {
+                "ph_type": ph_type,
+                "ph_flags": ph_flags,
+                "ph_offset": ph_offset,
+                "ph_vaddr": ph_vaddr,
+                "ph_paddr": ph_paddr,
+                "ph_filesz": ph_filesz,
+                "ph_memsz": ph_memsz,
+                "ph_align": ph_align
+            }
+        )
 
     def get_offset(self):
         return self.members["ph_offset"]
@@ -548,29 +536,6 @@ class ProgramHeader(Packer):
         return out
 
 
-class Dwarf:
-    def __init__(self):
-        self.entries = []
-        self.section_headers = []
-        self.section_data = []
-
-    def add_debug_section(self, sh, sh_data):
-        self.section_headers.append(sh)
-        self.section_data.append(sh_data)
-
-    def get_entries(self):
-        return self.entries
-
-    def get_column_titles(self):
-        return ""
-
-    def parse_debug_info(self):
-        for sh, sh_data in zip(self.section_headers, self.section_data):
-            if "debug_info" in sh.get_name():
-                unit = CompilationUnit()
-                unit.unpack(sh_data.get_data())
-                self.entries.append(unit)
-
 
 class ElfIdent(Packer):
     ELF_MAGIC = 0x7F454C46
@@ -609,16 +574,18 @@ class ElfIdent(Packer):
     CLASS_64_BIT = 0x02
 
     def __init__(self):
-        super().__init__({
-            "ei_magic": 0,
-            "ei_class": 0,
-            "ei_data": 0,
-            "ei_version": 0,
-            "ei_osabi": 0,
-            "ei_abiversion": 0,
-            "ei_pad": 0
-        }
+        super().__init__(
+            {
+                "ei_magic": 0,
+                "ei_class": 0,
+                "ei_data": 0,
+                "ei_version": 0,
+                "ei_osabi": 0,
+                "ei_abiversion": 0,
+                "ei_pad": 0
+            }
         )
+
     def unpack(self, buffer):
         super().unpack(buffer)
 
@@ -699,7 +666,8 @@ class ElfHeader(Packer):
             "e_sh_ent_size": 0,
             "e_sh_count": 0,
             "e_sh_strndx": 0
-        }, start_offset=16
+        },
+            start_offset=16
         )
 
     def set_ph_offset(self, ph_offset):
