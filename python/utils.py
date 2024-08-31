@@ -58,12 +58,12 @@ def unpack_str(buffer):
     return struct.unpack("s", buffer)
 
 
-def unpack(buffer, little_endian=True, unsigned=True):
+def unpack(buffer, byte=False, little_endian=True, unsigned=True):
     '''Unpack buffer
     '''
     idx = len(buffer)
-    if idx not in STRUCT_FORMAT:
-        return buffer
+    if idx not in STRUCT_FORMAT or byte:
+        return list(struct.unpack(f"<{idx}B", buffer))
 
     if unsigned:
         if little_endian:
@@ -75,11 +75,12 @@ def unpack(buffer, little_endian=True, unsigned=True):
         return struct.unpack(">" + STRUCT_FORMAT_SIGNED[idx], buffer)[0]
 
 
-def pack(data, size, little_endian=True, unsigned=True):
+def pack(data, size, byte=False, little_endian=True, unsigned=True):
     '''Pack data into buffer
     '''
-    if size not in STRUCT_FORMAT:
-        return data
+    if size not in STRUCT_FORMAT or byte:
+        return struct.pack(f"<{len(data)}B", data)
+    
     if unsigned:
         if little_endian:
             return struct.pack("<" + STRUCT_FORMAT[size], data)
@@ -107,8 +108,7 @@ def readstring(data, offset):
 def convertRVAToOffset(address, sections):
     for section in sections:
         if address >= section.VirtualAddress and \
-           address <= (section.VirtualAddress+section.VirtualSize):
-
+            address <= (section.VirtualAddress+section.VirtualSize):
             return (address - section.VirtualAddress) + section.PointerToRawData
 
 
@@ -175,6 +175,13 @@ def format_array(_list):
         out +=hex(element) + " "
     return out
 
+def bytes_to_int_array(byte_data, int_size=1):
+    if len(byte_data) % int_size != 0:
+        raise ValueError("Byte data length must be a multiple of int_size.")
+
+    format_string = f"<{len(byte_data) // int_size}{int_size}B"
+    return struct.unpack(format_string, byte_data)
+
 def formatter(string, value, table=None, hex=False, mask=False):
     if value == b'':
         return ""
@@ -201,6 +208,8 @@ def formatter(string, value, table=None, hex=False, mask=False):
             return f"{string:40} {value:x}\n"
         return f"{string:40} {out}\n"
     elif hex:
+        if type(value) == list:
+            return f"{string:40} {format_array(value)}\n"
         return f"{string:40} {value:x}\n"
     else:
         return f"{string:40} {value}\n"

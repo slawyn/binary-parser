@@ -17,26 +17,36 @@ class Packer:
         Packer.is_64bit = is_64bit
         Packer.is_little_endian = is_little_endian
 
-    def _unpack(buffer):
-        return utils.unpack(buffer, little_endian=Packer.is_little_endian)
+    def _unpack(buffer, byte=False):
+        return utils.unpack(buffer, byte=byte, little_endian=Packer.is_little_endian)
 
-    def _pack(data, size):
-        return utils.pack(data, size, little_endian=Packer.is_little_endian)
+    def _pack(data, size, byte=False):
+        return utils.pack(data, size, byte=byte, little_endian=Packer.is_little_endian)
     
     def _get(self, key):
-        if not self.always_bit32 and Packer.is_64bit:
-            return key.upper() + "_64SZ"
-        return key.upper() + "_SZ"
+        return key.upper() + "_64SZ" if not self.always_bit32 and Packer.is_64bit else key.upper() + "_SZ"
+    
+    def _is_variable_length(self, key):
+        return hasattr(self, key.upper() + "_V")
 
     def unpack(self, buffer):
-        offset = self.start_offset
+        s_offset = self.start_offset
         for key in self.members:
-            self.members[key] = Packer._unpack(buffer[offset:offset + getattr(self, self._get(key))])
-            offset += getattr(self,  self._get(key))
-        return offset
+            e_offset = s_offset + getattr(self,  self._get(key))
+
+            if self._is_variable_length(key):
+                e_offset += Packer._unpack(buffer[s_offset:e_offset])
+                data = Packer._unpack(buffer[s_offset:e_offset])
+            else:
+                data = Packer._unpack(buffer[s_offset:e_offset])
+
+            self.members[key] = data
+            s_offset = e_offset
+        return s_offset
 
     def pack(self):
         buffer = []
         for key in self.members:
-            buffer.extend(Packer._pack(self.members[key], getattr(self, self._get(key))))
+            data = self.members[key]
+            buffer.extend(Packer._pack(data, getattr(self, self._get(key)), byte=type(data) == list))
         return buffer
