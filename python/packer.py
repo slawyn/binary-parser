@@ -13,6 +13,9 @@ class Packer:
         else:
             self.members = members_32bit
 
+    def get_starting_offset(self):
+        return self.start_offset
+
     def set(is_64bit, is_little_endian):
         Packer.is_64bit = is_64bit
         Packer.is_little_endian = is_little_endian

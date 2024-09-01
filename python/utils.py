@@ -182,12 +182,13 @@ def bytes_to_int_array(byte_data, int_size=1):
     format_string = f"<{len(byte_data) // int_size}{int_size}B"
     return struct.unpack(format_string, byte_data)
 
-def formatter(string, value, table=None, hex=False, mask=False):
+def formatter(string, value, table=None, hex=False, mask=False, pad=0):
     if value == b'':
         return ""
     if string == "":
-        return f"({value})\n"
+        return f"{value}\n"
 
+    string = " "*pad + string
 
     if table != None:
         _value = value
