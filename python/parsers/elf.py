@@ -583,7 +583,9 @@ class ElfIdent(Packer):
                 "ei_osabi": 0,
                 "ei_abiversion": 0,
                 "ei_pad": 0
-            }
+            },
+            always_bit32 = True,
+            always_little_endian = False
         )
 
     def unpack(self, buffer):
@@ -593,11 +595,12 @@ class ElfIdent(Packer):
             raise Exception(f"ERROR: Not an Elf file with tag {self.members['ei_magic']:x}")
 
         # Update Packer settings
-        Packer.set(is_little_endian=(self.members['ei_data'] == ElfIdent.DATA_LITTLE_ENDIAN),
+        Packer.set_packer_config(is_little_endian=(self.members['ei_data'] == ElfIdent.DATA_LITTLE_ENDIAN),
                    is_64bit=(self.members['ei_class'] == ElfIdent.CLASS_64_BIT))
-
+        
+        
     def get_size(self):
-        return sum([getattr(ElfIdent,  Packer.get(key)) for key in self.members])
+        return self.get_members_size()
 
     def __str__(self):
         out = "\n[Elf Identification]\n"
@@ -1147,13 +1150,9 @@ class ElfParser:
         if len(buffer) > 0:
             self._create_data(start_address, buffer)
 
-    def write_data_to_file(self, elf_out="", hex_out="", bin_out=""):
+    def _write_section_data(self, binary):
         '''Write data to file
         '''
-        # Initialize binary
-        binary = [0] * self.elf_header.get_size()
-
-        # Write data
         for data in sorted(self.section_data, key=lambda x: x.get_offset()):
 
             # Add alignment bytes
@@ -1171,10 +1170,9 @@ class ElfParser:
         '''Write data to file
         '''
         # Initialize binary
-        binary = [0] * (self.elf_ident.get_size() + self.elf_header.get_size())
-
-        self._write_section_data(binary)
+        binary = [0] * (self.elf_header.get_size())
         self._write_program_headers(binary)
+        self._write_section_data(binary)
         self._write_section_headers(binary)
         self._update_elf_ident(binary)
         self._update_elf_header(binary)
@@ -1207,10 +1205,10 @@ class ElfParser:
             binary.extend(buffer)
 
     def _update_elf_header(self, binary):
-        utils.update(self.elf_header.pack(), binary, self.elf_ident.get_size())
+        utils.update(self.elf_header.pack(), binary, self.elf_header.get_starting_offset())
 
     def _update_elf_ident(self, binary):
-        utils.update(self.elf_ident.pack(), binary, 0)
+        utils.update(self.elf_ident.pack(), binary,  self.elf_ident.get_starting_offset())
 
     def get_section_data(self, section_name):
         for sd in self.section_data:
@@ -1271,14 +1269,14 @@ if __name__ == "__main__":
 
     elf = ElfParser(filein)
     # print(elf)
-    elf.calculate_checksum(start_address=0x8004000, end_address=0x080040C8, target_address=0x080040C8)
+    # elf.calculate_checksum(start_address=0x8004000, end_address=0x080040C8, target_address=0x080040C8)
 
-    elf.fill(start_address=0x8010000, end_address=0x8060000, byte=0xFF)
-    elf.calculate_checksum(start_address=0x801004C, end_address=0x8060000, target_address=0x8010048)
+    # elf.fill(start_address=0x8010000, end_address=0x8060000, byte=0xFF)
+    # elf.calculate_checksum(start_address=0x801004C, end_address=0x8060000, target_address=0x8010048)
 
-    elf.fill(start_address=0x8060000, end_address=0x807fff8, byte=0xFF)
-    elf.fill(start_address=0x807fff8, end_address=0x807fffc, byte=0x5A)
-    elf.calculate_checksum(start_address=0x8060000, end_address=0x807fffc, target_address=0x807fffC)
+    # elf.fill(start_address=0x8060000, end_address=0x807fff8, byte=0xFF)
+    # elf.fill(start_address=0x807fff8, end_address=0x807fffc, byte=0x5A)
+    # elf.calculate_checksum(start_address=0x8060000, end_address=0x807fffc, target_address=0x807fffC)
 
-    d = elf.get_section_data("partial")
+    # d = elf.get_section_data("partial")
     elf.write_data_to_file(fileout, fileout_hex)

@@ -79,7 +79,9 @@ def pack(data, size, byte=False, little_endian=True, unsigned=True):
     '''Pack data into buffer
     '''
     if size not in STRUCT_FORMAT or byte:
-        return struct.pack(f"<{len(data)}B", data)
+        if little_endian:
+            return struct.pack(f"<{len(data)}B", *data)
+        return struct.pack(f">{len(data)}B", *data)
     
     if unsigned:
         if little_endian:
