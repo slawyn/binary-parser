@@ -1,6 +1,6 @@
 import sys
 import argparse
-from parsers.pe import PeParser
+from parsers.pe.pe import PeParser
 from parsers.elf.elf import ElfParser
 
 from utils import log, load_file

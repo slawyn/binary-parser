@@ -1,83 +1,11 @@
 from utils import *
 import sys
 import traceback
+import utils
+from packer import Packer
+from parsers.pe.fileheader import FILEHEADER
 
-
-class FILEHEADER:
-    _machinetypes = {
-        0x0: "IMAGE_FILE_MACHINE_UNKNOWN",
-        0x1d3: "IMAGE_FILE_MACHINE_AM33",
-        0x8664:	"IMAGE_FILE_MACHINE_AMD64",
-        0x1c0:	"IMAGE_FILE_MACHINE_ARM",
-        0xaa64:	"IMAGE_FILE_MACHINE_ARM64",
-        0x1c4:	"IMAGE_FILE_MACHINE_ARMNT",
-        0xebc:	"IMAGE_FILE_MACHINE_EBC",
-        0x14c:	"IMAGE_FILE_MACHINE_I386",
-        0x200:	"IMAGE_FILE_MACHINE_IA64",
-        0x9041:	"IMAGE_FILE_MACHINE_M32R",
-        0x266:	"IMAGE_FILE_MACHINE_MIPS16",
-        0x366:	"IMAGE_FILE_MACHINE_MIPSFPU",
-        0x466:	"IMAGE_FILE_MACHINE_MIPSFPU16",
-        0x1f0:	"IMAGE_FILE_MACHINE_POWERPC",
-        0x1f1:	"IMAGE_FILE_MACHINE_POWERPCFP",
-        0x166:	"IMAGE_FILE_MACHINE_R4000",
-        0x5032:	"IMAGE_FILE_MACHINE_RISCV32",
-        0x5064:	"IMAGE_FILE_MACHINE_RISCV64",
-        0x5128:	"IMAGE_FILE_MACHINE_RISCV128",
-        0x1a2:	"IMAGE_FILE_MACHINE_SH3",
-        0x1a3:	"IMAGE_FILE_MACHINE_SH3DSP",
-        0x1a6:	"IMAGE_FILE_MACHINE_SH4",
-        0x1a8:	"IMAGE_FILE_MACHINE_SH5",
-        0x1c2:	"IMAGE_FILE_MACHINE_THUMB",
-        0x169:	"IMAGE_FILE_MACHINE_WCEMIPSV2"
-    }
-    _characteristictypes = {
-        0x0001: "IMAGE_FILE_RELOCS_STRIPPED",
-        0x0002: "IMAGE_FILE_EXECUTABLE_IMAGE",
-        0x0004: "IMAGE_FILE_LINE_NUMS_STRIPPED",
-        0x0008: "IMAGE_FILE_LOCAL_SYMS_STRIPPED",
-        0x0010: "IMAGE_FILE_AGGRESSIVE_WS_TRIM",
-        0x0020: "IMAGE_FILE_LARGE_ADDRESS_ AWARE",
-        0x0080: "IMAGE_FILE_BYTES_REVERSED_LO",
-        0x0100: "IMAGE_FILE_32BIT_MACHINE",
-        0x0200: "IMAGE_FILE_DEBUG_STRIPPED",
-        0x0400: "IMAGE_FILE_REMOVABLE_RUN_ FROM_SWAP",
-        0x0800: "IMAGE_FILE_NET_RUN_FROM_SWAP",
-        0x1000: "IMAGE_FILE_SYSTEM",
-        0x2000: "IMAGE_FILE_DLL",
-        0x4000: "IMAGE_FILE_UP_SYSTEM_ONLY",
-        0x8000: "IMAGE_FILE_BYTES_REVERSED_HI"}
-
-    def __init__(self, data):
-        self.Machine = unpack(data[0:2])
-        self.NumberOfSections = unpack(data[2:4])
-        self.TimeDateStamp = unpack(data[4:8])
-        self.PointerToSymbolTable = unpack(data[8:12])
-        self.NumberOfSymbols = unpack(data[12:16])
-        self.SizeOfOptionalHeader = unpack(data[16:18])
-        self.Characteristics = unpack(data[18:20])
-
-    def __str__(self):
-        out = "\n[FILEHEADER]\n"
-        out += f"{'Machine:':30} {self.Machine:x} {self._machinetypes[self.Machine]}\n"
-        out += f"{'TimeDateStamp:':30} {self.TimeDateStamp:x}\n"
-        out += f"{'PointerToSymbolTable:':30} {self.PointerToSymbolTable:x}\n"
-        out += f"{'NumberOfSymbols:':30} {self.NumberOfSymbols}\n"
-        out += f"{'SizeOfOptionalHeader:':30} {self.SizeOfOptionalHeader}\n"
-
-        out += "Characteristics:"
-        characteristics = self.Characteristics
-        shifter = 0x8000
-        while (shifter != 0):
-
-            if shifter & characteristics in self._characteristictypes.keys():
-                cha = self._characteristictypes[shifter & characteristics]
-                out = out+"\n\t"+cha
-            shifter = shifter >> 1
-        out = out+"\n"
-        return out
-
-
+  
 class OPTIONALHEADER:
     _subsystemtypes = {
         0: "IMAGE_SUBSYSTEM_UNKNOWN",
@@ -125,9 +53,12 @@ class OPTIONALHEADER:
         self.BaseOfCode = unpack(data[20:24])
 
         if self.is64Bit:
+            Packer.set_packer_config(is_64bit=True, is_little_endian=True)
+
             # 64bit doesn't have BaseOfData
             self.ImageBase = unpack(data[24:32])
         else:
+            Packer.set_packer_config(is_64bit=False, is_little_endian=True)
             self.BaseOfData = unpack(data[24:28])
             self.ImageBase = unpack(data[28:32])
 
@@ -284,8 +215,10 @@ class OPTIONALHEADER:
 
 class NTHEADER:
     def __init__(self, data):
+        Packer.set_packer_config(is_64bit=False, is_little_endian=True)
         self.Signature = unpack(data[0:4])
-        self.FILEHEADER_ = FILEHEADER(data[4:])
+        self.FILEHEADER_ = FILEHEADER()
+        self.FILEHEADER_.unpack(data[4:])
         self.OPTIONALHEADER_ = OPTIONALHEADER(data[24:])
 
 
@@ -880,7 +813,7 @@ class PeParser:
             if self.NTHEADER_.OPTIONALHEADER_.is64Bit:
                 offset = self.DOSHEADER_.lfanew+20+4+240  # peheader is bigger in pe32+
 
-            numberofentries = self.NTHEADER_.FILEHEADER_.NumberOfSections
+            numberofentries = self.NTHEADER_.FILEHEADER_.get_number_of_sections()
 
             # collect all section information
             for i in range(numberofentries):
@@ -1056,7 +989,7 @@ class PeParser:
         return self.section_files_to_disassemble
 
     def GetSections(self):
-        NumberOfEntries = self.NTHEADER_.FILEHEADER_.NumberOfSections
+        NumberOfEntries = self.NTHEADER_.FILEHEADER_.get_number_of_sections()
         out = "\n[Sections]\n"
         out += " NumberOfSections: %d\n" % (NumberOfEntries)
 
