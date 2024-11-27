@@ -1,7 +1,7 @@
 import sys
 import argparse
 from parsers.pe import PeParser
-from parsers.elf import ElfParser
+from parsers.elf.elf import ElfParser
 
 from utils import log, load_file
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
         # Output
         if args.output:
-            _parser.write_data_to_file(elf_out=args.output)
+            _parser.write_data_to_file(file_out=args.output)
 
     except Exception as e:
         log(e)

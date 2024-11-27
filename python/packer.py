@@ -14,11 +14,8 @@ class Packer:
         else:
             self.members = members_32bit
 
-    def get_starting_offset(self):
+    def get_offset(self):
         return self.start_offset
-
-    def get_members_size(self):
-        return sum([getattr(self, self._get(key)) for key in self.members])
 
     def set_packer_config(is_64bit, is_little_endian):
         Packer.is_64bit = is_64bit

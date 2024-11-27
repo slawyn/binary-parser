@@ -25,6 +25,9 @@ def log(*args):
     print(o,  end="")
 
 
+def get_alignment_count(address, alignment):
+    return ((address + (alignment - 1)) &   ~(alignment-1)) - address
+
 def read_binary(file_path):
     with open(file_path, 'rb') as f:
         return bytearray(f.read())
