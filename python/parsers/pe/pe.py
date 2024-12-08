@@ -4,6 +4,15 @@ import traceback
 import utils
 from packer import Packer
 from parsers.pe.fileheader import FILEHEADER
+from parsers.pe.dosheader import DOSHEADER
+from parsers.pe.sectionheader import SECTIONHEADER
+
+def convert_rva_to_offset(address, sections):
+    for section in sections:
+        if address >= section.get_virtual_address() and \
+            address <= (section.get_virtual_address()+section.get_virtual_size()):
+            return (address - section.get_virtual_address()) + section.get_pointer_to_raw_data()
+
 
   
 class OPTIONALHEADER:
@@ -54,7 +63,6 @@ class OPTIONALHEADER:
 
         if self.is64Bit:
             Packer.set_packer_config(is_64bit=True, is_little_endian=True)
-
             # 64bit doesn't have BaseOfData
             self.ImageBase = unpack(data[24:32])
         else:
@@ -203,113 +211,19 @@ class OPTIONALHEADER:
             section = self.DataDirectory[i][2]
             name = "<Not found>"
             if section != None:
-                name = section.Name
+                name = section.get_formatted_name()
             out += f"{i:10}\n"
             out += f"  {'rva:':10} {self.DataDirectory[i][0]:x}\n"
             out += f"  {'size:':10} {self.DataDirectory[i][1]:x}\n"
             out += f"  {'sect:':10} {name:}\n"
         return out
 
-        return out
-
-
 class NTHEADER:
     def __init__(self, data):
-        Packer.set_packer_config(is_64bit=False, is_little_endian=True)
         self.Signature = unpack(data[0:4])
         self.FILEHEADER_ = FILEHEADER()
         self.FILEHEADER_.unpack(data[4:])
         self.OPTIONALHEADER_ = OPTIONALHEADER(data[24:])
-
-
-class DOSHEADER:
-    def __init__(self, data):
-        self.signature = data[0:2]
-        self.cblp = unpack(data[2:4])
-        self.cp = unpack(data[4:6])
-        self.crlc = unpack(data[6:8])
-        self.cparhdr = unpack(data[8:10])
-        self.minalloc = unpack(data[10:12])
-        self.maxalloc = unpack(data[12:14])
-        self.ss = unpack(data[14:16])
-        self.sp = unpack(data[16:18])
-        self.checksum = unpack(data[18:20])
-        self.ip = unpack(data[20:22])
-        self.cs = unpack(data[22:24])
-        self.lfarlc = unpack(data[24:26])
-        self.noverlay = unpack(data[26:28])
-        self.reserved1 = data[28:36]
-        self.oemid = unpack(data[36:38])
-        self.oeminfo = unpack(data[38:40])
-        self.reserved2 = data[40:60]
-        self.lfanew = unpack(data[60:64])
-
-
-class SECTIONHEADER:
-    _characteristictypes = {
-        0x00000008:	"IMAGE_SCN_TYPE_NO_PAD",
-        0x00000020:	"IMAGE_SCN_CNT_CODE",
-        0x00000040:	"IMAGE_SCN_CNT_INITIALIZED_DATA",
-        0x00000080:	"IMAGE_SCN_CNT_UNINITIALIZED_ DATA",
-        0x00000100:	"IMAGE_SCN_LNK_OTHER",
-        0x00000200:	"IMAGE_SCN_LNK_INFO",
-        0x00000800:	"IMAGE_SCN_LNK_REMOVE",
-        0x00001000:	"IMAGE_SCN_LNK_COMDAT",
-        0x00008000:	"IMAGE_SCN_GPREL",
-        0x00020000:	"IMAGE_SCN_MEM_PURGEABLE",
-        0x00020000:	"IMAGE_SCN_MEM_16BIT",
-        0x00040000:	"IMAGE_SCN_MEM_LOCKED",
-        0x00080000:	"IMAGE_SCN_MEM_PRELOAD",
-        0x00100000:	"IMAGE_SCN_ALIGN_1BYTES",
-        0x00200000:	"IMAGE_SCN_ALIGN_2BYTES",
-        0x00300000:	"IMAGE_SCN_ALIGN_4BYTES",
-        0x00400000:	"IMAGE_SCN_ALIGN_8BYTES",
-        0x00500000:	"IMAGE_SCN_ALIGN_16BYTES",
-        0x00600000:	"IMAGE_SCN_ALIGN_32BYTES",
-        0x00700000:	"IMAGE_SCN_ALIGN_64BYTES",
-        0x00800000:	"IMAGE_SCN_ALIGN_128BYTES",
-        0x00900000:	"IMAGE_SCN_ALIGN_256BYTES",
-        0x00A00000:	"IMAGE_SCN_ALIGN_512BYTES",
-        0x00B00000:	"IMAGE_SCN_ALIGN_1024BYTES",
-        0x00C00000:	"IMAGE_SCN_ALIGN_2048BYTES",
-        0x00D00000:	"IMAGE_SCN_ALIGN_4096BYTES",
-        0x00E00000:	"IMAGE_SCN_ALIGN_8192BYTES",
-        # if this is set the count is stored in VA of the first Entry in Relocs not NumberOfRelocations
-        0x01000000:	"IMAGE_SCN_LNK_NRELOC_OVFL",
-        0x02000000:	"IMAGE_SCN_MEM_DISCARDABLE",
-        0x04000000:	"IMAGE_SCN_MEM_NOT_CACHED",
-        0x08000000:	"IMAGE_SCN_MEM_NOT_PAGED",
-        0x10000000:	"IMAGE_SCN_MEM_SHARED",
-        0x20000000:	"IMAGE_SCN_MEM_EXECUTE",
-        0x40000000:	"IMAGE_SCN_MEM_READ",
-        0x80000000:	"IMAGE_SCN_MEM_WRITE"
-    }
-
-    def __init__(self, data):
-        self.Name = readstring(data, 0)
-        self.VirtualSize = unpack(data[8:12])
-        self.VirtualAddress = unpack(data[12:16])
-        self.SizeOfRawData = unpack(data[16:20])
-        self.PointerToRawData = unpack(data[20:24])
-        self.PointerToRelocations = unpack(data[24:28])
-        self.PointerToLinenumbers = unpack(data[28:32])
-        self.NumberOfRelocations = unpack(data[32:34])
-        self.NumberOfLinenumbers = unpack(data[34:36])
-        self.Characteristics = unpack(data[36:40])
-
-    def GetCharacteristics(self):
-        out = "Characteristics :"
-        characteristics = self.Characteristics
-        shifter = 0x80000000
-        while (shifter != 0):
-
-            if shifter & characteristics in self._characteristictypes.keys():
-                cha = self._characteristictypes[shifter & characteristics]
-                out = out+"\n\t\t"+cha
-            shifter = shifter >> 1
-        out = out+"\n"
-        return out
-
 
 class EXPORTTABLE:
     def __init__(self, data, tables_fileoffset, sections):
@@ -338,9 +252,9 @@ class EXPORTTABLE:
             data[tables_fileoffset+36:tables_fileoffset+40])
 
         # read offsets
-        FunctionsFileOffset = convertRVAToOffset(self.FunctionsRVA, sections)
-        NamesFileOffset = convertRVAToOffset(self.NamesRVA, sections)
-        OrdinalsFileOffset = convertRVAToOffset(self.OrdinalsRVA, sections)
+        FunctionsFileOffset = convert_rva_to_offset(self.FunctionsRVA, sections)
+        NamesFileOffset = convert_rva_to_offset(self.NamesRVA, sections)
+        OrdinalsFileOffset = convert_rva_to_offset(self.OrdinalsRVA, sections)
         NamesAndOrdinals = {}
 
         # read names and corresponding indexes
@@ -357,7 +271,7 @@ class EXPORTTABLE:
                 continue
             # if exported by name
             if i in NamesAndOrdinals.keys():
-                namesoffset = convertRVAToOffset(NamesAndOrdinals[i], sections)
+                namesoffset = convert_rva_to_offset(NamesAndOrdinals[i], sections)
                 symbol = readstring(data, namesoffset)
                 # Ordinal,address,hintg,string address, string
                 self.exportTable.append(ExportObject(
@@ -366,7 +280,7 @@ class EXPORTTABLE:
             # if exported only by ordinal or is forwarded to imported function from another dll
             else:
 
-                namesoffset = convertRVAToOffset(FunctionAddress, sections)
+                namesoffset = convert_rva_to_offset(FunctionAddress, sections)
                 symbol = ""
                 # forwarded to another .dll
                 if namesoffset > tables_fileoffset:
@@ -435,16 +349,16 @@ class IMPORTTABLE:
             if importdirectorytable.isEmpty:
                 break
 
-            nameoffset = convertRVAToOffset(importdirectorytable.NameRVA, sections)
+            nameoffset = convert_rva_to_offset(importdirectorytable.NameRVA, sections)
             importdirectorytable.nameOfDLL = readstring(data, nameoffset)
             importdirectorytables.append(importdirectorytable)
 
             # Sometimes ILT is empty, but the content of ILT and IAT is the same
             # and changes only after loading
             if importdirectorytable.ILTRVA > 0:
-                offsetILT = convertRVAToOffset(importdirectorytable.ILTRVA, sections)
+                offsetILT = convert_rva_to_offset(importdirectorytable.ILTRVA, sections)
             else:
-                offsetILT = convertRVAToOffset(importdirectorytable.IATRVA, sections)
+                offsetILT = convert_rva_to_offset(importdirectorytable.IATRVA, sections)
 
             # parse imported itemslist
             j = 0
@@ -459,14 +373,14 @@ class IMPORTTABLE:
                     iltentry = unpack(data[offsetILT+j*8:offsetILT+j*8+8])
                     importbyordinal = iltentry & IMPORTTABLE.IMPORT_BY_ORDINAL_64BIT
                     iatrva = importdirectorytable.IATRVA+j*8
-                    valueoffset = convertRVAToOffset(iatrva, sections)
+                    valueoffset = convert_rva_to_offset(iatrva, sections)
                     value = unpack(data[valueoffset:valueoffset+8])
 
                 else:
                     iltentry = unpack(data[offsetILT+j*4:offsetILT+j*4+4])
                     importbyordinal = iltentry & IMPORTTABLE.IMPORT_BY_ORDINAL_32BIT
                     iatrva = importdirectorytable.IATRVA+j*4
-                    valueoffset = convertRVAToOffset(iatrva, sections)
+                    valueoffset = convert_rva_to_offset(iatrva, sections)
                     value = unpack(data[valueoffset:valueoffset+4])
 
                 if iltentry == 0:  # last entry for this .dll
@@ -474,7 +388,7 @@ class IMPORTTABLE:
 
                 # we have a forwarder:this is undocumented
                 if importdirectorytable.ForwarderChain != 0 and importdirectorytable.ForwarderChain != -1:
-                    forwarderstringoffset = convertRVAToOffset(iltentry, sections)
+                    forwarderstringoffset = convert_rva_to_offset(iltentry, sections)
                     forwarderstring = readstring(data, forwarderstringoffset)
 
                     # since we have a  forwarder set it to forwarderchain
@@ -486,7 +400,7 @@ class IMPORTTABLE:
 
                 # import by name
                 else:
-                    nametableoffset = convertRVAToOffset((iltentry & 0x7FFFFFFF), sections)
+                    nametableoffset = convert_rva_to_offset((iltentry & 0x7FFFFFFF), sections)
                     hint = unpack(data[nametableoffset:nametableoffset+2])
                     name = readstring(data, nametableoffset+2)
                     importObjects.append(ImportObject(iatrva, 0, (iltentry & 0x7FFFFFFF), hint, name, 0, value))
@@ -529,13 +443,13 @@ class DELAYIMPORTTABLE:
             if delaytable.isEmpty:
                 break
 
-            nameoffset = convertRVAToOffset(delaytable.NameRVA, sections)
+            nameoffset = convert_rva_to_offset(delaytable.NameRVA, sections)
             delaytable.nameOfDLL = readstring(data, nameoffset)
 
             delayimportdescriptors.append(delaytable)
 
             j = 0
-            namesoffset = convertRVAToOffset(delaytable.DelayINT, sections)
+            namesoffset = convert_rva_to_offset(delaytable.DelayINT, sections)
             importObjects = []
             importObjectsappend = importObjects.append
 
@@ -554,14 +468,14 @@ class DELAYIMPORTTABLE:
                     # is the import by ordinal bit set?
                     importbyordinal = intentry & 0x8000000000000000
                     iatrva = delayIAT+j*8
-                    valueoffset = convertRVAToOffset(iatrva, sections)
+                    valueoffset = convert_rva_to_offset(iatrva, sections)
                     value = unpack(data[valueoffset:valueoffset+8])
                 else:
                     intentry = unpack(
                         data[namesoffset+4*j:namesoffset+4*j+4])
                     importbyordinal = intentry & 0x80000000  # same as above. but for 32 bit PE
                     iatrva = delayIAT+j*4
-                    valueoffset = convertRVAToOffset(iatrva, sections)
+                    valueoffset = convert_rva_to_offset(iatrva, sections)
                     value = unpack(data[valueoffset:valueoffset+4])
 
                 if intentry == 0:
@@ -574,7 +488,7 @@ class DELAYIMPORTTABLE:
 
                 # import by name
                 else:
-                    nametableoffset = convertRVAToOffset(
+                    nametableoffset = convert_rva_to_offset(
                         (intentry & 0x7FFFFFFF), sections)
                     hint = unpack(
                         data[nametableoffset:nametableoffset+2])  # read hint
@@ -723,7 +637,7 @@ class EXCEPTIONTABLE:
             if object.isEmpty:
                 break
 
-            unwindinfooff = convertRVAToOffset(object.UnwindInfoPtr, sections)
+            unwindinfooff = convert_rva_to_offset(object.UnwindInfoPtr, sections)
 
             t = unpack(data[unwindinfooff:unwindinfooff+1])
 
@@ -796,11 +710,13 @@ class PeParser:
 
     def __init__(self, buffer):
         try:
-
+            Packer.set_packer_config(is_64bit=False, is_little_endian=True)
             self.buffer = buffer
-            self.DOSHEADER_ = DOSHEADER(self.buffer)
+            self.DOSHEADER_ = DOSHEADER()
+            self.DOSHEADER_.unpack(buffer)
+
             # next header at offset field
-            self.NTHEADER_ = NTHEADER(self.buffer[self.DOSHEADER_.lfanew:])
+            self.NTHEADER_ = NTHEADER(self.buffer[self.DOSHEADER_.get_lfanew():])
             self.SECTIONHEADERS_ = []
             self.EXPORTTABLE_ = None
             self.IMPORTTABLE_ = None
@@ -809,23 +725,24 @@ class PeParser:
             self.TLS_ = None
 
             # FL offset + FL_SIZE+ PESignature_SIZE+PEHeader_SIZE
-            offset = self.DOSHEADER_.lfanew+20+4+224
+            offset = self.DOSHEADER_.get_lfanew()+20+4+224
             if self.NTHEADER_.OPTIONALHEADER_.is64Bit:
-                offset = self.DOSHEADER_.lfanew+20+4+240  # peheader is bigger in pe32+
+                offset = self.DOSHEADER_.get_lfanew()+20+4+240  # peheader is bigger in pe32+
 
             numberofentries = self.NTHEADER_.FILEHEADER_.get_number_of_sections()
 
             # collect all section information
             for i in range(numberofentries):
-                self.SECTIONHEADERS_.append(
-                    SECTIONHEADER(self.buffer[offset+40*i:]))
+                sh = SECTIONHEADER()
+                sh.unpack(self.buffer[offset+40*i:])
+                self.SECTIONHEADERS_.append(sh)
 
             # x-reference  sections with data directories
             for i in self.NTHEADER_.OPTIONALHEADER_.DataDirectory:
                 dd_rva = self.NTHEADER_.OPTIONALHEADER_.DataDirectory[i][0]
                 for j in range(numberofentries):
-                    section_rva = self.SECTIONHEADERS_[j].VirtualAddress
-                    section_size = self.SECTIONHEADERS_[j].VirtualSize
+                    section_rva = self.SECTIONHEADERS_[j].get_virtual_address()
+                    section_size = self.SECTIONHEADERS_[j].get_virtual_size()
 
                     if dd_rva >= section_rva and dd_rva <= section_rva+section_size:
                         self.NTHEADER_.OPTIONALHEADER_.DataDirectory[i][2] = self.SECTIONHEADERS_[
@@ -843,7 +760,7 @@ class PeParser:
                     continue
 
                 # offset to directory table: internal use
-                tables_fileoffset = tablesrva-section.VirtualAddress + section.PointerToRawData
+                tables_fileoffset = tablesrva-section.get_virtual_address() + section.get_pointer_to_raw_data()
 
                 # parse directories
                 if key == "EXPORT":
@@ -881,7 +798,8 @@ class PeParser:
         return self.buffer
 
     def __str__(self):
-        out = str(self.NTHEADER_.FILEHEADER_)
+        out = str(self.DOSHEADER_)
+        out += str(self.NTHEADER_.FILEHEADER_)
         out += str(self.NTHEADER_.OPTIONALHEADER_)
         out += self.GetSections()
 
@@ -990,16 +908,11 @@ class PeParser:
 
     def GetSections(self):
         NumberOfEntries = self.NTHEADER_.FILEHEADER_.get_number_of_sections()
-        out = "\n[Sections]\n"
-        out += " NumberOfSections: %d\n" % (NumberOfEntries)
-
+        out = "\n[Sections]( %d)\n" % NumberOfEntries
+        out += SECTIONHEADER.get_column_titles() + "\n"
         for i in range(NumberOfEntries):
-            out += f" {'Name':20} {self.SECTIONHEADERS_[i].Name}\n"
-            out += f" {'VirtualAddress':20} {self.SECTIONHEADERS_[i].VirtualAddress:x}\n"
-            out += f" {'VirtualSize':20} {self.SECTIONHEADERS_[i].VirtualSize:x}\n"
-            out += f" {'PointerToRawData':20} {self.SECTIONHEADERS_[i].PointerToRawData:x}\n"
-            out += f" {'SizeOfRawData':20} {self.SECTIONHEADERS_[i].SizeOfRawData:x}\n"
-            out += f" {self.SECTIONHEADERS_[i].GetCharacteristics()}\n"
+            out +=str(self.SECTIONHEADERS_[i])
+            out += "\n"
         return out
 
     def GetExports(self):

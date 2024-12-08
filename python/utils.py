@@ -109,14 +109,6 @@ def readstring(data, offset):
 
     return string
 
-
-def convertRVAToOffset(address, sections):
-    for section in sections:
-        if address >= section.VirtualAddress and \
-            address <= (section.VirtualAddress+section.VirtualSize):
-            return (address - section.VirtualAddress) + section.PointerToRawData
-
-
 def read_json(filename):
     with open(filename, 'r') as fo:
         data = json.load(fo)
@@ -151,10 +143,27 @@ def convert_list_to_bytes(int_list):
 
 
 def convert_int_to_list(integer, little_endian=True):
-
     if little_endian:
         return [integer >> 24, integer >> 16 & 0xFF, integer >> 8 & 0xFF, integer & 0xFF]
+    
     return [integer & 0xFF, integer >> 8 & 0xFF, integer >> 16 & 0xFF, integer >> 24]
+
+
+def convert_long_to_list(long, little_endian=True):
+    converted = [long & 0xFF, long >> 8 & 0xFF, long >> 16 & 0xFF, long >> 24& 0xFF, long >> 32& 0xFF,long >> 40& 0xFF,long >> 48& 0xFF,long >> 56& 0xFF]
+    if not little_endian:
+        return list(reversed(converted))
+    
+    return converted
+
+def convert_long_to_str(long):
+    out = ""
+    for x in convert_long_to_list(long):
+        if x == 0:
+            break
+        out +=chr(x)
+
+    return out
 
 
 def generate_random_bytes(size):
