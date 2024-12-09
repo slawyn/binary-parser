@@ -7,14 +7,14 @@ from parsers.pe.fileheader import FILEHEADER
 from parsers.pe.dosheader import DOSHEADER
 from parsers.pe.sectionheader import SECTIONHEADER
 
+from parsers.pe.directories.importdirectory_table import IMPORTDIRECTORYTABLE
+
 def convert_rva_to_offset(address, sections):
     for section in sections:
         if address >= section.get_virtual_address() and \
             address <= (section.get_virtual_address()+section.get_virtual_size()):
             return (address - section.get_virtual_address()) + section.get_pointer_to_raw_data()
 
-
-  
 class OPTIONALHEADER:
     _subsystemtypes = {
         0: "IMAGE_SUBSYSTEM_UNKNOWN",
@@ -289,7 +289,6 @@ class EXPORTTABLE:
                 self.exportTable.append(ExportObject(
                     i+self.OrdinalBase, FunctionAddress, 0, 0, symbol))
 
-
 # not part of the documentation: for internal use only
 class ExportObject:
     def __init__(self, ordinal, functionrva, hint, namerva, name):
@@ -298,30 +297,6 @@ class ExportObject:
         self.FunctionRVA = functionrva
         self.NameRVA = namerva
         self.Name = name
-
-
-class IMPORTDIRECTORYTABLE:
-    def __init__(self, data, offset):
-        self.importObjects = None
-        self.nameOfDLL = ""
-        self.numberOfImportObjects = 0
-
-        self.ILTRVA = unpack(data[0+offset:4+offset])
-
-        # -1 if bound import
-        self.TimeStamp = unpack(data[4+offset:8+offset])
-
-        # -1 if bound import : not important
-        self.ForwarderChain = unpack(data[8+offset:12+offset])
-        self.NameRVA = unpack(data[12+offset:16+offset])
-        self.IATRVA = unpack(data[16+offset:20+offset])
-
-        if (self.ILTRVA | self.TimeStamp | self.ForwarderChain | self.NameRVA | self.IATRVA) == 0:
-            self.isEmpty = True
-        else:
-            self.isEmpty = False
-# not part of the documentation: for internal use only
-
 
 class ImportObject:
     def __init__(self, iatrva, ordinal, nametablerva, hint, name, forwarder, value):
@@ -334,7 +309,6 @@ class ImportObject:
         self.value = value
         self.ForwarderString = ""
 
-
 class IMPORTTABLE:
     IMPORT_BY_ORDINAL_64BIT = 0x8000000000000000
     IMPORT_BY_ORDINAL_32BIT = 0x80000000
@@ -345,20 +319,23 @@ class IMPORTTABLE:
         i = 0
         importdirectorytables = self.ImportDirectoryTables
         while True:
-            importdirectorytable = IMPORTDIRECTORYTABLE(data, tables_fileoffset+20*i)
-            if importdirectorytable.isEmpty:
+            importdirectorytable = IMPORTDIRECTORYTABLE()
+            importdirectorytable.unpack(data[tables_fileoffset+20*i:])
+
+            if importdirectorytable.is_empty():
                 break
 
-            nameoffset = convert_rva_to_offset(importdirectorytable.NameRVA, sections)
-            importdirectorytable.nameOfDLL = readstring(data, nameoffset)
+            nameoffset = convert_rva_to_offset(importdirectorytable.get_name_rva(), sections)
+            importdirectorytable.set_dll_name(readstring(data, nameoffset))
             importdirectorytables.append(importdirectorytable)
 
             # Sometimes ILT is empty, but the content of ILT and IAT is the same
             # and changes only after loading
-            if importdirectorytable.ILTRVA > 0:
-                offsetILT = convert_rva_to_offset(importdirectorytable.ILTRVA, sections)
+            iltrva = importdirectorytable.get_ilt_rva()
+            if iltrva > 0:
+                offsetILT = convert_rva_to_offset(iltrva, sections)
             else:
-                offsetILT = convert_rva_to_offset(importdirectorytable.IATRVA, sections)
+                offsetILT = convert_rva_to_offset(importdirectorytable.get_iat_rva(), sections)
 
             # parse imported itemslist
             j = 0
@@ -372,14 +349,14 @@ class IMPORTTABLE:
                 if mode64:
                     iltentry = unpack(data[offsetILT+j*8:offsetILT+j*8+8])
                     importbyordinal = iltentry & IMPORTTABLE.IMPORT_BY_ORDINAL_64BIT
-                    iatrva = importdirectorytable.IATRVA+j*8
+                    iatrva = importdirectorytable.get_iat_rva()+j*8
                     valueoffset = convert_rva_to_offset(iatrva, sections)
                     value = unpack(data[valueoffset:valueoffset+8])
 
                 else:
                     iltentry = unpack(data[offsetILT+j*4:offsetILT+j*4+4])
                     importbyordinal = iltentry & IMPORTTABLE.IMPORT_BY_ORDINAL_32BIT
-                    iatrva = importdirectorytable.IATRVA+j*4
+                    iatrva = importdirectorytable.get_iat_rva()+j*4
                     valueoffset = convert_rva_to_offset(iatrva, sections)
                     value = unpack(data[valueoffset:valueoffset+4])
 
@@ -387,12 +364,13 @@ class IMPORTTABLE:
                     break
 
                 # we have a forwarder:this is undocumented
-                if importdirectorytable.ForwarderChain != 0 and importdirectorytable.ForwarderChain != -1:
+                forwarder_chain = importdirectorytable.get_forwarder_chain()
+                if forwarder_chain != 0 and forwarder_chain != -1:
                     forwarderstringoffset = convert_rva_to_offset(iltentry, sections)
                     forwarderstring = readstring(data, forwarderstringoffset)
 
                     # since we have a  forwarder set it to forwarderchain
-                    importObjects.append(ImportObject(iatrva, 0, 0, forwarderstring, importdirectorytable.ForwarderChain, value))
+                    importObjects.append(ImportObject(iatrva, 0, 0, forwarderstring, forwarder_chain, value))
 
                 # import by ordinal
                 elif importbyordinal:
@@ -406,8 +384,7 @@ class IMPORTTABLE:
                     importObjects.append(ImportObject(iatrva, 0, (iltentry & 0x7FFFFFFF), hint, name, 0, value))
 
                 j += 1
-                importdirectorytable.importObjects = importObjects
-                importdirectorytable.numberOfImportObjects = j
+                importdirectorytable.set_import_objects(importObjects)
             i += 1
         self.NumberOfDLLs = i
 
@@ -908,7 +885,7 @@ class PeParser:
 
     def GetSections(self):
         NumberOfEntries = self.NTHEADER_.FILEHEADER_.get_number_of_sections()
-        out = "\n[Sections]( %d)\n" % NumberOfEntries
+        out = "\n[Sections](%d)\n" % NumberOfEntries
         out += SECTIONHEADER.get_column_titles() + "\n"
         for i in range(NumberOfEntries):
             out +=str(self.SECTIONHEADERS_[i])
@@ -995,24 +972,22 @@ class PeParser:
         import_dic = self.import_dic
         for i in range(NumberOfDLLs):
             table = self.IMPORTTABLE_.ImportDirectoryTables[i]
-            dlladdress = f"{table.NameRVA+base:x}"
-            dllname = table.nameOfDLL
+            dlladdress = f"{table.get_name_rva()+base:x}"
+            dllname = table.get_dll_name()
             out1 = dlladdress+"\t"+dllname+"\n"
             out = out+out1
-            numberofobjects = table.numberOfImportObjects
 
-            for j in range(numberofobjects):
-                out2 = ""
-                address = f"  {table.importObjects[j].IATAddressRVA + base:x}"
+            for io in table.get_import_objects():
+                address = f"  {io.IATAddressRVA + base:x}"
                 name = ""
-                if table.importObjects[j].Forwarder:
-                    name = "__forwarded__%s" % (table.importObjects[j].Name)
-                elif table.importObjects[j].Ordinal:
+                if io.Forwarder:
+                    name = "__forwarded__%s" % (io.Name)
+                elif io.Ordinal:
                     name = "__importedByOrdinal_%x" % (
-                        table.importObjects[j].Ordinal)
+                        io.Ordinal)
                 else:
-                    name = "%s" % (table.importObjects[j].Name)
-                import_dic[table.importObjects[j].IATAddressRVA +
+                    name = "%s" % (io.Name)
+                import_dic[io.IATAddressRVA +
                            base] = table.nameOfDLL+"!"+name
                 out = out+address+"\t"+name+"\n"
 
