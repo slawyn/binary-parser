@@ -34,6 +34,7 @@ class OptionalHeader:
     }
 
     def __init__(self, data):
+        Packer.set_packer_config(is_64bit=False, is_little_endian=True)
         self.DataDirectory = {}
         self.Signature = utils.unpack(data[0:2])
         if self.Signature == OptionalHeader.SIGNATURE_PE32PLUS:
@@ -92,92 +93,6 @@ class OptionalHeader:
             self.NumberOfRvaAndSizes = utils.unpack(data[92:96])
             offset = 96
 
-        # fille the Dictionary with useful information
-        exportrva = utils.unpack(data[offset:offset+4])
-        exportsz = utils.unpack(data[offset+4:offset+8])
-        if exportrva > 0:
-            self.DataDirectory["EXPORT"] = [exportrva, exportsz, None]
-
-        importrva = utils.unpack(data[offset+8:offset+12])
-        importsz = utils.unpack(data[offset+12:offset+16])
-        if importrva > 0:
-            self.DataDirectory["IMPORT"] = [importrva, importsz, None]
-
-        resourcerva = utils.unpack(data[offset+16:offset+20])
-        resourcesz = utils.unpack(data[offset+20:offset+24])
-        if resourcerva > 0:
-            self.DataDirectory["RESOURCE"] = [resourcerva, resourcesz, None]
-
-        exceptionrva = utils.unpack(data[offset+24:offset+28])
-        exceptionsz = utils.unpack(data[offset+28:offset+32])
-        if exceptionrva > 0:
-            self.DataDirectory["EXCEPTION"] = [exceptionrva, exceptionsz, None]
-
-        certificaterva = utils.unpack(data[offset+32:offset+36])
-        certificatesz = utils.unpack(data[offset+36:offset+40])
-        if certificaterva > 0:
-            self.DataDirectory["CERTIFICATE"] = [
-                certificaterva, certificatesz, None]
-
-        relocrva = utils.unpack(data[offset+40:offset+44])
-        relocsz = utils.unpack(data[offset+44:offset+48])
-        if relocrva > 0:
-            self.DataDirectory["RELOCATION"] = [relocrva, relocsz, None]
-
-        debugrva = utils.unpack(data[offset+48:offset+52])
-        debugsz = utils.unpack(data[offset+52:offset+56])
-
-        if debugrva > 0:
-            self.DataDirectory["DEBUG"] = [debugrva, debugsz, None]
-
-        architecturerva = utils.unpack(data[offset+56:offset+60])
-        architecturesz = utils.unpack(data[offset+60:offset+64])
-        if architecturerva > 0:
-            self.DataDirectory["ARCHITECTURE"] = [
-                architecturerva, architecturesz, None]
-
-        globalptrrva = utils.unpack(data[offset+64:offset+68])
-        globalptrsz = utils.unpack(data[offset+68:offset+72])
-        if globalptrrva > 0:
-            self.DataDirectory["GLOBALPTR"] = [globalptrrva, globalptrsz, None]
-
-        tlsrva = utils.unpack(data[offset+72:offset+76])
-        tlssz = utils.unpack(data[offset+76:offset+80])
-        if tlsrva > 0:
-            self.DataDirectory["TLS"] = [tlsrva, tlssz, None]
-
-        configrva = utils.unpack(data[offset+80:offset+84])
-        configsz = utils.unpack(data[offset+84:offset+88])
-        if configrva > 0:
-            self.DataDirectory["CONFIG"] = [configrva, configsz, None]
-
-        boundimportrva = utils.unpack(data[offset+88:offset+92])
-        boundimportsz = utils.unpack(data[offset+92:offset+96])
-        if boundimportrva > 0:
-            self.DataDirectory["BOUNDIMPORT"] = [
-                boundimportrva, boundimportsz, None]
-
-        iatrva = utils.unpack(data[offset+96:offset+100])
-        iatsz = utils.unpack(data[offset+100:offset+104])
-        if iatrva > 0:
-            self.DataDirectory["IAT"] = [iatrva, iatsz, None]
-
-        delayimportrva = utils.unpack(data[offset+104:offset+108])
-        delayimportsz = utils.unpack(data[offset+108:offset+112])
-        if delayimportrva > 0:
-            self.DataDirectory["DELAYIMPORT"] = [
-                delayimportrva, delayimportsz, None]
-
-        clrrva = utils.unpack(data[offset+112:offset+116])
-        clrsz = utils.unpack(data[offset+116:offset+120])
-        if clrrva > 0:
-            self.DataDirectory["META"] = [clrrva, clrsz, None]
-
-        reservedrva = utils.unpack(data[offset+120:offset+124])
-        reservedsz = utils.unpack(data[offset+124:offset+128])
-        if reservedrva > 0:
-            self.DataDirectory["RESERVED"] = [reservedrva, reservedsz, None]
-
     def __str__(self):
         out = "\n[OptionalHeader]\n"
         out += f"{'ImageBase:':30}{self.ImageBase:x}\n"
@@ -194,14 +109,4 @@ class OptionalHeader:
                 out = out+"\n\t"+cha
             shifter = shifter >> 1
 
-        out += "\n[Data Directories]\n"
-        for i in self.DataDirectory.keys():
-            section = self.DataDirectory[i][2]
-            name = "<Not found>"
-            if section != None:
-                name = section.get_formatted_name()
-            out += f"{i:10}\n"
-            out += f"  {'rva:':10} {self.DataDirectory[i][0]:x}\n"
-            out += f"  {'size:':10} {self.DataDirectory[i][1]:x}\n"
-            out += f"  {'sect:':10} {name:}\n"
-        return out
+        return out+"\n"

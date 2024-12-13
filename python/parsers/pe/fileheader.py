@@ -66,7 +66,8 @@ class FileHeader(Packer):
                 "fh_optional_header_size": fh_optional_header_size,
                 "fh_characteristics": fh_characteristics,
             },
-            always_32bit=True
+            always_32bit=True,
+            always_little_endian=True
         )
 
     def get_number_of_sections(self):

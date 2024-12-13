@@ -1,6 +1,7 @@
 import utils
 from packer import Packer
 
+
 class ProgramHeader(Packer):
     '''Program header
     '''
@@ -85,7 +86,7 @@ class ProgramHeader(Packer):
 
     def get_paddr(self):
         return self.members["ph_paddr"]
-    
+
     def get_align(self):
         return self.members["ph_align"]
 
@@ -100,7 +101,7 @@ class ProgramHeader(Packer):
 
     def get_included_sections(self):
         return self.section_headers
-    
+
     def get_column_titles():
         out = ""
         out += utils.formatter2("%-20s", "[File offset]")
@@ -124,4 +125,3 @@ class ProgramHeader(Packer):
         out += utils.formatter2("%-30s", self.members["ph_type"], table=ProgramHeader.PH_TYPE_T)
         out += utils.formatter2("%-10s", self.members["ph_flags"], table=ProgramHeader.PH_FLAGS_T, mask=True)
         return out
-

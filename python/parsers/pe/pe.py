@@ -4,6 +4,9 @@ from packer import Packer
 from parsers.pe.dosheader import DosHeader
 from parsers.pe.sectionheader import SectionHeader
 from parsers.pe.ntheader import NtHeader
+from parsers.pe.fileheader import FileHeader
+from parsers.pe.optionalheader import OptionalHeader
+from parsers.pe.directory import Directory
 from parsers.pe.directories.dir_import import ImportTable
 from parsers.pe.directories.dir_delayimport import DelayImportTable
 from parsers.pe.directories.dir_exception import ExceptionTable
@@ -22,12 +25,33 @@ class PeParser:
 
     def __init__(self, binary):
         try:
-            Packer.set_packer_config(is_64bit=False, is_little_endian=True)
             self.dos_header = DosHeader()
             self.dos_header.unpack(binary)
 
-            # next header at offset field
-            self.nt_header = NtHeader(binary[self.dos_header.get_lfanew():])
+            self.nt_header = NtHeader()
+            self.nt_header.unpack(binary[self.dos_header.get_lfanew():])
+
+            self.file_header = FileHeader()
+            self.file_header.unpack(binary[self.dos_header.get_lfanew()
+                                           + self.nt_header.get_members_size():])
+
+            self.optional_header = OptionalHeader(binary[self.dos_header.get_lfanew()
+                                                         + self.nt_header.get_members_size()
+                                                         + self.file_header.get_members_size():])
+
+            self.directory = Directory()
+            if self.optional_header.is64Bit:
+                self.directory.unpack(binary[self.dos_header.get_lfanew()
+                                             + self.nt_header.get_members_size()
+                                             + self.file_header.get_members_size()
+                                             + 112:])
+
+            else:
+                self.directory.unpack(binary[self.dos_header.get_lfanew()
+                                             + self.nt_header.get_members_size()
+                                             + self.file_header.get_members_size()
+                                             + 96:])
+
             self.section_headers = []
             self.export_table = None
             self.import_table = None
@@ -37,10 +61,10 @@ class PeParser:
 
             # FL offset + FL_SIZE+ PESignature_SIZE+PEHeader_SIZE
             offset = self.dos_header.get_lfanew()+20+4+224
-            if self.nt_header.OptionalHeader_.is64Bit:
+            if self.optional_header.is64Bit:
                 offset = self.dos_header.get_lfanew()+20+4+240  # peheader is bigger in pe32+
 
-            numberofentries = self.nt_header.FileHeader_.get_number_of_sections()
+            numberofentries = self.file_header.get_number_of_sections()
 
             # collect all section information
             for i in range(numberofentries):
@@ -48,67 +72,31 @@ class PeParser:
                 sh.unpack(binary[offset+40*i:])
                 self.section_headers.append(sh)
 
-            # x-reference  sections with data directories
-            for i in self.nt_header.OptionalHeader_.DataDirectory:
-                dd_rva = self.nt_header.OptionalHeader_.DataDirectory[i][0]
-                for j in range(numberofentries):
-                    section_rva = self.section_headers[j].get_virtual_address()
-                    section_size = self.section_headers[j].get_virtual_size()
+            self.directory.assign_section_headers(self.section_headers)
+            if td := self.directory.get_table_directory("EXPORT"):
+                self.export_table = ExportTable(binary, td.get_table_offset(), self.section_headers)
 
-                    if dd_rva >= section_rva and dd_rva <= section_rva+section_size:
-                        self.nt_header.OptionalHeader_.DataDirectory[i][2] = self.section_headers[
-                            j]
-                        break
+            if td := self.directory.get_table_directory("IMPORT"):
+                self.import_table = ImportTable(binary, td.get_table_offset(), self.section_headers, self.optional_header.is64Bit)
 
-            # Decode directories
-            for key in self.nt_header.OptionalHeader_.DataDirectory:
-                # get rva of the data directory
-                tablesrva = self.nt_header.OptionalHeader_.DataDirectory[key][0]
-                # get corresponding section in which the information resides
-                section = self.nt_header.OptionalHeader_.DataDirectory[key][2]
-                if section == None:
-                    utils.log(f"ERROR: {key} has no section")
-                    continue
+            if td := self.directory.get_table_directory("DELAYIMPORT"):
+                self.delay_import_table = DelayImportTable(binary, td.get_table_offset(), self.section_headers, self.optional_header.is64Bit)
 
-                # offset to directory table: internal use
-                tables_fileoffset = tablesrva-section.get_virtual_address() + section.get_pointer_to_raw_data()
+            if td := self.directory.get_table_directory("TLS"):
+                self.tls_table = TlsTable(binary, td.get_table_offset(), self.optional_header.is64Bit)
 
-                # parse directories
-                if key == "EXPORT":
-                    utils.log("Parsing EXPORT")
-                    self.export_table = ExportTable(
-                        binary, tables_fileoffset, self.section_headers)
-
-                elif key == "IMPORT":
-                    utils.log("Parsing IMPORT")
-                    self.import_table = ImportTable(
-                        binary, tables_fileoffset, self.section_headers, self.nt_header.OptionalHeader_.is64Bit)
-
-                elif key == "DELAYIMPORT":
-                    utils.log("Parsing DELAYIMPORT")
-                    self.delay_import_table = DelayImportTable(
-                        binary, tables_fileoffset, self.section_headers, self.nt_header.OptionalHeader_.is64Bit)
-
-                elif key == "TLS":
-                    utils.log("Parsing TLS")
-                    self.tls_table = TlsTable(binary, tables_fileoffset,
-                                              self.nt_header.OptionalHeader_.is64Bit)
-
-                elif key == "EXCEPTION":  # x64 only, on x86 the exception information is saved on the stack
-                    utils.log("Parsing EXCEPTION")
-                    self.exception_table = ExceptionTable(
-                        binary,  tables_fileoffset, self.section_headers)
-
-                else:
-                    pass
+            if td := self.directory.get_table_directory("EXCEPTION"):
+                self.exception_table = ExceptionTable(binary,  td.get_table_offset(), self.section_headers)
 
         except Exception as e:
             traceback.print_exc()
 
     def __str__(self):
         out = str(self.dos_header)
-        out += str(self.nt_header.FileHeader_)
-        out += str(self.nt_header.OptionalHeader_)
+        out += str(self.nt_header)
+        out += str(self.file_header)
+        out += str(self.optional_header)
+        out += str(self.directory)
         out += self.GetSections()
 
         # write out information about dictionaries
@@ -154,8 +142,15 @@ class PeParser:
     def getSectionFilesToDisassemble(self):
         return self.section_files_to_disassemble
 
+    def GetDirectory(self):
+        NumberOfEntries = self.directory.get_number_of_directories()
+        out = "\n[Directory](%d)\n" % NumberOfEntries
+        out += Directory.get_column_titles() + "\n"
+        out += str(self.directory)
+        return out
+
     def GetSections(self):
-        NumberOfEntries = self.nt_header.FileHeader_.get_number_of_sections()
+        NumberOfEntries = self.file_header.get_number_of_sections()
         out = "\n[Sections](%d)\n" % NumberOfEntries
         out += SectionHeader.get_column_titles() + "\n"
         for i in range(NumberOfEntries):
@@ -166,7 +161,7 @@ class PeParser:
     def GetExports(self):
         NumberOfExports = len(self.export_table.exportTable)
         table = self.export_table.exportTable
-        base = self.nt_header.OptionalHeader_.ImageBase
+        base = self.optional_header.ImageBase
         out = ""
         exports = {}
         for i in range(NumberOfExports):
@@ -194,7 +189,7 @@ class PeParser:
 
     def GetDelayImports(self):
         out = ""
-        base = self.nt_header.OptionalHeader_.ImageBase
+        base = self.optional_header.ImageBase
         delayimport_dic = self.delayimport_dic
         delayimport_stubs_dic = self.delayimport_stubs_dic
         for table in self.import_table.get_import_directory_tables():
@@ -235,7 +230,7 @@ class PeParser:
         return sections
 
     def GetImports(self):
-        base = self.nt_header.OptionalHeader_.ImageBase
+        base = self.optional_header.ImageBase
         out = "\n[Imports]\n"
         import_dic = self.import_dic
         for table in self.import_table.get_import_directory_tables():
@@ -262,7 +257,7 @@ class PeParser:
 
     def GetExceptions(self):
         NumberOfExceptions = len(self.exception_table.ExceptionObjects)
-        base = self.nt_header.OptionalHeader_.ImageBase
+        base = self.optional_header.ImageBase
         out = ""
         exception_dic = self.exception_dic
         exceptionobjects = self.exception_table.ExceptionObjects

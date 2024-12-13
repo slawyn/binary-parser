@@ -15,15 +15,21 @@ class Packer:
         else:
             self.members = members_32bit
 
+    def get_members_size(self):
+        return sum([getattr(self,  self._get(key)) for key in self.members])
+
     def get_offset(self):
         return self.start_offset
 
-    def set_packer_config(is_64bit, is_little_endian):
+    def set_offset(self, offset):
+        self.start_offset = offset
+
+    def set_packer_config(is_64bit=False, is_little_endian=False):
         Packer.is_64bit = is_64bit
         Packer.is_little_endian = is_little_endian
 
     def _unpack(self, buffer, byte=False):
-        return utils.unpack(buffer, byte=byte, little_endian=Packer.is_little_endian and self.always_little_endian)
+        return utils.unpack(buffer, byte=byte, little_endian=Packer.is_little_endian or self.always_little_endian)
 
     def _pack(self, data, size, byte=False):
         return utils.pack(data, size, byte=byte, little_endian=Packer.is_little_endian and self.always_little_endian)

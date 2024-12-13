@@ -46,7 +46,8 @@ class DosHeader(Packer):
                 "dos_reserved2": reserved2,
                 "dos_lfanew": lfanew
             },
-            always_32bit=True
+            always_32bit=True,
+            always_little_endian=True
         )
 
     def get_lfanew(self):
