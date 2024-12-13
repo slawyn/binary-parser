@@ -2,7 +2,7 @@ from packer import Packer
 import utils
 
 
-class SECTIONHEADER(Packer):
+class SectionHeader(Packer):
     SH_CHARACTERISTICS_T = {
         0x00000008: "IMAGE_SCN_TYPE_NO_PAD",
         0x00000020: "IMAGE_SCN_CNT_CODE",
@@ -42,16 +42,6 @@ class SECTIONHEADER(Packer):
     }
 
     # Define size constants
-    SH_NAME_64SZ = 8
-    SH_VIRTUAL_SIZE_64SZ = 4
-    SH_VIRTUAL_ADDRESS_64SZ = 4
-    SH_SIZE_OF_RAW_DATA_64SZ = 4
-    SH_POINTER_TO_RAW_DATA_64SZ = 4
-    SH_POINTER_TO_RELOCATIONS_64SZ = 4
-    SH_POINTER_TO_LINE_NUMBERS_64SZ = 4
-    SH_NUMBER_OF_RELOCATIONS_64SZ = 2
-    SH_NUMBER_OF_LINENUMBERS_64SZ = 2
-    SH_CHARACTERISTICS_64SZ = 4
 
     SH_NAME_SZ = 8
     SH_VIRTUAL_SIZE_SZ = 4
@@ -77,7 +67,8 @@ class SECTIONHEADER(Packer):
                 "sh_number_of_relocations": sh_number_of_relocations,
                 "sh_number_of_linenumbers": sh_number_of_linenumbers,
                 "sh_characteristics": sh_characteristics,
-            }
+            },
+            always_32bit=True
         )
 
     def get_virtual_address(self):
@@ -124,13 +115,13 @@ class SECTIONHEADER(Packer):
     def __str__(self):
         out = ""
         out += utils.formatter2("%-20s",  self.get_formatted_name())
-        out += utils.formatter2("%-20x",self.members['sh_virtual_size'])
-        out += utils.formatter2("%-20x",self.members['sh_virtual_address'])
-        out += utils.formatter2("%-20x",self.members['sh_size_of_raw_data'])
-        out += utils.formatter2("%-20x",self.members['sh_pointer_to_raw_data'])
-        out += utils.formatter2("%-20x",self.members['sh_pointer_to_relocations'])
-        out += utils.formatter2("%-20x",self.members['sh_pointer_to_line_numbers'])
-        out += utils.formatter2("%-20x",self.members['sh_number_of_relocations'])
-        out += utils.formatter2("%-30x",self.members['sh_number_of_linenumbers'])
-        out += utils.formatter2("%-30s",self.members['sh_characteristics'], table=SECTIONHEADER.SH_CHARACTERISTICS_T, mask=True)
+        out += utils.formatter2("%-20x", self.members['sh_virtual_size'])
+        out += utils.formatter2("%-20x", self.members['sh_virtual_address'])
+        out += utils.formatter2("%-20x", self.members['sh_size_of_raw_data'])
+        out += utils.formatter2("%-20x", self.members['sh_pointer_to_raw_data'])
+        out += utils.formatter2("%-20x", self.members['sh_pointer_to_relocations'])
+        out += utils.formatter2("%-20x", self.members['sh_pointer_to_line_numbers'])
+        out += utils.formatter2("%-20x", self.members['sh_number_of_relocations'])
+        out += utils.formatter2("%-30x", self.members['sh_number_of_linenumbers'])
+        out += utils.formatter2("%-30s", self.members['sh_characteristics'], table=SectionHeader.SH_CHARACTERISTICS_T, mask=True)
         return out

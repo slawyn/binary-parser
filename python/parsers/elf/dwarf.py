@@ -4,9 +4,10 @@ from packer import Packer
 
 class Tag(Packer):
 
-    def __init__(self, tag_offset, members, members64={}, always_bit32=False, start_offset=0):
+    def __init__(self, tag_offset, members, members64={}, always_32bit=False, start_offset=0):
         self.tag_offset = tag_offset
-        super().__init__(members, members_64bit=members64, always_bit32=always_bit32, start_offset=start_offset)
+        super().__init__(members, members_64bit=members64, always_32bit=always_32bit, start_offset=start_offset)
+
 
 class DW_TAG_compile_unit(Tag):
     DW_AT_PRODUCER_SZ = 4
@@ -29,11 +30,11 @@ class DW_TAG_compile_unit(Tag):
                 "DW_AT_high_pc": "",
                 "DW_AT_stmt_list": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
-    
+
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_producer", self.members["DW_AT_producer"], hex=True, pad=10)
         out += utils.formatter("DW_AT_language", self.members["DW_AT_language"], hex=True, pad=10)
         out += utils.formatter("DW_AT_name", self.members["DW_AT_name"], hex=True, pad=10)
@@ -57,11 +58,11 @@ class DW_TAG_base_type(Tag):
                 "DW_AT_encoding": "",
                 "DW_AT_name": ""
             },
-            always_bit32=True
+            always_32bit=True
         )
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_byte_size", self.members["DW_AT_byte_size"], hex=True, pad=10)
         out += utils.formatter("DW_AT_encoding", self.members["DW_AT_encoding"], hex=True, pad=10)
         out += utils.formatter("DW_AT_name", self.members["DW_AT_name"], hex=True, pad=10)
@@ -85,11 +86,11 @@ class DW_TAG_typedef(Tag):
                 "DW_AT_decl_column": "",
                 "DW_AT_type": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_name", self.members["DW_AT_name"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_file", self.members["DW_AT_decl_file"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_line", self.members["DW_AT_decl_line"], hex=True, pad=10)
@@ -107,11 +108,11 @@ class DW_TAG_const_type(Tag):
             {
                 "DW_AT_type": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_type", self.members["DW_AT_type"], hex=True, pad=10)
         return out
 
@@ -125,11 +126,11 @@ class DW_TAG_formal_parameter(Tag):
             {
                 "DW_AT_type": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_type", self.members["DW_AT_type"], hex=True, pad=10)
         return out
 
@@ -145,11 +146,11 @@ class DW_TAG_pointer_type(Tag):
                 "DW_AT_byte_size": "",
                 "DW_AT_type": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_byte_size", self.members["DW_AT_byte_size"], hex=True, pad=10)
         out += utils.formatter("DW_AT_type", self.members["DW_AT_type"], hex=True, pad=10)
         return out
@@ -172,11 +173,11 @@ class DW_TAG_structure_type(Tag):
                 "DW_AT_decl_column": "",
                 "DW_AT_sibling": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_byte_size", self.members["DW_AT_byte_size"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_file", self.members["DW_AT_decl_file"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_line", self.members["DW_AT_decl_line"], hex=True, pad=10)
@@ -204,11 +205,11 @@ class DW_TAG_member(Tag):
                 "DW_AT_type": "",
                 "DW_AT_data_member_location": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_name", self.members["DW_AT_name"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_file", self.members["DW_AT_decl_file"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_line", self.members["DW_AT_decl_line"], hex=True, pad=10)
@@ -238,12 +239,12 @@ class DW_TAG_variable_9(Tag):
                 "DW_AT_type": "",
                 "DW_AT_location": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
         self.DW_AT_external = False
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_name", self.members["DW_AT_name"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_file", self.members["DW_AT_decl_file"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_line", self.members["DW_AT_decl_line"], hex=True, pad=10)
@@ -252,6 +253,7 @@ class DW_TAG_variable_9(Tag):
         out += utils.formatter("DW_AT_external", self.DW_AT_external, hex=True, pad=10)
         out += utils.formatter("DW_AT_location", self.members["DW_AT_location"], hex=True, pad=10)
         return out
+
 
 class DW_TAG_variable_15(Tag):
     DW_AT_NAME_OFFSET = 0
@@ -274,11 +276,11 @@ class DW_TAG_variable_15(Tag):
                 "DW_AT_type": "",
                 "DW_AT_location": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_name", self.members["DW_AT_name"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_file", self.members["DW_AT_decl_file"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_line", self.members["DW_AT_decl_line"], hex=True, pad=10)
@@ -307,12 +309,12 @@ class DW_TAG_subprogram_10(Tag):
                 "DW_AT_declaration": "",
                 "DW_AT_sibling": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
         self.DW_AT_external = False
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_external", self.DW_AT_external, hex=True, pad=10)
         out += utils.formatter("DW_AT_name", self.members["DW_AT_name"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_file", self.members["DW_AT_decl_file"], hex=True, pad=10)
@@ -344,12 +346,12 @@ class DW_TAG_subprogram_11(Tag):
                 "DW_AT_declaration": "",
                 "DW_AT_sibling": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
         self.DW_AT_external = False
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_external", self.DW_AT_external, hex=True, pad=10)
         out += utils.formatter("DW_AT_name", self.members["DW_AT_name"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_file", self.members["DW_AT_decl_file"], hex=True, pad=10)
@@ -385,12 +387,12 @@ class DW_TAG_subprogram_14(Tag):
                 "DW_AT_frame_base": "",
                 "DW_AT_call_all_tail_calls": "",
             },
-            always_bit32=True
+            always_32bit=True
         )
         self.DW_AT_external = False
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("DW_AT_external", self.DW_AT_external, hex=True, pad=10)
         out += utils.formatter("DW_AT_name", self.members["DW_AT_name"], hex=True, pad=10)
         out += utils.formatter("DW_AT_decl_file", self.members["DW_AT_decl_file"], hex=True, pad=10)
@@ -414,14 +416,14 @@ class CompilationUnitHeader(Tag):
                 "cu_pointer_size": 0,
                 "cu_abbrev_offset": 0
             },
-            always_bit32=True
+            always_32bit=True
         )
 
     def get_abbrev_offset(self):
         return self.members["cu_abbrev_offset"]
 
     def __str__(self):
-        out = utils.formatter("",f"<{self.tag_offset:x}> {__class__.__name__}")
+        out = utils.formatter("", f"<{self.tag_offset:x}> {__class__.__name__}")
         out += utils.formatter("Pointer Size", self.members["cu_pointer_size"], pad=10)
         out += utils.formatter("Abbrev. Offset", self.members["cu_abbrev_offset"], pad=10)
         return out
@@ -463,7 +465,7 @@ class CompilationUnit(Packer):
                 "cu_length": 0,
                 "cu_version": 0,
                 "cu_unit_type": 0
-            },  always_bit32=True
+            },  always_32bit=True
         )
 
         self.abbreviations = []
@@ -474,7 +476,7 @@ class CompilationUnit(Packer):
 
         if self.members["cu_version"] not in CompilationUnit.SUPPORTED_VERSIONS or self.members["cu_unit_type"] not in CompilationUnit.DW_UNIT_TYPES:
             raise Exception(f'ERROR: unsupported Compilation Unit version:{self.members["cu_version"]} unit:{self.members["cu_unit_type"]}')
-        
+
         self.cu_header = CompilationUnitHeader(offset)
         offset += self.cu_header.unpack(buffer[offset:])
         offset += self.cu_header.get_abbrev_offset()
@@ -487,15 +489,15 @@ class CompilationUnit(Packer):
         return buffer
 
     def _parse_compile_unit(self, buffer, offset, end_offset):
-            while offset < end_offset:
-                type = buffer[offset]
-                offset += 1
-                if type in CompilationUnit.COMPILATION_UNITS:
-                    cu = CompilationUnit.COMPILATION_UNITS[type](offset)
-                    offset += cu.unpack(buffer[offset:])
-                    self.compile_units.append(cu)
-                elif type != CompilationUnit.DW_TAG_termination_zero and type != CompilationUnit.DW_TAG_unspecified_parameters:
-                    raise Exception(f"ERROR: unknown compilation unit {type:x} at [{offset:x}]  {utils.format_array(buffer[offset:end_offset])}")
+        while offset < end_offset:
+            type = buffer[offset]
+            offset += 1
+            if type in CompilationUnit.COMPILATION_UNITS:
+                cu = CompilationUnit.COMPILATION_UNITS[type](offset)
+                offset += cu.unpack(buffer[offset:])
+                self.compile_units.append(cu)
+            elif type != CompilationUnit.DW_TAG_termination_zero and type != CompilationUnit.DW_TAG_unspecified_parameters:
+                raise Exception(f"ERROR: unknown compilation unit {type:x} at [{offset:x}]  {utils.format_array(buffer[offset:end_offset])}")
 
     def __str__(self):
         out = utils.formatter("", __class__.__name__)

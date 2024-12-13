@@ -1,15 +1,16 @@
 import utils
 
+
 class Packer:
     is_64bit = False
     is_little_endian = False
 
-    def __init__(self, members_32bit, members_64bit={}, start_offset=0, always_bit32=False, always_little_endian=True):
-        self.always_bit32 = always_bit32
+    def __init__(self, members_32bit, members_64bit={}, start_offset=0, always_32bit=False, always_little_endian=True):
+        self.always_32bit = always_32bit
         self.always_little_endian = always_little_endian
         self.start_offset = start_offset
 
-        if not self.always_bit32 and Packer.is_64bit and members_64bit:
+        if not self.always_32bit and Packer.is_64bit and members_64bit:
             self.members = members_64bit
         else:
             self.members = members_32bit
@@ -26,10 +27,10 @@ class Packer:
 
     def _pack(self, data, size, byte=False):
         return utils.pack(data, size, byte=byte, little_endian=Packer.is_little_endian and self.always_little_endian)
-    
+
     def _get(self, key):
-        return key.upper() + "_64SZ" if not self.always_bit32 and Packer.is_64bit else key.upper() + "_SZ"
-    
+        return key.upper() + "_64SZ" if not self.always_32bit and Packer.is_64bit else key.upper() + "_SZ"
+
     def _is_variable_length(self, key):
         return hasattr(self, key.upper() + "_V")
 

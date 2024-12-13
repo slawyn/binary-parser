@@ -1,6 +1,7 @@
 import utils
 from packer import Packer
 
+
 class ElfIdent(Packer):
     ELF_MAGIC = 0x7F454C46
     EI_MAGIC_SZ = 4
@@ -48,7 +49,7 @@ class ElfIdent(Packer):
                 "ei_abiversion": 0,
                 "ei_pad": 0
             },
-            always_bit32=True,
+            always_32bit=True,
             always_little_endian=False
         )
 

@@ -9,6 +9,12 @@ STRUCT_FORMAT = {1: "B", 2: "H", 4: "I", 8: "Q"}
 STRUCT_FORMAT_SIGNED = {1: "b", 2: "h", 4: "i", 8: "q"}
 
 
+def convert_rva_to_offset(address, sections):
+    for section in sections:
+        if address >= section.get_virtual_address() and address <= (section.get_virtual_address()+section.get_virtual_size()):
+            return (address - section.get_virtual_address()) + section.get_pointer_to_raw_data()
+
+
 def log(*args):
     global tsc_prev
     global pQueue
@@ -26,7 +32,8 @@ def log(*args):
 
 
 def get_alignment_count(address, alignment):
-    return ((address + (alignment - 1)) &   ~(alignment-1)) - address
+    return ((address + (alignment - 1)) & ~(alignment-1)) - address
+
 
 def read_binary(file_path):
     with open(file_path, 'rb') as f:
@@ -85,7 +92,7 @@ def pack(data, size, byte=False, little_endian=True, unsigned=True):
         if little_endian:
             return struct.pack(f"<{len(data)}B", *data)
         return struct.pack(f">{len(data)}B", *data)
-    
+
     if unsigned:
         if little_endian:
             return struct.pack("<" + STRUCT_FORMAT[size], data)
@@ -108,6 +115,7 @@ def readstring(data, offset):
         i += 1
 
     return string
+
 
 def read_json(filename):
     with open(filename, 'r') as fo:
@@ -145,23 +153,24 @@ def convert_list_to_bytes(int_list):
 def convert_int_to_list(integer, little_endian=True):
     if little_endian:
         return [integer >> 24, integer >> 16 & 0xFF, integer >> 8 & 0xFF, integer & 0xFF]
-    
+
     return [integer & 0xFF, integer >> 8 & 0xFF, integer >> 16 & 0xFF, integer >> 24]
 
 
 def convert_long_to_list(long, little_endian=True):
-    converted = [long & 0xFF, long >> 8 & 0xFF, long >> 16 & 0xFF, long >> 24& 0xFF, long >> 32& 0xFF,long >> 40& 0xFF,long >> 48& 0xFF,long >> 56& 0xFF]
+    converted = [long & 0xFF, long >> 8 & 0xFF, long >> 16 & 0xFF, long >> 24 & 0xFF, long >> 32 & 0xFF, long >> 40 & 0xFF, long >> 48 & 0xFF, long >> 56 & 0xFF]
     if not little_endian:
         return list(reversed(converted))
-    
+
     return converted
+
 
 def convert_long_to_str(long):
     out = ""
     for x in convert_long_to_list(long):
         if x == 0:
             break
-        out +=chr(x)
+        out += chr(x)
 
     return out
 
@@ -183,11 +192,13 @@ def compare(first, second):
 
     return True
 
+
 def format_array(_list):
     out = ""
     for element in _list:
-        out +=hex(element) + " "
+        out += hex(element) + " "
     return out
+
 
 def bytes_to_int_array(byte_data, int_size=1):
     if len(byte_data) % int_size != 0:
@@ -195,6 +206,7 @@ def bytes_to_int_array(byte_data, int_size=1):
 
     format_string = f"<{len(byte_data) // int_size}{int_size}B"
     return struct.unpack(format_string, byte_data)
+
 
 def formatter(string, value, table=None, hex=False, mask=False, pad=0):
     if value == b'':
@@ -228,11 +240,12 @@ def formatter(string, value, table=None, hex=False, mask=False, pad=0):
         return f"{string:40} {value:x}\n"
     else:
         return f"{string:40} {value}\n"
-    
+
+
 def formatter2(format, value, table=None, mask=False):
     if value == b'':
         return value
-    
+
     _value = value
     if table != None:
         out = ""

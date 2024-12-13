@@ -1,7 +1,8 @@
 from packer import Packer
 import utils
 
-class DOSHEADER(Packer):
+
+class DosHeader(Packer):
     DOS_SIGNATURE_SZ = 2
     DOS_CBLP_SZ = 2
     DOS_CP_SZ = 2
@@ -22,7 +23,6 @@ class DOSHEADER(Packer):
     DOS_RESERVED2_SZ = 20
     DOS_LFANEW_SZ = 4
 
-
     def __init__(self, signature=0, cblp=0, cp=0, crlc=0, cparhdr=0, minalloc=0, maxalloc=0, ss=0, sp=0, checksum=0, ip=0, cs=0, lfarlc=0, noverlay=0, reserved1=None, oemid=0, oeminfo=0, reserved2=None, lfanew=0):
         super().__init__(
             {
@@ -38,21 +38,21 @@ class DOSHEADER(Packer):
                 "dos_checksum":   checksum,
                 "dos_ip":        ip,
                 "dos_cs":         cs,
-                "dos_lfarlc":lfarlc,
-                "dos_noverlay":noverlay,
-                "dos_reserved1":reserved1,
-                "dos_oemid":oemid,
-                "dos_oeminfo":oeminfo,
-                "dos_reserved2":reserved2,
-                "dos_lfanew":lfanew 
-            }
+                "dos_lfarlc": lfarlc,
+                "dos_noverlay": noverlay,
+                "dos_reserved1": reserved1,
+                "dos_oemid": oemid,
+                "dos_oeminfo": oeminfo,
+                "dos_reserved2": reserved2,
+                "dos_lfanew": lfanew
+            },
+            always_32bit=True
         )
 
     def get_lfanew(self):
         return self.members['dos_lfanew']
 
-
     def __str__(self):
-        out = "\n[DOSHEADER]\n"
+        out = "\n[DosHeader]\n"
         out += utils.formatter("Signature:", self.members['dos_signature'], hex=True)
         return out

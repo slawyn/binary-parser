@@ -1,7 +1,8 @@
 import utils
 from packer import Packer
 
-class FILEHEADER(Packer):
+
+class FileHeader(Packer):
     FH_MACHINE_SZ = 2
     FH_NUMBER_OF_SECTIONS_SZ = 2
     FH_TIMESTAMP_SZ = 4
@@ -55,7 +56,7 @@ class FILEHEADER(Packer):
         0x8000: "IMAGE_FILE_BYTES_REVERSED_HI"}
 
     def __init__(self, fh_machine=0, fh_number_of_sections=0, fh_timestamp=0, fh_pointer_to_symboltable=0, fh_number_of_symbols=0, fh_optional_header_size=0, fh_characteristics=0):
-            super().__init__(
+        super().__init__(
             {
                 "fh_machine": fh_machine,
                 "fh_number_of_sections": fh_number_of_sections,
@@ -64,20 +65,20 @@ class FILEHEADER(Packer):
                 "fh_number_of_symbols": fh_number_of_symbols,
                 "fh_optional_header_size": fh_optional_header_size,
                 "fh_characteristics": fh_characteristics,
-            }
+            },
+            always_32bit=True
         )
-            
 
     def get_number_of_sections(self):
         return self.members["fh_number_of_sections"]
 
     def __str__(self):
-        out = "\n[FILEHEADER]\n"
-        out += utils.formatter("Machine:", self.members['fh_machine'], table=FILEHEADER.FH_MACHINE_T)
+        out = "\n[FileHeader]\n"
+        out += utils.formatter("Machine:", self.members['fh_machine'], table=FileHeader.FH_MACHINE_T)
         out += utils.formatter("NumberOfSections:", self.members['fh_number_of_sections'], hex=True)
         out += utils.formatter("TimeDateStamp:", self.members['fh_timestamp'], hex=True)
         out += utils.formatter("PointerToSymbolTable:", self.members['fh_pointer_to_symboltable'], hex=True)
         out += utils.formatter("NumberOfSymbols:", self.members['fh_number_of_symbols'], hex=True)
         out += utils.formatter("SizeOfOptionalHeader:", self.members['fh_optional_header_size'], hex=True)
-        out += utils.formatter("Characteristics:", self.members['fh_characteristics'], table=FILEHEADER.FH_CHARACTERISTICS_T, mask=True)
+        out += utils.formatter("Characteristics:", self.members['fh_characteristics'], table=FileHeader.FH_CHARACTERISTICS_T, mask=True)
         return out
