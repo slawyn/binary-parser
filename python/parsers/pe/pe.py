@@ -15,7 +15,6 @@ from parsers.pe.directories.dir_tls import TlsTable
 
 
 class PeParser:
-    export_dic = {}
     import_dic = {}
     delayimport_dic = {}
     delayimport_stubs_dic = {}
@@ -35,9 +34,10 @@ class PeParser:
             self.file_header.unpack(binary[self.dos_header.get_lfanew()
                                            + self.nt_header.get_members_size():])
 
-            self.optional_header = OptionalHeader(binary[self.dos_header.get_lfanew()
-                                                         + self.nt_header.get_members_size()
-                                                         + self.file_header.get_members_size():])
+            self.optional_header = OptionalHeader()
+            self.optional_header.unpack(binary[self.dos_header.get_lfanew()
+                                               + self.nt_header.get_members_size()
+                                               + self.file_header.get_members_size():])
 
             self.directory = Directory()
             if self.optional_header.is64Bit:
@@ -64,10 +64,8 @@ class PeParser:
             if self.optional_header.is64Bit:
                 offset = self.dos_header.get_lfanew()+20+4+240  # peheader is bigger in pe32+
 
-            numberofentries = self.file_header.get_number_of_sections()
-
             # collect all section information
-            for i in range(numberofentries):
+            for i in range(self.file_header.get_number_of_sections()):
                 sh = SectionHeader()
                 sh.unpack(binary[offset+40*i:])
                 self.section_headers.append(sh)
@@ -97,9 +95,12 @@ class PeParser:
         out += str(self.file_header)
         out += str(self.optional_header)
         out += str(self.directory)
-        out += self.GetSections()
+        out += f"\n[Sections]({len(self.section_headers)})\n"
+        out += SectionHeader.get_column_titles() + "\n"
+        for sh in self.section_headers:
+            out += str(sh)
+            out += "\n"
 
-        # write out information about dictionaries
         if self.delay_import_table:
             out += self.GetDelayImports()
 
@@ -142,26 +143,10 @@ class PeParser:
     def getSectionFilesToDisassemble(self):
         return self.section_files_to_disassemble
 
-    def GetDirectory(self):
-        NumberOfEntries = self.directory.get_number_of_directories()
-        out = "\n[Directory](%d)\n" % NumberOfEntries
-        out += Directory.get_column_titles() + "\n"
-        out += str(self.directory)
-        return out
-
-    def GetSections(self):
-        NumberOfEntries = self.file_header.get_number_of_sections()
-        out = "\n[Sections](%d)\n" % NumberOfEntries
-        out += SectionHeader.get_column_titles() + "\n"
-        for i in range(NumberOfEntries):
-            out += str(self.section_headers[i])
-            out += "\n"
-        return out
-
     def GetExports(self):
         NumberOfExports = len(self.export_table.exportTable)
         table = self.export_table.exportTable
-        base = self.optional_header.ImageBase
+        base = self.optional_header.get_image_base()
         out = ""
         exports = {}
         for i in range(NumberOfExports):
@@ -218,9 +203,6 @@ class PeParser:
 
         return out
 
-    def GetNameToAddressDics(self):
-        return self.export_dic, self.import_dic, self.delayimport_dic, self.delayimport_stubs_dic, self.tls_dic, self.exception_dic
-
     def GetCodeSections(self):
         sections = []
         for sh in self.section_headers:
@@ -230,7 +212,7 @@ class PeParser:
         return sections
 
     def GetImports(self):
-        base = self.optional_header.ImageBase
+        base = self.optional_header.get_image_base()
         out = "\n[Imports]\n"
         import_dic = self.import_dic
         for table in self.import_table.get_import_directory_tables():
@@ -257,7 +239,7 @@ class PeParser:
 
     def GetExceptions(self):
         NumberOfExceptions = len(self.exception_table.ExceptionObjects)
-        base = self.optional_header.ImageBase
+        base = self.optional_header.get_image_base()
         out = ""
         exception_dic = self.exception_dic
         exceptionobjects = self.exception_table.ExceptionObjects

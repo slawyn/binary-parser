@@ -94,7 +94,7 @@ class Directory(Packer):
         return Directory.DIRECTORY_COUNT
 
     def __str__(self):
-        out = f"[Directory]({len(self.directory_tables)})\n"
+        out = f"\n[Directory]({len(self.directory_tables)})\n"
         out += utils.formatter2("%-20s", "[Name]")
         out += utils.formatter2("%-20s", "[RVA]")
         out += utils.formatter2("%-20s", "[Size]")

@@ -86,18 +86,6 @@ class SectionHeader(Packer):
     def get_formatted_name(self):
         return utils.convert_long_to_str(self.members['sh_name'])
 
-    def GetCharacteristics(self):
-        out = "Characteristics :"
-        characteristics = self.Characteristics
-        shifter = 0x80000000
-        while shifter != 0:
-            if shifter & characteristics in self._characteristictypes.keys():
-                cha = self._characteristictypes[shifter & characteristics]
-                out = out + "\n\t\t" + cha
-            shifter = shifter >> 1
-        out = out + "\n"
-        return out
-
     def get_column_titles():
         out = ""
         out += utils.formatter2("%-20s", "[Name]")
