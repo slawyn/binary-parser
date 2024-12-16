@@ -2,45 +2,75 @@ from packer import Packer
 import utils
 
 
-class TLSObject:
-    def __init__(self, data, offset,  mode):
-        idx = 16
-        if mode:
-            self.RawDataStartVA = utils.unpack(data[0+offset:8+offset])
-            self.RawDataEndVA = utils.unpack(data[8+offset:16+offset])
-            self.AddressOfIndex = utils.unpack(data[16+offset:24+offset])
-            self.AddressOfCallbacks = utils.unpack(data[24+offset:32+offset])
-            idx = 32
+class TlsObject(Packer):
+    TLS_RAWDATA_START_VA_SZ = 4
+    TLS_RAWDATA_END_VA_SZ = 4
+    TLS_ADDRESS_OF_INDEX_SZ = 4
+    TLS_ADDRESS_OF_CALLBACKS_SZ = 4
+    TLS_SIZE_OF_ZEROFILL_SZ = 4
+    TLS_CHARACTERISTICS_SZ = 8
 
-        else:
+    TLS_RAWDATA_START_VA_64SZ = 8
+    TLS_RAWDATA_END_VA_64SZ = 8
+    TLS_ADDRESS_OF_INDEX_64SZ = 8
+    TLS_ADDRESS_OF_CALLBACKS_64SZ = 8
+    TLS_SIZE_OF_ZEROFILL_64SZ = 4
+    TLS_CHARACTERISTICS_64SZ = 8
 
-            self.RawDataStartVA = utils.unpack(data[offset:offset+4])
-            self.RawDataEndVA = utils.unpack(data[4+offset:8+offset])
-            self.AddressOfIndex = utils.unpack(data[8+offset:12+offset])
-            self.AddressOfCallbacks = utils.unpack(data[12+offset:16+offset])
+    def __init__(self, tls_rawdata_start_va=0, tls_rawdata_end_va=0,  tls_address_of_index=0, tls_address_of_callbacks=0, tls_size_of_zerofill=0, tls_characteristics=0):
+        super().__init__(
+            {
+                "tls_rawdata_start_va": tls_rawdata_start_va,
+                "tls_rawdata_end_va": tls_rawdata_end_va,
+                "tls_address_of_index": tls_address_of_index,
+                "tls_address_of_callbacks": tls_address_of_callbacks,
+                "tls_size_of_zerofill": tls_size_of_zerofill,
+                "tls_characteristics": tls_characteristics
+            }
+        )
 
-        self.SizeOfZeroFill = utils.unpack(data[offset+idx:offset+idx+4])
-        self.Characteristics = utils.unpack(data[offset+idx+4:offset+idx+8])
-        if (self.RawDataStartVA | self.RawDataEndVA | self.AddressOfIndex | self.AddressOfCallbacks | self.SizeOfZeroFill | self.Characteristics) == 0:
-            self.isEmpty = True
-        else:
-            self.isEmpty = False
+    def is_empty(self):
+        return self.members["tls_rawdata_start_va"] | self.members["tls_rawdata_end_va"] | self.members["tls_address_of_index"] | self.members["tls_address_of_callbacks"] | self.members["tls_size_of_zerofill"] | self.members["tls_characteristics"] == 0
+
+    @staticmethod
+    def get_column_titles():
+        out = ""
+        out += utils.formatter2("%-20s", "[Start VA]")
+        out += utils.formatter2("%-20s", "[End VA]")
+        out += utils.formatter2("%-20s", "[Address of Index]")
+        out += utils.formatter2("%-20s", "[Address of Callbacks]")
+        out += utils.formatter2("%-20s", "[Size of Zerofill]")
+        out += utils.formatter2("%-20s", "[Characteristics]")
+        return out
+
+    def __str__(self):
+        out = ""
+        out += utils.formatter2("%-20x", self.members["tls_rawdata_start_va"])
+        out += utils.formatter2("%-20x", self.members["tls_rawdata_end_va"])
+        out += utils.formatter2("%-20x", self.members["tls_address_of_index"])
+        out += utils.formatter2("%-20x", self.members["tls_address_of_callbacks"])
+        out += utils.formatter2("%-20x", self.members["tls_size_of_zerofill"])
+        out += utils.formatter2("%-20x", self.members["tls_characteristics"])
+        return out
 
 
 class TlsTable:
-    def __init__(self, data, tables_fileoffset, mode):
-        self.TLSObjects = []
-        i = 0
-
-        offset = 24
-        if mode:
-            offset = 40
-
-        #
+    def __init__(self, data, offset):
+        self.tls_objects = []
         while True:
-            object = TLSObject(data, tables_fileoffset+offset*i, mode)
+            object = TlsObject()
+            object.set_offset(offset)
+            offset = object.unpack(data)
 
-            i = i+1
-            if object.isEmpty:
+            if object.is_empty():
                 break
-            self.TLSObjects.append(object)
+            self.tls_objects.append(object)
+
+    def __str__(self):
+        out = f"\n[TLS]({len(self.tls_objects)})\n"
+        out += TlsObject.get_column_titles()
+        out += "\n"
+        for object in self.tls_objects:
+            out += str(object)
+            out += "\n"
+        return out

@@ -22,13 +22,13 @@ class ImportDirectoryTable(Packer):
             always_32bit=True
         )
         self.importObjects = []
-        self.nameOfDLL = ""
+        self.dll_name = ""
 
     def set_dll_name(self, name):
-        self.nameOfDLL = name
+        self.dll_name = name
 
     def get_dll_name(self):
-        return self.nameOfDLL
+        return self.dll_name
 
     def is_empty(self):
         return self.members["idt_ilt_rva"] | self.members["idt_timestamp"] | self.members["idt_forwarder_chain"] | self.members["idt_name_rva"] | self.members["idt_iat_rva"] == 0
@@ -53,7 +53,7 @@ class ImportDirectoryTable(Packer):
 
     def __str__(self):
         out = ""
-        out += utils.formatter("DLL:", self.nameOfDLL)
+        out += utils.formatter("DLL:", self.dll_name)
         out += utils.formatter("ILTRVA:", self.members["idt_ilt_rva"])
         out += utils.formatter("TimeStamp:", self.members["idt_timestamp"])
         out += utils.formatter("ForwarderChain:", self.members["idt_forwarder_chain"], hex=True)

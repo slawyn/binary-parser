@@ -3,22 +3,96 @@ import utils
 from parsers.pe.directories.shared import ImportObject
 
 
-class DelayImportDescriptor:
-    def __init__(self, data, offset):
-        self.numberOfImportObjects = 0
-        self.importObjects = []
-        self.Attributes = utils.unpack(data[0+offset:4+offset])
-        self.NameRVA = utils.unpack(data[4+offset:8+offset])
-        self.ModuleHandle = utils.unpack(data[8+offset:12+offset])
-        self.DelayIAT = utils.unpack(data[12+offset:16+offset])
-        self.DelayINT = utils.unpack(data[16+offset:20+offset])
-        self.BoundDelayImportTable = utils.unpack(data[20+offset:24+offset])
-        self.UnloadDelayImportTable = utils.unpack(data[24+offset:28+offset])
-        self.TimeStamp = utils.unpack(data[28+offset:32+offset])
-        if (self.Attributes | self.NameRVA | self.ModuleHandle | self.DelayINT | self.DelayIAT | self.BoundDelayImportTable | self.UnloadDelayImportTable | self.TimeStamp) == 0:
-            self.isEmpty = True
-        else:
-            self.isEmpty = False
+class DelayImportDescriptor(Packer):
+    DID_ATTRIBUTES_SZ = 4
+    DID_NAME_RVA_SZ = 4
+    DID_MODULE_HANDLE_SZ = 4
+    DID_DELAY_IAT_SZ = 4
+    DID_DELAY_INT_SZ = 4
+    DID_BOUND_DELAY_IMPORT_TABLE_SZ = 4
+    DID_UNLOAD_DELAY_IMPORT_TABLE_SZ = 4
+    DID_TIMESTAMP_SZ = 4
+
+    def __init__(
+        self, did_attributes=0,
+        did_name_rva=0,
+        did_module_handle=0,
+        did_delay_iat=0,
+        did_delay_int=0,
+        did_bound_delay_import_table=0,
+        did_unload_delay_import_table=0,
+        did_timestamp=0
+    ):
+        super().__init__(
+            {
+                "did_attributes": did_attributes,
+                "did_name_rva": did_name_rva,
+                "did_module_handle": did_module_handle,
+                "did_delay_iat": did_delay_iat,
+                "did_delay_int": did_delay_int,
+                "did_bound_delay_import_table": did_bound_delay_import_table,
+                "did_unload_delay_import_table": did_unload_delay_import_table,
+                "did_timestamp": did_timestamp
+            },
+            always_32bit=True
+        )
+        self.did_importObjects = []
+        self.dll_name = ""
+
+    def set_dll_name(self, name):
+        self.dll_name = name
+
+    def get_dll_name(self):
+        return self.dll_name
+
+    def set_import_objects(self, did_import_objects):
+        self.did_importObjects = did_import_objects
+
+    def get_import_objects(self):
+        return self.did_importObjects
+
+    def is_empty(self):
+        return all(value == 0 for value in self.members.values())
+
+    def get_attributes(self):
+        return self.members["did_attributes"]
+
+    def get_name_rva(self):
+        return self.members["did_name_rva"]
+
+    def get_module_handle(self):
+        return self.members["did_module_handle"]
+
+    def get_delay_iat(self):
+        return self.members["did_delay_iat"]
+
+    def get_delay_int(self):
+        return self.members["did_delay_int"]
+
+    def get_bound_delay_import_table(self):
+        return self.members["did_bound_delay_import_table"]
+
+    def get_unload_delay_import_table(self):
+        return self.members["did_unload_delay_import_table"]
+
+    def get_timestamp(self):
+        return self.members["did_timestamp"]
+
+    def is_empty(self):
+        return self.members["did_attributes"] | self.members["did_name_rva"] | self.members["did_module_handle"] | self.members["did_delay_iat"] | self.members["did_delay_int"] | self.members["did_bound_delay_import_table"] | self.members["did_unload_delay_import_table"] | self.members["did_timestamp"] == 0
+
+    def __str__(self):
+        out = ""
+        out += utils.formatter("DLL:", self.dll_name)
+        out += utils.formatter("Attributes:", self.members["did_attributes"])
+        out += utils.formatter("NameRVA:", self.members["did_name_rva"])
+        out += utils.formatter("ModuleHandle:", self.members["did_module_handle"])
+        out += utils.formatter("DelayIAT:", self.members["did_delay_iat"])
+        out += utils.formatter("DelayINT:", self.members["did_delay_int"])
+        out += utils.formatter("BoundDelayImportTable:", self.members["did_bound_delay_import_table"])
+        out += utils.formatter("UnloadDelayImportTable:", self.members["did_unload_delay_import_table"])
+        out += utils.formatter("TimeStamp:", self.members["did_timestamp"])
+        return out
 
 
 class DelayImportTable:
@@ -27,25 +101,25 @@ class DelayImportTable:
 
         i = 0
         while True:
-            delaytable = DelayImportDescriptor(data, tables_fileoffset+32*i)
-            if delaytable.isEmpty:
+            delaytable = DelayImportDescriptor()
+            delaytable.unpack(data[tables_fileoffset+32*i:])
+            if delaytable.is_empty():
                 break
 
-            nameoffset = utils.convert_rva_to_offset(delaytable.NameRVA, sections)
-            delaytable.nameOfDLL = utils.readstring(data, nameoffset)
+            nameoffset = utils.convert_rva_to_offset(delaytable.get_name_rva(), sections)
+            delaytable.set_dll_name(utils.readstring(data, nameoffset))
 
             self.import_directory_tables.append(delaytable)
 
             j = 0
-            namesoffset = utils.convert_rva_to_offset(delaytable.DelayINT, sections)
+            namesoffset = utils.convert_rva_to_offset(delaytable.get_delay_int(), sections)
             importObjects = []
             importObjectsappend = importObjects.append
 
-            delayIAT = delaytable.DelayIAT
+            delayIAT = delaytable.get_delay_iat()
             delayimportdescriptor = self.import_directory_tables[i]
 
             while True:
-                function = 0
                 intentry = 0
                 iatrva = 0
                 importbyordinal = 0

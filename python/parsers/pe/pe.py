@@ -81,7 +81,7 @@ class PeParser:
                 self.delay_import_table = DelayImportTable(binary, td.get_table_offset(), self.section_headers, self.optional_header.is64Bit)
 
             if td := self.directory.get_table_directory("TLS"):
-                self.tls_table = TlsTable(binary, td.get_table_offset(), self.optional_header.is64Bit)
+                self.tls_table = TlsTable(binary, td.get_table_offset())
 
             if td := self.directory.get_table_directory("EXCEPTION"):
                 self.exception_table = ExceptionTable(binary,  td.get_table_offset(), self.section_headers)
@@ -111,7 +111,7 @@ class PeParser:
             out += self.GetExports()
 
         if self.tls_table:
-            out += self.GetTLSCallbacks()
+            out += str(self.tls_table)
 
         if self.exception_table:
             out += self.GetExceptions()
@@ -160,45 +160,29 @@ class PeParser:
             out = out+address+"\t"+name+"\n"
         return out
 
-    def GetTLSCallbacks(self):
-        NumberOfCallbacks = len(self.tls_table.TLSObjects)
-        table = self.tls_table.TLSObjects
-        out = ""
-        tls_dic = self.tls_dic
-        for i in range(NumberOfCallbacks):
-            address = "0x%x" % (table[i].AddressOfCallbacks)
-            name = "__TLS_Callback_%x" % (table[i].AddressOfCallbacks)
-            tls_dic[table[i].AddressOfCallbacks] = name
-            out = out+address+"\t"+name+"\n"
-        return out
-
     def GetDelayImports(self):
-        out = ""
-        base = self.optional_header.ImageBase
+        out = "[DelayImports]\n"
+        base = self.optional_header.get_image_base()
         delayimport_dic = self.delayimport_dic
         delayimport_stubs_dic = self.delayimport_stubs_dic
         for table in self.import_table.get_import_directory_tables():
-            dlladdress = "0x%x" % (table.NameRVA+base)
-            dllname = "#"+table.nameOfDLL
+            dlladdress = "0x%x" % (table.get_name_rva()+base)
+            dllname = "#"+table.get_dll_name()
             out1 = dlladdress+"\t"+dllname+"\n"
             out = out+out1
-            numberofobjects = table.numberOfImportObjects
 
-            for j in range(numberofobjects):
+            for io in table.get_import_objects():
                 out2 = ""
-                address = "0x%x" % (table.importObjects[j].IATAddressRVA+base)
-                value = "0x%x" % (table.importObjects[j].value)
+                address = "0x%x" % (io.IATAddressRVA+base)
+                value = "0x%x" % (io.value)
                 name = ""
-                if table.importObjects[j].Ordinal:
-                    name = "__importedByOrdinal_%x" % (
-                        table.importObjects[j].Ordinal)
+                if io.Ordinal:
+                    name = "__importedByOrdinal_%x" % (io.Ordinal)
                 else:
-                    name = "%s" % (table.importObjects[j].Name)
+                    name = "%s" % (io.Name)
 
-                delayimport_dic[table.importObjects[j].IATAddressRVA +
-                                base] = table.nameOfDLL+"!"+name
-                delayimport_stubs_dic[table.importObjects[j]
-                                      .value] = table.nameOfDLL+"!"+name+"__stub"
+                delayimport_dic[io.IATAddressRVA + base] = table.dll_name+"!"+name
+                delayimport_stubs_dic[io.value] = table.dll_name+"!"+name+"__stub"
                 out = out+address+"\t"+value+"\t"+name+"\n"
 
         return out
@@ -232,7 +216,7 @@ class PeParser:
                 else:
                     name = "%s" % (io.Name)
                 import_dic[io.IATAddressRVA +
-                           base] = table.nameOfDLL+"!"+name
+                           base] = table.dll_name+"!"+name
                 out = out+address+"\t"+name+"\n"
 
         return out
