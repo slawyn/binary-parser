@@ -28,8 +28,14 @@ class OptionalHeader(Packer):
             raise Exception(f"ERROR: Unknown PE32 Signature {self.members['oh_signature']}")
 
         self.opt_header = OptionalHeaderSub()
-        self.opt_header.set_offset(2)
-        self.opt_header.unpack(buffer)
+        self.opt_header.set_offset(self.get_offset() + super().get_members_size())
+        return self.opt_header.unpack(buffer)
+
+    def set_offset(self, offset):
+        super().set_offset(offset)
+
+    def get_members_size(self):
+        return super().get_members_size() + self.opt_header.get_members_size()
 
     def get_image_base(self):
         return self.opt_header.get_image_base()

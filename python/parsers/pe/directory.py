@@ -15,9 +15,9 @@ class DirectoryTable(Packer):
             always_32bit=True,
             always_little_endian=True
         )
-        self.section_header = None
+        self.section_header = []
 
-    def assign_section(self, section_header):
+    def set_section(self, section_header):
         self.section_header = section_header
 
     def has_section(self):
@@ -64,16 +64,20 @@ class Directory(Packer):
         }
 
     def unpack(self, buffer):
-        offset = 0
+        offset = self.get_offset()
         for key, dt in self.directory_tables.items():
             dt.set_offset(offset)
             offset = dt.unpack(buffer)
+        return offset
 
     def pack(self):
         buffer = []
         for key, dt in self.directory_tables.items():
             buffer.extend(dt.pack())
         return buffer
+
+    def get_members_size(self):
+        return Directory.DIRECTORY_COUNT * self.directory_tables["EXPORT"].get_members_size()
 
     def get_table_directory(self, name):
         dt = self.directory_tables[name]
@@ -87,7 +91,7 @@ class Directory(Packer):
                 sh_rva = sh.get_virtual_address()
                 sh_size = sh.get_virtual_size()
                 if rva >= sh_rva and rva <= sh_rva+sh_size:
-                    dt.assign_section(sh)
+                    dt.set_section(sh)
                     break
 
     def get_number_of_directories(self):

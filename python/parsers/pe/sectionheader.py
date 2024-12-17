@@ -113,3 +113,30 @@ class SectionHeader(Packer):
         out += utils.formatter2("%-30x", self.members['sh_number_of_linenumbers'])
         out += utils.formatter2("%-30s", self.members['sh_characteristics'], table=SectionHeader.SH_CHARACTERISTICS_T, mask=True)
         return out
+
+
+class SectionTable:
+    def __init__(self, count):
+        self.section_headers = []
+        self.count = count
+
+    def set_offset(self, offset):
+        self.offset = offset
+
+    def get_section_headers(self):
+        return self.section_headers
+
+    def unpack(self, data):
+        for i in range(self.count):
+            sh = SectionHeader()
+            sh.set_offset(self.offset + sh.get_members_size() * i)
+            sh.unpack(data)
+            self.section_headers.append(sh)
+
+    def __str__(self):
+        out = f"\n[Sections]({len(self.get_section_headers())})\n"
+        out += SectionHeader.get_column_titles() + "\n"
+        for sh in self.section_headers:
+            out += str(sh)
+            out += "\n"
+        return out
