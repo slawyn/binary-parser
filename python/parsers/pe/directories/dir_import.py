@@ -59,6 +59,7 @@ class ImportDirectoryTable(Packer):
         out += utils.formatter2("%-20s", "[TimeStamp]")
         out += utils.formatter2("%-20s", "[ForwarderChain]")
         out += utils.formatter2("%-20s", "[NameRVA]")
+        out += utils.formatter2("%-20s", "[IATRVA]")
         out += utils.formatter2("%-20s", "[DLL]")
         return out
 
@@ -87,23 +88,23 @@ class ImportTable(Table):
         is_64bit = Packer.is_64bit
         i = 0
         while True:
-            import_directory_table = ImportDirectoryTable()
-            import_directory_table.unpack(buffer[offset+20*i:])
+            idt = ImportDirectoryTable()
+            idt.unpack(buffer[offset+20*i:])
 
-            if import_directory_table.is_empty():
+            if idt.is_empty():
                 break
 
-            nameoffset = utils.convert_rva_to_offset(import_directory_table.get_name_rva(), sections)
-            import_directory_table.set_dll_name(utils.readstring(buffer, nameoffset))
-            self.import_directory_tables.append(import_directory_table)
+            nameoffset = utils.convert_rva_to_offset(idt.get_name_rva(), sections)
+            idt.set_dll_name(utils.readstring(buffer, nameoffset))
+            self.import_directory_tables.append(idt)
 
             # Sometimes ILT is empty, but the content of ILT and IAT is the same
             # and changes only after loading
-            iltrva = import_directory_table.get_ilt_rva()
+            iltrva = idt.get_ilt_rva()
             if iltrva > 0:
                 offsetILT = utils.convert_rva_to_offset(iltrva, sections)
             else:
-                offsetILT = utils.convert_rva_to_offset(import_directory_table.get_iat_rva(), sections)
+                offsetILT = utils.convert_rva_to_offset(idt.get_iat_rva(), sections)
 
             # parse imported itemslist
             j = 0
@@ -117,14 +118,14 @@ class ImportTable(Table):
                 if is_64bit:
                     iltentry = utils.unpack(buffer[offsetILT+j*8:offsetILT+j*8+8])
                     importbyordinal = iltentry & ImportTable.IMPORT_BY_ORDINAL_64BIT
-                    iatrva = import_directory_table.get_iat_rva()+j*8
+                    iatrva = idt.get_iat_rva()+j*8
                     valueoffset = utils.convert_rva_to_offset(iatrva, sections)
                     value = utils.unpack(buffer[valueoffset:valueoffset+8])
 
                 else:
                     iltentry = utils.unpack(buffer[offsetILT+j*4:offsetILT+j*4+4])
                     importbyordinal = iltentry & ImportTable.IMPORT_BY_ORDINAL_32BIT
-                    iatrva = import_directory_table.get_iat_rva()+j*4
+                    iatrva = idt.get_iat_rva()+j*4
                     valueoffset = utils.convert_rva_to_offset(iatrva, sections)
                     value = utils.unpack(buffer[valueoffset:valueoffset+4])
 
@@ -132,7 +133,7 @@ class ImportTable(Table):
                     break
 
                 # we have a forwarder:this is undocumented
-                forwarder_chain = import_directory_table.get_forwarder_chain()
+                forwarder_chain = idt.get_forwarder_chain()
                 if forwarder_chain != 0 and forwarder_chain != -1:
                     forwarderstringoffset = utils.convert_rva_to_offset(iltentry, sections)
                     forwarderstring = utils.readstring(buffer, forwarderstringoffset)
@@ -152,14 +153,14 @@ class ImportTable(Table):
                     importObjects.append(ImportObject(iatrva, 0, (iltentry & 0x7FFFFFFF), hint, name, 0, value))
 
                 j += 1
-                import_directory_table.set_import_objects(importObjects)
+                idt.set_import_objects(importObjects)
             i += 1
 
     def get_import_directory_tables(self):
         return self.import_directory_tables
 
     def __str__(self):
-        out = f"\n[DelayImports]({len(self.import_directory_tables)})\n"
+        out = f"\n[Imports]({len(self.import_directory_tables)})\n"
         out += f"{ImportDirectoryTable.get_column_titles()}\n"
         for table in self.import_directory_tables:
             out += str(table)

@@ -23,7 +23,27 @@ class DosHeader(Packer):
     DOS_RESERVED2_SZ = 20
     DOS_LFANEW_SZ = 4
 
-    def __init__(self, signature=0, cblp=0, cp=0, crlc=0, cparhdr=0, minalloc=0, maxalloc=0, ss=0, sp=0, checksum=0, ip=0, cs=0, lfarlc=0, noverlay=0, reserved1=None, oemid=0, oeminfo=0, reserved2=None, lfanew=0):
+    def __init__(self,
+                 signature=0,
+                 cblp=0,
+                 cp=0,
+                 crlc=0,
+                 cparhdr=0,
+                 minalloc=0,
+                 maxalloc=0,
+                 ss=0,
+                 sp=0,
+                 checksum=0,
+                 ip=0,
+                 cs=0,
+                 lfarlc=0,
+                 noverlay=0,
+                 reserved1=0,
+                 oemid=0,
+                 oeminfo=0,
+                 reserved2=0,
+                 lfanew=0
+                 ):
         super().__init__(
             {
                 "dos_signature":  signature,

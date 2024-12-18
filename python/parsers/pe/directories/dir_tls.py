@@ -18,7 +18,14 @@ class TlsObject(Packer):
     TLS_SIZE_OF_ZEROFILL_64SZ = 4
     TLS_CHARACTERISTICS_64SZ = 8
 
-    def __init__(self, tls_rawdata_start_va=0, tls_rawdata_end_va=0,  tls_address_of_index=0, tls_address_of_callbacks=0, tls_size_of_zerofill=0, tls_characteristics=0):
+    def __init__(self,
+                 tls_rawdata_start_va=0,
+                 tls_rawdata_end_va=0,
+                 tls_address_of_index=0,
+                 tls_address_of_callbacks=0,
+                 tls_size_of_zerofill=0,
+                 tls_characteristics=0
+                 ):
         super().__init__(
             {
                 "tls_rawdata_start_va": tls_rawdata_start_va,

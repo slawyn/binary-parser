@@ -37,7 +37,7 @@ class DelayImportDescriptor(Packer):
             },
             always_32bit=True
         )
-        self.did_importObjects = []
+        self.importobjects = []
         self.dll_name = ""
 
     def set_dll_name(self, name):
@@ -47,10 +47,10 @@ class DelayImportDescriptor(Packer):
         return self.dll_name
 
     def set_import_objects(self, did_import_objects):
-        self.did_importObjects = did_import_objects
+        self.importobjects = did_import_objects
 
     def get_import_objects(self):
-        return self.did_importObjects
+        return self.importobjects
 
     def is_empty(self):
         return all(value == 0 for value in self.members.values())
@@ -121,22 +121,22 @@ class DelayImportTable(Table):
         is_64bit = Packer.is_64bit
         i = 0
         while True:
-            delaytable = DelayImportDescriptor()
-            delaytable.unpack(buffer[offset+32*i:])
-            if delaytable.is_empty():
+            did = DelayImportDescriptor()
+            did.unpack(buffer[offset+32*i:])
+            if did.is_empty():
                 break
 
-            nameoffset = utils.convert_rva_to_offset(delaytable.get_name_rva(), sections)
-            delaytable.set_dll_name(utils.readstring(buffer, nameoffset))
+            nameoffset = utils.convert_rva_to_offset(did.get_name_rva(), sections)
+            did.set_dll_name(utils.readstring(buffer, nameoffset))
 
-            self.import_directory_tables.append(delaytable)
+            self.import_directory_tables.append(did)
 
             j = 0
-            namesoffset = utils.convert_rva_to_offset(delaytable.get_delay_int(), sections)
+            namesoffset = utils.convert_rva_to_offset(did.get_delay_int(), sections)
             importObjects = []
             importObjectsappend = importObjects.append
 
-            delayIAT = delaytable.get_delay_iat()
+            delayIAT = did.get_delay_iat()
             delayimportdescriptor = self.import_directory_tables[i]
 
             while True:

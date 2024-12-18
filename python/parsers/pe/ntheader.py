@@ -7,10 +7,10 @@ from parsers.pe.optionalheader import OptionalHeader
 class NtHeader(Packer):
     NT_SIGNATURE_SZ = 4
 
-    def __init__(self, signature=0):
+    def __init__(self, nt_signature=0):
         super().__init__(
             {
-                "nt_signature": signature
+                "nt_signature": nt_signature
             },
             always_32bit=True,
             always_little_endian=True

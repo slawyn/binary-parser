@@ -15,19 +15,17 @@ class OptionalHeader(Packer):
             always_32bit=True,
             always_little_endian=True
         )
-        self.is64Bit = False
 
     def unpack(self, buffer):
         super().unpack(buffer)
         if self.members['oh_signature'] == OptionalHeader.SIGNATURE_PE32PLUS:
             Packer.set_packer_config(is_64bit=True, is_little_endian=True)
-            self.is64Bit = True
         elif self.members['oh_signature'] == OptionalHeader.SIGNATURE_PE32:
             Packer.set_packer_config(is_64bit=False, is_little_endian=True)
         else:
             raise Exception(f"ERROR: Unknown PE32 Signature {self.members['oh_signature']}")
 
-        self.opt_header = OptionalHeaderSub()
+        self.opt_header = OptionalSubHeader()
         self.opt_header.set_offset(self.get_offset() + super().get_members_size())
         return self.opt_header.unpack(buffer)
 
@@ -47,7 +45,7 @@ class OptionalHeader(Packer):
         return out
 
 
-class OptionalHeaderSub(Packer):
+class OptionalSubHeader(Packer):
     SUBSYSTEM_TYPES_T = {
         0: "IMAGE_SUBSYSTEM_UNKNOWN",
         1: "IMAGE_SUBSYSTEM_NATIVE",
@@ -256,8 +254,8 @@ class OptionalHeaderSub(Packer):
         out += utils.formatter("SizeOfImage:", self.members['oh_size_of_image'], hex=True)
         out += utils.formatter("SizeOfHeaders:", self.members['oh_size_of_headers'], hex=True)
         out += utils.formatter("CheckSum:", self.members['oh_checksum'], hex=True)
-        out += utils.formatter("Subsystem:", self.members['oh_subsystem'], table=OptionalHeaderSub.SUBSYSTEM_TYPES_T)
-        out += utils.formatter("DllCharacteristics:", self.members['oh_dll_characteristics'], table=OptionalHeaderSub.DLL_CHARACTERISTICS_TYPES_T, mask=True)
+        out += utils.formatter("Subsystem:", self.members['oh_subsystem'], table=OptionalSubHeader.SUBSYSTEM_TYPES_T)
+        out += utils.formatter("DllCharacteristics:", self.members['oh_dll_characteristics'], table=OptionalSubHeader.DLL_CHARACTERISTICS_TYPES_T, mask=True)
         out += utils.formatter("SizeOfStackReserve:", self.members['oh_size_of_stack_reserve'], hex=True)
         out += utils.formatter("SizeOfStackCommit:", self.members['oh_size_of_stack_commit'], hex=True)
         out += utils.formatter("SizeOfHeapReserve:", self.members['oh_size_of_heap_reserve'], hex=True)
