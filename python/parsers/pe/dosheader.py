@@ -56,4 +56,5 @@ class DosHeader(Packer):
     def __str__(self):
         out = "\n[DosHeader]\n"
         out += utils.formatter("Signature:", self.members['dos_signature'], hex=True)
+        out += utils.formatter("LfAnew:", self.members['dos_lfanew'], hex=True)
         return out

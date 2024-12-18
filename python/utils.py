@@ -64,10 +64,6 @@ def load_file(filename):
     return bytes
 
 
-def unpack_str(buffer):
-    return struct.unpack("s", buffer)
-
-
 def unpack(buffer, byte=False, little_endian=True, unsigned=True):
     '''Unpack buffer
     '''

@@ -1,5 +1,6 @@
 from packer import Packer
 import utils
+from parsers.pe.directories.shared import Table
 
 
 class TlsObject(Packer):
@@ -54,13 +55,17 @@ class TlsObject(Packer):
         return out
 
 
-class TlsTable:
-    def __init__(self, data, offset):
+class TlsTable(Table):
+    def __init__(self):
+        super().__init__({})
         self.tls_objects = []
+
+    def unpack(self, buffer):
+        offset = self.offset
         while True:
             object = TlsObject()
             object.set_offset(offset)
-            offset = object.unpack(data)
+            offset = object.unpack(buffer)
 
             if object.is_empty():
                 break
@@ -68,8 +73,7 @@ class TlsTable:
 
     def __str__(self):
         out = f"\n[TLS]({len(self.tls_objects)})\n"
-        out += TlsObject.get_column_titles()
-        out += "\n"
+        out += f"{TlsObject.get_column_titles()}\n"
         for object in self.tls_objects:
             out += str(object)
             out += "\n"

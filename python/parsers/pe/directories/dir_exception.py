@@ -1,5 +1,6 @@
 from packer import Packer
 import utils
+from parsers.pe.directories.shared import Table
 
 
 class ScopeTable:
@@ -81,27 +82,30 @@ class ExceptionObject:
             self.isEmpty = True
 
 
-class ExceptionTable:
-    def __init__(self, data, tables_fileoffset, sections):
-        self.ExceptionObjects = []
-        offset = 24
+class ExceptionTable(Table):
+    def __init__(self):
+        super().__init__({})
+        self.exceptionObjects = []
+
+    def unpack(self, buffer):
+        sections = self.sections
+        offset = self.offset
         idx = 0
-        exceptionbjectsappend = self.ExceptionObjects.append
         while True:
-            object = ExceptionObject(data, tables_fileoffset+idx*offset)
+            object = ExceptionObject(buffer, offset+idx*24)
             if object.isEmpty:
                 break
 
             unwindinfooff = utils.convert_rva_to_offset(object.UnwindInfoPtr, sections)
 
-            t = utils.unpack(data[unwindinfooff:unwindinfooff+1])
+            t = utils.unpack(buffer[unwindinfooff:unwindinfooff+1])
 
             version = t & 0b00000111
             flags = (t & 0b11111000) >> 3
 
-            szprolog = utils.unpack(data[unwindinfooff+1:unwindinfooff+2])
-            countofcodes = utils.unpack(data[unwindinfooff+2:unwindinfooff+3])
-            t = utils.unpack(data[unwindinfooff+3:unwindinfooff+4])
+            szprolog = utils.unpack(buffer[unwindinfooff+1:unwindinfooff+2])
+            countofcodes = utils.unpack(buffer[unwindinfooff+2:unwindinfooff+3])
+            t = utils.unpack(buffer[unwindinfooff+3:unwindinfooff+4])
 
             frameregister = t & 0b00001111
             frameregisteroff = (t & 0b11110000) >> 4
@@ -110,8 +114,7 @@ class ExceptionTable:
             codes = []
             codesoffset = unwindinfooff+4
             for j in range(countofcodes):
-                codes.append(utils.unpack(
-                    data[codesoffset+j*2:codesoffset+2+j*2]))
+                codes.append(utils.unpack(buffer[codesoffset+j*2:codesoffset+2+j*2]))
 
             handler = None
 
@@ -119,11 +122,9 @@ class ExceptionTable:
                 # the rva of the handler must be aligned after the code
                 handlerreloffset = (countofcodes % 2+countofcodes)*2
                 handlerinfooffset = codesoffset+handlerreloffset
-                exceptharva = utils.unpack(
-                    data[handlerinfooffset:handlerinfooffset+4])
+                exceptharva = utils.unpack(buffer[handlerinfooffset:handlerinfooffset+4])
 
-                count = utils.unpack(
-                    data[handlerinfooffset+4:handlerinfooffset+8])
+                count = utils.unpack(buffer[handlerinfooffset+4:handlerinfooffset+8])
                 scoptableoffset = handlerinfooffset+8
                 scopetables = []
 
@@ -134,16 +135,11 @@ class ExceptionTable:
                     for i in range(count):
                         scopes = i*16
 
-                        startrva = utils.unpack(
-                            data[scoptableoffset+scopes:scoptableoffset+scopes+4])
-                        endrva = utils.unpack(
-                            data[scoptableoffset+4+scopes:scoptableoffset+8+scopes])
-                        handlerrva = utils.unpack(
-                            data[scoptableoffset+8+scopes:scoptableoffset+12+scopes])
-                        jumptarget = utils.unpack(
-                            data[scoptableoffset+12+scopes:scoptableoffset+16+scopes])
-                        scopetables.append(ScopeTable(
-                            startrva, endrva, handlerrva, jumptarget))
+                        startrva = utils.unpack(buffer[scoptableoffset+scopes:scoptableoffset+scopes+4])
+                        endrva = utils.unpack(buffer[scoptableoffset+4+scopes:scoptableoffset+8+scopes])
+                        handlerrva = utils.unpack(buffer[scoptableoffset+8+scopes:scoptableoffset+12+scopes])
+                        jumptarget = utils.unpack(buffer[scoptableoffset+12+scopes:scoptableoffset+16+scopes])
+                        scopetables.append(ScopeTable(startrva, endrva, handlerrva, jumptarget))
 
                 handler = ExceptionHandler(exceptharva, count, scopetables)
 
@@ -151,4 +147,57 @@ class ExceptionTable:
                 version, flags, szprolog, countofcodes, frameregister, frameregisteroff, codes, handler)
 
             idx = idx+1
-            exceptionbjectsappend(object)
+            self.exceptionObjects.append(object)
+
+    def __str__(self):
+        out = ""
+        NumberOfExceptions = len(self.exceptionObjects)
+        for i in range(NumberOfExceptions):
+            out2 = ""
+            out3 = ""
+            out4 = ""
+
+            entry = self.exceptionObjects[i]
+
+            startva = "0x%x" % (entry.StartRVA)
+            endva = "0x%x" % (entry.EndRVA)
+
+            unwindinfo = entry.UnwindInfo
+
+            '''
+			# information about stackunwinding
+			out2="\tVersion:%x \tFlags:%s \tCountOfCodes:%d \tFrameRegister:%s \tFrameOffset:0x%x"%(
+			    unwindinfo.Version, unwindinfo.getFlags(),unwindinfo.CountofCodes, unwindinfo.getFrameRegister(), unwindinfo.FrameOffset)
+
+
+			countofcodes=unwindinfo.CountofCodes
+
+
+			for i in range(countofcodes):
+				out3=out3+"\t"+unwindinfo.Codes[i]+"\n"
+
+
+			flags = entry.UnwindInfo.Flags
+
+
+			if flags == 0x4:	#chained
+				pass
+
+			elif flags & 0x3:	#e-/uhandler
+				rva = "Handler Address:0x%x"%(
+				    entry.UnwindInfo.ExceptionHandler.HandlerRVA+base)
+				nmofscopetables = entry.UnwindInfo.ExceptionHandler.ScopeTableCount
+				if nmofscopetables <5: #dunno how to recognize if it's data or scopetables
+					count= "Count: 0x%x"%(nmofscopetables)
+					out4="\t\t"+rva+"\t"+count+"\n"
+					for i in range(nmofscopetables):
+						table = entry.UnwindInfo.ExceptionHandler.ScopeTables[i]
+						out4=out4+"\t\tScope Table:\n\t\t\tStart:0x%x\n\t\t\tEnd:0x%x\n\t\t\tHandler Address:0x%x\n\t\t\tJump Target:0x%x"%(
+						    table.StartRVA+base,table.EndRVA+base,table.HandlerRVA+base, table.JumpTarget+base)
+				else:
+					data= "Data: 0x%x"%(nmofscopetables)
+					out4="\t\t"+rva+"\t"+data+"\n"
+			'''
+            out = out+"".join([startva, "\t", endva, "\n"])
+
+        return out

@@ -8,7 +8,7 @@ class Packer:
     def __init__(self, members_32bit, members_64bit={}, start_offset=0, always_32bit=False, always_little_endian=True):
         self.always_32bit = always_32bit
         self.always_little_endian = always_little_endian
-        self.start_offset = start_offset
+        self.offset = start_offset
 
         if not self.always_32bit and Packer.is_64bit and members_64bit:
             self.members = members_64bit
@@ -19,10 +19,10 @@ class Packer:
         return sum([getattr(self,  self._get(key)) for key in self.members])
 
     def get_offset(self):
-        return self.start_offset
+        return self.offset
 
     def set_offset(self, offset):
-        self.start_offset = offset
+        self.offset = offset
 
     def set_packer_config(is_64bit=False, is_little_endian=False):
         Packer.is_64bit = is_64bit
@@ -41,7 +41,7 @@ class Packer:
         return hasattr(self, key.upper() + "_V")
 
     def unpack(self, buffer):
-        s_offset = self.start_offset
+        s_offset = self.offset
         for key in self.members:
             e_offset = s_offset + getattr(self,  self._get(key))
 

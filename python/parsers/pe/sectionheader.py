@@ -3,9 +3,10 @@ import utils
 
 
 class SectionHeader(Packer):
+    IMAGE_SCN_CNT_CODE = 0x00000020
     SH_CHARACTERISTICS_T = {
         0x00000008: "IMAGE_SCN_TYPE_NO_PAD",
-        0x00000020: "IMAGE_SCN_CNT_CODE",
+        IMAGE_SCN_CNT_CODE: "IMAGE_SCN_CNT_CODE",
         0x00000040: "IMAGE_SCN_CNT_INITIALIZED_DATA",
         0x00000080: "IMAGE_SCN_CNT_UNINITIALIZED_DATA",
         0x00000100: "IMAGE_SCN_LNK_OTHER",
@@ -42,7 +43,6 @@ class SectionHeader(Packer):
     }
 
     # Define size constants
-
     SH_NAME_SZ = 8
     SH_VIRTUAL_SIZE_SZ = 4
     SH_VIRTUAL_ADDRESS_SZ = 4
@@ -71,6 +71,9 @@ class SectionHeader(Packer):
             always_32bit=True
         )
 
+    def is_code(self):
+        return self.members['sh_characteristics'] & SectionHeader.IMAGE_SCN_CNT_CODE
+
     def get_virtual_address(self):
         return self.members['sh_virtual_address']
 
@@ -79,6 +82,9 @@ class SectionHeader(Packer):
 
     def get_pointer_to_raw_data(self):
         return self.members['sh_pointer_to_raw_data']
+
+    def get_size_of_raw_data(self):
+        return self.members['sh_size_of_raw_data']
 
     def get_name(self):
         return self.members['sh_name']
@@ -126,16 +132,23 @@ class SectionTable:
     def get_section_headers(self):
         return self.section_headers
 
-    def unpack(self, data):
+    def get_code_sections(self):
+        code_sections = []
+        for sh in self.section_headers:
+            if sh.is_code() and sh.get_pointer_to_raw_data() != 0:
+                code_sections.append(sh)
+        return code_sections
+
+    def unpack(self, buffer):
         for i in range(self.count):
             sh = SectionHeader()
             sh.set_offset(self.offset + sh.get_members_size() * i)
-            sh.unpack(data)
+            sh.unpack(buffer)
             self.section_headers.append(sh)
 
     def __str__(self):
-        out = f"\n[Sections]({len(self.get_section_headers())})\n"
-        out += SectionHeader.get_column_titles() + "\n"
+        out = f"\n[Sections]({len(self.section_headers)})\n"
+        out += f"{SectionHeader.get_column_titles()}\n"
         for sh in self.section_headers:
             out += str(sh)
             out += "\n"

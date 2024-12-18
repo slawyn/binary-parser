@@ -1,6 +1,12 @@
 import utils
 from packer import Packer
 
+from parsers.pe.directories.dir_import import ImportTable
+from parsers.pe.directories.dir_delayimport import DelayImportTable
+from parsers.pe.directories.dir_exception import ExceptionTable
+from parsers.pe.directories.dir_export import ExportTable
+from parsers.pe.directories.dir_tls import TlsTable
+
 
 class DirectoryTable(Packer):
     DT_RVA_SZ = 4
@@ -63,6 +69,16 @@ class Directory(Packer):
             "RESERVED": DirectoryTable(),
         }
 
+        self.tables = {
+            "EXPORT": ExportTable,
+            "IMPORT": ImportTable,
+            "EXCEPTION": ExceptionTable,
+            "DELAYIMPORT": DelayImportTable,
+            "TLS": TlsTable
+        }
+
+        self.parsed = {}
+
     def unpack(self, buffer):
         offset = self.get_offset()
         for key, dt in self.directory_tables.items():
@@ -83,15 +99,22 @@ class Directory(Packer):
         dt = self.directory_tables[name]
         return dt if dt.has_section() else None
 
-    def assign_section_headers(self, section_headers):
+    def assign_section_headers(self, buffer, section_headers):
         for key, dt in self.directory_tables.items():
             rva = dt.get_rva()
             size = dt.get_size()
             for sh in section_headers:
                 sh_rva = sh.get_virtual_address()
-                sh_size = sh.get_virtual_size()
-                if rva >= sh_rva and rva <= sh_rva+sh_size:
+                if sh_rva <= rva <= (sh_rva + sh.get_virtual_size()):
                     dt.set_section(sh)
+
+                    # parse table if available
+                    if key in self.tables:
+                        table = self.tables[key]()
+                        self.parsed[key] = table
+                        table.set_sections(section_headers)
+                        table.set_offset(dt.get_table_offset())
+                        table.unpack(buffer)
                     break
 
     def get_number_of_directories(self):
@@ -106,6 +129,10 @@ class Directory(Packer):
         out += "\n"
         for key, dt in self.directory_tables.items():
             out += utils.formatter2("%-20s", key)
+            out += str(dt)
+            out += "\n"
+
+        for key, dt in self.parsed.items():
             out += str(dt)
             out += "\n"
         return out

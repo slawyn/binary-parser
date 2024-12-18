@@ -1,8 +1,9 @@
 from packer import Packer
 import utils
+from parsers.pe.directories.shared import Table
 
 
-class ExportTable(Packer):
+class ExportTable(Table):
     ET_EXPORT_FLAGS_SZ = 4
     ET_TIMESTAMP_SZ = 4
     ET_MAJOR_VERSION_SZ = 2
@@ -33,16 +34,12 @@ class ExportTable(Packer):
             always_32bit=True
         )
         self.exportTable = []
-        self.sections = []
 
     def get_function_rva(self):
         return self.members["et_functions_rva"]
 
-    def set_sections(self, sections):
-        self.sections = sections
-
-    def unpack(self, data):
-        super().unpack(data)
+    def unpack(self, buffer):
+        super().unpack(buffer)
 
         # read offsets
         FunctionsFileOffset = utils.convert_rva_to_offset(self.members["et_functions_rva"], self.sections)
@@ -52,26 +49,34 @@ class ExportTable(Packer):
 
         # read names and corresponding indexes
         for i in range(self.members["et_number_of_names"]):
-            NamesAndOrdinals[utils.unpack(data[OrdinalsFileOffset+i*2:OrdinalsFileOffset+i*2+2])] = utils.unpack(data[NamesFileOffset+i*4:NamesFileOffset+i*4+4])
+            NamesAndOrdinals[utils.unpack(buffer[OrdinalsFileOffset+i*2:OrdinalsFileOffset+i*2+2])] = utils.unpack(buffer[NamesFileOffset+i*4:NamesFileOffset+i*4+4])
 
         # create export table
         for i in range(self.members["et_number_of_functions"]):
-            FunctionAddress = utils.unpack(data[FunctionsFileOffset+i*4:FunctionsFileOffset+i*4+4])
+            FunctionAddress = utils.unpack(buffer[FunctionsFileOffset+i*4:FunctionsFileOffset+i*4+4])
             if FunctionAddress == 0:  # there are sometimes zero reserved entries for future use, which are currently not in use
                 continue
             # if exported by name
             if i in NamesAndOrdinals.keys():
                 namesoffset = utils.convert_rva_to_offset(NamesAndOrdinals[i], self.sections)
-                symbol = utils.readstring(data, namesoffset)
+                symbol = utils.readstring(buffer, namesoffset)
                 # Ordinal, address, hint, string address, string
                 self.exportTable.append(ExportObject(i+self.members["et_ordinal_base"], FunctionAddress, i, NamesAndOrdinals[i], symbol))
             # if exported only by ordinal or is forwarded to imported function from another dll
             else:
                 # forwarded to another .dll
                 namesoffset = utils.convert_rva_to_offset(FunctionAddress, self.sections)
-                symbol = utils.readstring(data, namesoffset)
+                symbol = utils.readstring(buffer, namesoffset)
                 # Zeroes because either exported by Ordinal or has forwarder RVA
                 self.exportTable.append(ExportObject(i+self.members["et_ordinal_base"], FunctionAddress, 0, 0, symbol))
+
+    def __str__(self):
+        out = f"\n[Exports]({len(self.exportTable)})\n"
+        out += f"{ExportObject.get_column_titles()}\n"
+        for object in self.exportTable:
+            out += str(object)
+            out += "\n"
+        return out
 
 
 class ExportObject:
@@ -81,6 +86,25 @@ class ExportObject:
         self.function_rva = function_rva
         self.name_rva = name_rva
         self.name = name
+
+    @staticmethod
+    def get_column_titles():
+        out = ""
+        out += utils.formatter2("%-20s", "[Name]")
+        out += utils.formatter2("%-20s", "[Ordinal]")
+        out += utils.formatter2("%-20s", "[Hint]")
+        out += utils.formatter2("%-20s", "[Function RVA]")
+        out += utils.formatter2("%-20s", "[Name RVA]")
+        return out
+
+    def __str__(self):
+        out = ""
+        out += utils.formatter2("%-20s",  self.name)
+        out += utils.formatter2("%-20x",  self.ordinal)
+        out += utils.formatter2("%-20s",  self.hint)
+        out += utils.formatter2("%-20s",  self.function_rva)
+        out += utils.formatter2("%-20s",  self.name)
+        return out
 
     def get_function_rva(self):
         return self.function_rva

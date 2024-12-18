@@ -1,6 +1,7 @@
 from packer import Packer
 import utils
 from parsers.pe.directories.shared import ImportObject
+from parsers.pe.directories.shared import Table
 
 
 class ImportDirectoryTable(Packer):
@@ -51,33 +52,49 @@ class ImportDirectoryTable(Packer):
     def get_import_objects(self):
         return self.importObjects
 
+    @staticmethod
+    def get_column_titles():
+        out = ""
+        out += utils.formatter2("%-20s", "[ILTRVA]")
+        out += utils.formatter2("%-20s", "[TimeStamp]")
+        out += utils.formatter2("%-20s", "[ForwarderChain]")
+        out += utils.formatter2("%-20s", "[NameRVA]")
+        out += utils.formatter2("%-20s", "[DLL]")
+        return out
+
     def __str__(self):
         out = ""
-        out += utils.formatter("DLL:", self.dll_name)
-        out += utils.formatter("ILTRVA:", self.members["idt_ilt_rva"])
-        out += utils.formatter("TimeStamp:", self.members["idt_timestamp"])
-        out += utils.formatter("ForwarderChain:", self.members["idt_forwarder_chain"], hex=True)
-        out += utils.formatter("NameRVA:", self.members["idt_name_rva"])
-        out += utils.formatter("IATRVA:", self.members["idt_iat_rva"])
+        out += utils.formatter2("%-20x",  self.members["idt_ilt_rva"])
+        out += utils.formatter2("%-20x",  self.members["idt_timestamp"])
+        out += utils.formatter2("%-20x",  self.members["idt_forwarder_chain"])
+        out += utils.formatter2("%-20x",  self.members["idt_name_rva"])
+        out += utils.formatter2("%-20x",  self.members["idt_iat_rva"])
+        out += utils.formatter2("%-20s",  self.dll_name)
         return out
 
 
-class ImportTable:
+class ImportTable(Table):
     IMPORT_BY_ORDINAL_64BIT = 0x8000000000000000
     IMPORT_BY_ORDINAL_32BIT = 0x80000000
 
-    def __init__(self, data, tables_fileoffset, sections, mode64):
+    def __init__(self):
+        super().__init__({})
         self.import_directory_tables = []
+
+    def unpack(self, buffer):
+        offset = self.offset
+        sections = self.sections
+        is_64bit = Packer.is_64bit
         i = 0
         while True:
             import_directory_table = ImportDirectoryTable()
-            import_directory_table.unpack(data[tables_fileoffset+20*i:])
+            import_directory_table.unpack(buffer[offset+20*i:])
 
             if import_directory_table.is_empty():
                 break
 
             nameoffset = utils.convert_rva_to_offset(import_directory_table.get_name_rva(), sections)
-            import_directory_table.set_dll_name(utils.readstring(data, nameoffset))
+            import_directory_table.set_dll_name(utils.readstring(buffer, nameoffset))
             self.import_directory_tables.append(import_directory_table)
 
             # Sometimes ILT is empty, but the content of ILT and IAT is the same
@@ -97,19 +114,19 @@ class ImportTable:
                 nametableoffset = 0
                 iatrva = 0
                 value = 0
-                if mode64:
-                    iltentry = utils.unpack(data[offsetILT+j*8:offsetILT+j*8+8])
+                if is_64bit:
+                    iltentry = utils.unpack(buffer[offsetILT+j*8:offsetILT+j*8+8])
                     importbyordinal = iltentry & ImportTable.IMPORT_BY_ORDINAL_64BIT
                     iatrva = import_directory_table.get_iat_rva()+j*8
                     valueoffset = utils.convert_rva_to_offset(iatrva, sections)
-                    value = utils.unpack(data[valueoffset:valueoffset+8])
+                    value = utils.unpack(buffer[valueoffset:valueoffset+8])
 
                 else:
-                    iltentry = utils.unpack(data[offsetILT+j*4:offsetILT+j*4+4])
+                    iltentry = utils.unpack(buffer[offsetILT+j*4:offsetILT+j*4+4])
                     importbyordinal = iltentry & ImportTable.IMPORT_BY_ORDINAL_32BIT
                     iatrva = import_directory_table.get_iat_rva()+j*4
                     valueoffset = utils.convert_rva_to_offset(iatrva, sections)
-                    value = utils.unpack(data[valueoffset:valueoffset+4])
+                    value = utils.unpack(buffer[valueoffset:valueoffset+4])
 
                 if iltentry == 0:  # last entry for this .dll
                     break
@@ -118,7 +135,7 @@ class ImportTable:
                 forwarder_chain = import_directory_table.get_forwarder_chain()
                 if forwarder_chain != 0 and forwarder_chain != -1:
                     forwarderstringoffset = utils.convert_rva_to_offset(iltentry, sections)
-                    forwarderstring = utils.readstring(data, forwarderstringoffset)
+                    forwarderstring = utils.readstring(buffer, forwarderstringoffset)
 
                     # since we have a  forwarder set it to forwarderchain
                     importObjects.append(ImportObject(iatrva, 0, 0, forwarderstring, forwarder_chain, value))
@@ -130,8 +147,8 @@ class ImportTable:
                 # import by name
                 else:
                     nametableoffset = utils.convert_rva_to_offset((iltentry & 0x7FFFFFFF), sections)
-                    hint = utils.unpack(data[nametableoffset:nametableoffset+2])
-                    name = utils.readstring(data, nametableoffset+2)
+                    hint = utils.unpack(buffer[nametableoffset:nametableoffset+2])
+                    name = utils.readstring(buffer, nametableoffset+2)
                     importObjects.append(ImportObject(iatrva, 0, (iltentry & 0x7FFFFFFF), hint, name, 0, value))
 
                 j += 1
@@ -141,5 +158,18 @@ class ImportTable:
     def get_import_directory_tables(self):
         return self.import_directory_tables
 
-    def get_number_of_dlls(self):
-        return len(self.import_directory_tables)
+    def __str__(self):
+        out = f"\n[DelayImports]({len(self.import_directory_tables)})\n"
+        out += f"{ImportDirectoryTable.get_column_titles()}\n"
+        for table in self.import_directory_tables:
+            out += str(table)
+            out += "\n"
+
+        for table in self.import_directory_tables:
+            out += f"\n[{table.get_dll_name()}]({len(table.get_import_objects())})\n"
+            out += f"{ImportObject.get_column_titles()}\n"
+            for object in table.get_import_objects():
+                out += str(object)
+                out += "\n"
+
+        return out
