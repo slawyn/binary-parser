@@ -13,8 +13,10 @@ from parsers.elf.ident import ElfIdent
 from parsers.elf.header import ElfHeader
 from crc import Crc32
 
+
 class Writer:
     FILL = 0x00
+
     def __init__(self):
         self.binary = []
 
@@ -22,7 +24,7 @@ class Writer:
         for obj in objs:
             alignment_padding = obj.get_offset() - len(self.binary)
             self.binary.extend([Writer.FILL] * alignment_padding)
-            if section_data:=obj.get_section_data():
+            if section_data := obj.get_section_data():
                 self.binary.extend(section_data.get_data())
 
     def write_array(self, objs):
@@ -120,7 +122,7 @@ class ElfParser:
                 if type == SectionHeader.TYPE_SHT_STRTAB:
                     self.strtab[idx] = StringTable(sh, sd)
                     if idx == self.elf_header.get_stridx():
-                        self.shstrtab =  self.strtab[idx]
+                        self.shstrtab = self.strtab[idx]
 
                 # symtab
                 elif type == SectionHeader.TYPE_SHT_SYMTAB:
@@ -243,7 +245,7 @@ class ElfParser:
 
         first_section_found = False
         diff_offset = 0
-        for sh in sorted(self.section_headers, key= lambda x: x.get_offset()):
+        for sh in sorted(self.section_headers, key=lambda x: x.get_offset()):
             if sh.get_type() not in [SectionHeader.TYPE_SHT_NULL, SectionHeader.TYPE_SHT_NOBITS]:
                 if not first_section_found:
                     first_section_found = True
@@ -252,9 +254,7 @@ class ElfParser:
                 sh.set_offset(sh.get_offset() + diff_offset)
             sd_offset_end = sh.get_offset() + sh.get_size()
 
-
         return sd_offset_end
-        
 
     def _update_elf_header(self, sh_offset, ph_offset):
         self.elf_header.set_sh_count(len(self.section_headers))
@@ -274,7 +274,6 @@ class ElfParser:
         sh_offset = self._update_describing_headers(ph_offset)
         self._update_elf_header(sh_offset, ph_offset)
 
-
     def write_data_to_file(self, file_out=""):
         self._update_headers()
 
@@ -292,7 +291,7 @@ class ElfParser:
         writer.write_aligned(sorted(self.section_headers, key=lambda x: x.get_offset()))
         writer.write_array(self.section_headers)
         with open(elf_out, 'wb') as f:
-            f.write(bytes( writer.get_binary()))
+            f.write(bytes(writer.get_binary()))
 
     def _write_hex_file(self, hex_out):
         ihex = IntelHex()
@@ -300,10 +299,10 @@ class ElfParser:
             if ph.get_type() not in [ProgramHeader.PT_PHDR, ProgramHeader.PT_INTERP]:
                 address = ph.get_vaddr()
                 for sh in ph.get_included_sections():
-                    print("HEX",hex(address))
+                    print("HEX", hex(address))
                     if sd := sh.get_section_data():
                         ihex.frombytes(sd.get_data(), offset=address)
-                    address +=sh.get_size()
+                    address += sh.get_size()
 
         ihex.write_hex_file(hex_out)
 
@@ -428,7 +427,7 @@ class ElfParser:
         # Block could not be created, probably outside of the parsed range
         if len(buffer) > 0:
             self._create_data(start_address, buffer)
-    
+
     def __str__(self):
         name_fmt = "%-40s"
         out = ""
@@ -442,7 +441,7 @@ class ElfParser:
             out += "\n"
 
         out += name_fmt % ("\n[Segment Inclusions]") + "\n"
-        for idx, ph in enumerate(self.program_headers):  
+        for idx, ph in enumerate(self.program_headers):
             out += f'[{idx}] ({" ".join(sh.get_name() for sh in ph.get_included_sections())} )'
             out += "\n"
 

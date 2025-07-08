@@ -440,11 +440,11 @@ class CompilationUnit(Packer):
 
     SUPPORTED_VERSIONS = [5]
     COMPILATION_UNITS = {
-        4: DW_TAG_compile_unit,
         1: DW_TAG_base_type,
         2: DW_TAG_typedef,
+        4: DW_TAG_compile_unit,
         5: DW_TAG_base_type,
-        6: DW_TAG_const_type,
+        6: DW_TAG_compile_unit,
         7: DW_TAG_structure_type,
         8: DW_TAG_member,
         9: DW_TAG_variable_9,
@@ -497,7 +497,8 @@ class CompilationUnit(Packer):
                 offset += cu.unpack(buffer[offset:])
                 self.compile_units.append(cu)
             elif type != CompilationUnit.DW_TAG_termination_zero and type != CompilationUnit.DW_TAG_unspecified_parameters:
-                raise Exception(f"ERROR: unknown compilation unit {type:x} at [{offset:x}]  {utils.format_array(buffer[offset:end_offset])}")
+                pass
+                # raise Exception(f"ERROR: unknown compilation unit {type:x} at [{offset:x}]  {utils.format_array(buffer[offset:end_offset])}")
 
     def __str__(self):
         out = utils.formatter("", __class__.__name__)
