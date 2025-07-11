@@ -5,37 +5,19 @@ from parsers.pe.directories.shared import Table
 
 
 class DelayImportDescriptor(Packer):
-    DID_ATTRIBUTES_SZ = 4
-    DID_NAME_RVA_SZ = 4
-    DID_MODULE_HANDLE_SZ = 4
-    DID_DELAY_IAT_SZ = 4
-    DID_DELAY_INT_SZ = 4
-    DID_BOUND_DELAY_IMPORT_TABLE_SZ = 4
-    DID_UNLOAD_DELAY_IMPORT_TABLE_SZ = 4
-    DID_TIMESTAMP_SZ = 4
 
-    def __init__(
-        self, did_attributes=0,
-        did_name_rva=0,
-        did_module_handle=0,
-        did_delay_iat=0,
-        did_delay_int=0,
-        did_bound_delay_import_table=0,
-        did_unload_delay_import_table=0,
-        did_timestamp=0
-    ):
+    def __init__(self):
         super().__init__(
             {
-                "did_attributes": did_attributes,
-                "did_name_rva": did_name_rva,
-                "did_module_handle": did_module_handle,
-                "did_delay_iat": did_delay_iat,
-                "did_delay_int": did_delay_int,
-                "did_bound_delay_import_table": did_bound_delay_import_table,
-                "did_unload_delay_import_table": did_unload_delay_import_table,
-                "did_timestamp": did_timestamp
-            },
-            always_32bit=True
+                "did_attributes": 4,
+                "did_name_rva": 4,
+                "did_module_handle": 4,
+                "did_delay_iat": 4,
+                "did_delay_int": 4,
+                "did_bound_delay_import_table": 4,
+                "did_unload_delay_import_table": 4,
+                "did_timestamp": 4,
+            }
         )
         self.importobjects = []
         self.dll_name = ""
@@ -53,41 +35,46 @@ class DelayImportDescriptor(Packer):
         return self.importobjects
 
     def is_empty(self):
-        return all(value == 0 for value in self.members.values())
+        return (
+            self.get_value("did_attributes")
+            | self.get_value("did_name_rva")
+            | self.get_value("did_module_handle")
+            | self.get_value("did_delay_iat")
+            | self.get_value("did_delay_int")
+            | self.get_value("did_bound_delay_import_table")
+            | self.get_value("did_unload_delay_import_table")
+            | self.get_value("did_timestamp")
+        ) == 0
 
     def get_attributes(self):
-        return self.members["did_attributes"]
+        return self.get_value("did_attributes")
 
     def get_name_rva(self):
-        return self.members["did_name_rva"]
+        return self.get_value("did_name_rva")
 
     def get_module_handle(self):
-        return self.members["did_module_handle"]
+        return self.get_value("did_module_handle")
 
     def get_delay_iat(self):
-        return self.members["did_delay_iat"]
+        return self.get_value("did_delay_iat")
 
     def get_delay_int(self):
-        return self.members["did_delay_int"]
+        return self.get_value("did_delay_int")
 
     def get_bound_delay_import_table(self):
-        return self.members["did_bound_delay_import_table"]
+        return self.get_value("did_bound_delay_import_table")
 
     def get_unload_delay_import_table(self):
-        return self.members["did_unload_delay_import_table"]
+        return self.get_value("did_unload_delay_import_table")
 
     def get_timestamp(self):
-        return self.members["did_timestamp"]
-
-    def is_empty(self):
-        return self.members["did_attributes"] | self.members["did_name_rva"] | self.members["did_module_handle"] | self.members["did_delay_iat"] | self.members["did_delay_int"] | self.members["did_bound_delay_import_table"] | self.members["did_unload_delay_import_table"] | self.members["did_timestamp"] == 0
+        return self.get_value("did_timestamp")
 
     @staticmethod
     def get_column_titles():
         out = ""
         out += utils.formatter2("%-20s", "[Attributes]")
         out += utils.formatter2("%-20s", "[NameRVA]")
-        out += utils.formatter2("%-20s", "[ModuleHandle]")
         out += utils.formatter2("%-20s", "[ModuleHandle]")
         out += utils.formatter2("%-20s", "[DelayIAT]")
         out += utils.formatter2("%-20s", "[DelayINT]")
@@ -99,14 +86,14 @@ class DelayImportDescriptor(Packer):
 
     def __str__(self):
         out = ""
-        out += utils.formatter2("%-20x",  self.members["did_attributes"])
-        out += utils.formatter2("%-20x",  self.members["did_name_rva"])
-        out += utils.formatter2("%-20x",  self.members["did_module_handle"])
-        out += utils.formatter2("%-20x",  self.members["did_delay_iat"])
-        out += utils.formatter2("%-20x",  self.members["did_delay_int"])
-        out += utils.formatter2("%-20x",  self.members["did_bound_delay_import_table"])
-        out += utils.formatter2("%-20x",  self.members["did_unload_delay_import_table"])
-        out += utils.formatter2("%-20x",  self.members["did_timestamp"])
+        out += utils.formatter2("%-20x",  self.get_value("did_attributes"))
+        out += utils.formatter2("%-20x",  self.get_value("did_name_rva"))
+        out += utils.formatter2("%-20x",  self.get_value("did_module_handle"))
+        out += utils.formatter2("%-20x",  self.get_value("did_delay_iat"))
+        out += utils.formatter2("%-20x",  self.get_value("did_delay_int"))
+        out += utils.formatter2("%-20x",  self.get_value("did_bound_delay_import_table"))
+        out += utils.formatter2("%-20x",  self.get_value("did_unload_delay_import_table"))
+        out += utils.formatter2("%-20x",  self.get_value("did_timestamp"))
         out += utils.formatter2("%-20s",  self.dll_name)
         return out
 

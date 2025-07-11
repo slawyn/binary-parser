@@ -1,6 +1,7 @@
 import utils
 from packer import Packer
 
+
 class SymTable:
     def __init__(self, section_header, section_data, linked_str_tab_idx):
         self.symbols = []
@@ -31,20 +32,8 @@ class SymTable:
     def get_strtab_idx(self):
         return self.linked_str_tab_idx
 
-class Symbol(Packer):
-    ST_NAME_SZ = 0x4
-    ST_VALUE_SZ = 0x4
-    ST_SIZE_SZ = 0x4
-    ST_INFO_SZ = 0x1
-    ST_OTHER_SZ = 0x1
-    ST_SHNDX_SZ = 0x4
 
-    ST_NAME_64SZ = 0x4
-    ST_INFO_64SZ = 0x1
-    ST_OTHER_64SZ = 0x1
-    ST_SHNDX_64SZ = 0x2
-    ST_VALUE_64SZ = 0x8
-    ST_SIZE_64SZ = 0x8
+class Symbol(Packer):
 
     ST_INFO_BIND_M = 0xF0
     ST_INFO_TYPE_M = 0x0F
@@ -90,28 +79,27 @@ class Symbol(Packer):
         0xFF00: "SHN_LOPROC",
         0xFF1F: "SHN_HIPROC",
         0xFF20: "HN_LIVEPATCH",
-        0xFFF1: "SHN_ABS",
         0xFFF2: "SHN_COMMON",
         0xFFFF: "SHN_HIRESERVE"
     }
 
-    def __init__(self, st_name="", st_value=0, st_size=0, st_info=0, st_other=0, st_shndx=0):
+    def __init__(self):
         super().__init__(
             {
-                "st_name": st_name,
-                "st_value": st_value,
-                "st_size": st_size,
-                "st_info": st_info,
-                "st_other": st_other,
-                "st_shndx": st_shndx
+                "st_name": 4,
+                "st_value": 4,
+                "st_size": 4,
+                "st_info": 1,
+                "st_other": 1,
+                "st_shndx": 4,
             },
             {
-                "st_name": st_name,
-                "st_info": st_info,
-                "st_other": st_other,
-                "st_shndx": st_shndx,
-                "st_value": st_value,
-                "st_size": st_size,
+                "st_name": 4,
+                "st_info": 1,
+                "st_other": 1,
+                "st_shndx": 2,
+                "st_value": 8,
+                "st_size": 8,
             }
         )
 
@@ -121,21 +109,21 @@ class Symbol(Packer):
         }
 
     def get_name_idx(self):
-        return self.members["st_name"]
+        return self.get_value("st_name")
 
     def get_strtab_idx(self):
-        return self.members["st_shndx"]
+        return self.get_value("st_shndx")
 
     def set_resolved_name(self, name):
         self.members["st_name"] = name
 
     def __str__(self):
         out = ""
-        out += utils.formatter2("%-010x", self.members["st_value"])
-        out += utils.formatter2("%-10s", self.members["st_size"])
-        out += utils.formatter2("%-20s", self.members["st_info"] & Symbol.ST_INFO_BIND_M, table=Symbol.ST_BIND_T)
-        out += utils.formatter2("%-20s", self.members["st_info"] & Symbol.ST_INFO_TYPE_M, table=Symbol.ST_TYPE_T)
-        out += utils.formatter2("%-20s", self.members["st_other"], table=Symbol.ST_OTHER_T)
-        out += utils.formatter2("%-10s", self.members["st_shndx"], table=Symbol.ST_SHNDX_T)
+        out += utils.formatter2("%-010x", self.get_value("st_value"))
+        out += utils.formatter2("%-10s", self.get_value("st_size"))
+        out += utils.formatter2("%-20s", self.get_value("st_info") & Symbol.ST_INFO_BIND_M, table=Symbol.ST_BIND_T)
+        out += utils.formatter2("%-20s", self.get_value("st_info") & Symbol.ST_INFO_TYPE_M, table=Symbol.ST_TYPE_T)
+        out += utils.formatter2("%-20s", self.get_value("st_other"), table=Symbol.ST_OTHER_T)
+        out += utils.formatter2("%-10s", self.get_value("st_shndx"), table=Symbol.ST_SHNDX_T)
         out += utils.formatter2("%-10s", self.members["st_name"])
         return out

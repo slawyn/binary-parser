@@ -1,24 +1,22 @@
-import utils
-from packer import Packer
-
 from parsers.pe.directories.dir_import import ImportTable
 from parsers.pe.directories.dir_delayimport import DelayImportTable
 from parsers.pe.directories.dir_exception import ExceptionTable
 from parsers.pe.directories.dir_export import ExportTable
 from parsers.pe.directories.dir_tls import TlsTable
+import utils
+from packer import Packer, Member
 
 
 class DirectoryTable(Packer):
     DT_RVA_SZ = 4
     DT_SIZE_SZ = 4
 
-    def __init__(self, rva=0, size=0):
+    def __init__(self):
         super().__init__(
             {
-                "dt_rva": rva,
-                "dt_size": size
+                "dt_rva": 4,
+                "dt_size": 4,
             },
-            always_32bit=True,
             always_little_endian=True
         )
         self.section_header = []
@@ -30,18 +28,18 @@ class DirectoryTable(Packer):
         return self.section_header
 
     def get_rva(self):
-        return self.members['dt_rva']
+        return self.get_value("dt_rva")
 
     def get_size(self):
-        return self.members['dt_size']
+        return self.get_value("dt_size")
 
     def get_table_offset(self):
         return self.get_rva() - self.section_header.get_virtual_address() + self.section_header.get_pointer_to_raw_data()
 
     def __str__(self):
         out = ""
-        out += utils.formatter2("%-20x", self.members['dt_rva'])
-        out += utils.formatter2("%-20x", self.members['dt_size'])
+        out += utils.formatter2("%-20x", self.get_value("dt_rva"))
+        out += utils.formatter2("%-20x", self.get_value("dt_size"))
         out += utils.formatter2("%-20s", self.section_header.get_formatted_name() if self.section_header else '')
         return out
 

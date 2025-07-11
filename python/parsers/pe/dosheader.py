@@ -3,78 +3,36 @@ import utils
 
 
 class DosHeader(Packer):
-    DOS_SIGNATURE_SZ = 2
-    DOS_CBLP_SZ = 2
-    DOS_CP_SZ = 2
-    DOS_CRLC_SZ = 2
-    DOS_CPARHDR_SZ = 2
-    DOS_MINALLOC_SZ = 2
-    DOS_MAXALLOC_SZ = 2
-    DOS_SS_SZ = 2
-    DOS_SP_SZ = 2
-    DOS_CHECKSUM_SZ = 2
-    DOS_IP_SZ = 2
-    DOS_CS_SZ = 2
-    DOS_LFARLC_SZ = 2
-    DOS_NOVERLAY_SZ = 2
-    DOS_RESERVED1_SZ = 8
-    DOS_OEMID_SZ = 2
-    DOS_OEMINFO_SZ = 2
-    DOS_RESERVED2_SZ = 20
-    DOS_LFANEW_SZ = 4
-
-    def __init__(self,
-                 signature=0,
-                 cblp=0,
-                 cp=0,
-                 crlc=0,
-                 cparhdr=0,
-                 minalloc=0,
-                 maxalloc=0,
-                 ss=0,
-                 sp=0,
-                 checksum=0,
-                 ip=0,
-                 cs=0,
-                 lfarlc=0,
-                 noverlay=0,
-                 reserved1=0,
-                 oemid=0,
-                 oeminfo=0,
-                 reserved2=0,
-                 lfanew=0
-                 ):
+    def __init__(self):
         super().__init__(
             {
-                "dos_signature":  signature,
-                "dos_cblp": cblp,
-                "dos_cp":         cp,
-                "dos_crlc":       crlc,
-                "dos_cparhdr":    cparhdr,
-                "dos_minalloc":   minalloc,
-                "dos_maxalloc":   maxalloc,
-                "dos_ss":         ss,
-                "dos_sp":         sp,
-                "dos_checksum":   checksum,
-                "dos_ip":        ip,
-                "dos_cs":         cs,
-                "dos_lfarlc": lfarlc,
-                "dos_noverlay": noverlay,
-                "dos_reserved1": reserved1,
-                "dos_oemid": oemid,
-                "dos_oeminfo": oeminfo,
-                "dos_reserved2": reserved2,
-                "dos_lfanew": lfanew
-            },
-            always_32bit=True,
-            always_little_endian=True
+                "dos_signature":    2,
+                "dos_cblp":         2,
+                "dos_cp":           2,
+                "dos_crlc":         2,
+                "dos_cparhdr":      2,
+                "dos_minalloc":     2,
+                "dos_maxalloc":     2,
+                "dos_ss":           2,
+                "dos_sp":           2,
+                "dos_checksum":     2,
+                "dos_ip":           2,
+                "dos_cs":           2,
+                "dos_lfarlc":       2,
+                "dos_noverlay":     2,
+                "dos_reserved1":    8,
+                "dos_oemid":        2,
+                "dos_oeminfo":      2,
+                "dos_reserved2":    20,
+                "dos_lfanew":       4
+            }
         )
 
     def get_lfanew(self):
-        return self.members['dos_lfanew']
+        return self.get_value('dos_lfanew')
 
     def __str__(self):
         out = "\n[DosHeader]\n"
-        out += utils.formatter("Signature:", self.members['dos_signature'], hex=True)
-        out += utils.formatter("LfAnew:", self.members['dos_lfanew'], hex=True)
+        out += utils.formatter("Signature:", self.get_value('dos_signature'), hex=True)
+        out += utils.formatter("LfAnew:", self.get_value('dos_lfanew'), hex=True)
         return out

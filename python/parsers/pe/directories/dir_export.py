@@ -23,11 +23,11 @@ class ExportObject:
 
     def __str__(self):
         out = ""
-        out += utils.formatter2("%-20s",  self.name)
-        out += utils.formatter2("%-20x",  self.ordinal)
-        out += utils.formatter2("%-20s",  self.hint)
-        out += utils.formatter2("%-20s",  self.function_rva)
-        out += utils.formatter2("%-20s",  self.name)
+        out += utils.formatter2("%-20s", self.name)
+        out += utils.formatter2("%-20x", self.ordinal)
+        out += utils.formatter2("%-20s", self.hint)
+        out += utils.formatter2("%-20s", self.function_rva)
+        out += utils.formatter2("%-20s", self.name)
         return out
 
     def get_function_rva(self):
@@ -35,82 +35,62 @@ class ExportObject:
 
 
 class ExportTable(Table):
-    ET_EXPORT_FLAGS_SZ = 4
-    ET_TIMESTAMP_SZ = 4
-    ET_MAJOR_VERSION_SZ = 2
-    ET_MINOR_VERSION_SZ = 2
-    ET_NAME_RVA_SZ = 4
-    ET_ORDINAL_BASE_SZ = 4
-    ET_NUMBER_OF_FUNCTIONS_SZ = 4
-    ET_NUMBER_OF_NAMES_SZ = 4
-    ET_FUNCTIONS_RVA_SZ = 4
-    ET_NAMES_RVA_SZ = 4
-    ET_ORDINALS_RVA_SZ = 4
 
-    def __init__(self,
-                 et_export_flags=0,
-                 et_timestamp=0,
-                 et_major_version=0,
-                 et_minor_version=0,
-                 et_name_rva=0,
-                 et_ordinal_base=0,
-                 et_number_of_functions=0,
-                 et_number_of_names=0,
-                 et_functions_rva=0,
-                 et_names_rva=0,
-                 et_ordinals_rva=0):
+    def __init__(self):
         super().__init__(
             {
-                "et_export_flags": et_export_flags,
-                "et_timestamp": et_timestamp,
-                "et_major_version": et_major_version,
-                "et_minor_version": et_minor_version,
-                "et_name_rva": et_name_rva,
-                "et_ordinal_base": et_ordinal_base,
-                "et_number_of_functions": et_number_of_functions,
-                "et_number_of_names": et_number_of_names,
-                "et_functions_rva": et_functions_rva,
-                "et_names_rva": et_names_rva,
-                "et_ordinals_rva": et_ordinals_rva
+                "et_export_flags": 4,
+                "et_timestamp": 4,
+                "et_major_version": 2,
+                "et_minor_version": 2,
+                "et_name_rva": 4,
+                "et_ordinal_base": 4,
+                "et_number_of_functions": 4,
+                "et_number_of_names": 4,
+                "et_functions_rva": 4,
+                "et_names_rva": 4,
+                "et_ordinals_rva": 4,
             },
-            always_32bit=True
+            always_32bit=True,
         )
         self.exportObjects = []
 
     def get_function_rva(self):
-        return self.members["et_functions_rva"]
+        return self.get_value("et_functions_rva")
 
     def unpack(self, buffer):
         super().unpack(buffer)
 
         # read offsets
-        FunctionsFileOffset = utils.convert_rva_to_offset(self.members["et_functions_rva"], self.sections)
-        NamesFileOffset = utils.convert_rva_to_offset(self.members["et_names_rva"], self.sections)
-        OrdinalsFileOffset = utils.convert_rva_to_offset(self.members["et_ordinals_rva"], self.sections)
+        FunctionsFileOffset = utils.convert_rva_to_offset(self.get_value("et_functions_rva"), self.sections)
+        NamesFileOffset = utils.convert_rva_to_offset(self.get_value("et_names_rva"), self.sections)
+        OrdinalsFileOffset = utils.convert_rva_to_offset(self.get_value("et_ordinals_rva"), self.sections)
         NamesAndOrdinals = {}
 
         # read names and corresponding indexes
-        for i in range(self.members["et_number_of_names"]):
-            NamesAndOrdinals[utils.unpack(buffer[OrdinalsFileOffset+i*2:OrdinalsFileOffset+i*2+2])] = utils.unpack(buffer[NamesFileOffset+i*4:NamesFileOffset+i*4+4])
+        for i in range(self.get_value("et_number_of_names")):
+            NamesAndOrdinals[utils.unpack(buffer[OrdinalsFileOffset + i * 2: OrdinalsFileOffset + i * 2 + 2])
+                             ] = utils.unpack(buffer[NamesFileOffset + i * 4: NamesFileOffset + i * 4 + 4])
 
         # create export table
-        for i in range(self.members["et_number_of_functions"]):
-            FunctionAddress = utils.unpack(buffer[FunctionsFileOffset+i*4:FunctionsFileOffset+i*4+4])
-            if FunctionAddress == 0:  # there are sometimes zero reserved entries for future use, which are currently not in use
+        for i in range(self.get_value("et_number_of_functions")):
+            FunctionAddress = utils.unpack(buffer[FunctionsFileOffset + i * 4: FunctionsFileOffset + i * 4 + 4])
+            if FunctionAddress == 0:
                 continue
             # if exported by name
             if i in NamesAndOrdinals.keys():
                 namesoffset = utils.convert_rva_to_offset(NamesAndOrdinals[i], self.sections)
                 symbol = utils.readstring(buffer, namesoffset)
-                # Ordinal, address, hint, string address, string
-                self.exportObjects.append(ExportObject(i+self.members["et_ordinal_base"], FunctionAddress, i, NamesAndOrdinals[i], symbol))
+                self.exportObjects.append(ExportObject(
+                    i + self.get_value("et_ordinal_base"), FunctionAddress, i, NamesAndOrdinals[i], symbol))
             # if exported only by ordinal or is forwarded to imported function from another dll
             else:
                 # forwarded to another .dll
                 namesoffset = utils.convert_rva_to_offset(FunctionAddress, self.sections)
                 symbol = utils.readstring(buffer, namesoffset)
                 # Zeroes because either exported by Ordinal or has forwarder RVA
-                self.exportObjects.append(ExportObject(i+self.members["et_ordinal_base"], FunctionAddress, 0, 0, symbol))
+                self.exportObjects.append(ExportObject(
+                    i + self.get_value("et_ordinal_base"), FunctionAddress, 0, 0, symbol))
 
     def __str__(self):
         out = f"\n[Exports]({len(self.exportObjects)})\n"

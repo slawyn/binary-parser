@@ -1,9 +1,11 @@
 import utils
 from packer import Packer
 
+
 class SectionData:
     '''SectionData
     '''
+
     def __init__(self, data):
         self.data = data
 
@@ -17,31 +19,10 @@ class SectionData:
         '''
         return self.data
 
+
 class SectionHeader(Packer):
     '''Section Header
     '''
-    SH_NAME_OFF_SZ = 4
-    SH_TYPE_SZ = 4
-    SH_FLAGS_SZ = 4
-    SH_ADDR_SZ = 4
-    SH_OFFSET_SZ = 4
-    SH_SIZE_SZ = 4
-    SH_LINK_SZ = 4
-    SH_INFO_SZ = 4
-    SH_ADDRALIGN_SZ = 4
-    SH_ENTSIZE_SZ = 4
-
-    SH_NAME_OFF_64SZ = 4
-    SH_TYPE_64SZ = 4
-    SH_FLAGS_64SZ = 8
-    SH_ADDR_64SZ = 8
-    SH_OFFSET_64SZ = 8
-    SH_SIZE_64SZ = 8
-    SH_LINK_64SZ = 4
-    SH_INFO_64SZ = 4
-    SH_ADDRALIGN_64SZ = 8
-    SH_ENTSIZE_64SZ = 8
-
     SH_TYPE_T = {0x00: "SHT_NULL (Unused)",
                  0x01: "SHT_PROGBITS (Program data)",
                  0x02: "SHT_SYMTAB (Symbol table)",
@@ -77,7 +58,6 @@ class SectionHeader(Packer):
                    0x800: "SHF_COMPRESSED (Compressed)",
                    0x4000000: "SHF_ORDERED (Special ordering requirement (Solaris))",
                    0x8000000: "SHF_EXCLUDE (Section is excluded unless referenced or allocated (Solaris))"}
-
     SH_FLAGS_T = {0x01: "SHF_WRITE",
                   0x02: "SHF_ALLOC",
                   0x04: "SHF_EXECINSTR",
@@ -103,65 +83,65 @@ class SectionHeader(Packer):
     FLAGS_SHF_ALLOC = 0x02
     FLAGS_SHF_EXECINSTR = 0x04
 
-    def __init__(self, sh_name_off=0, sh_type=0, sh_flags=0, sh_size=0, sh_offset=0, sh_addr=0):
+    def __init__(self):
         self.name = ""
         super().__init__(
             {
-                "sh_name_off": sh_name_off,
-                "sh_type": sh_type,
-                "sh_flags": sh_flags,
-                "sh_addr": sh_addr,
-                "sh_offset": sh_offset,
-                "sh_size": sh_size,
-                "sh_link": 0,
-                "sh_info": 0,
-                "sh_addralign": 0,
-                "sh_entsize": 0
+                "sh_name_off": 4,
+                "sh_type": 4,
+                "sh_flags": 4,
+                "sh_addr": 4,
+                "sh_offset": 4,
+                "sh_size": 4,
+                "sh_link": 4,
+                "sh_info": 4,
+                "sh_addralign": 4,
+                "sh_entsize": 4
             },
             {
-                "sh_name_off": sh_name_off,
-                "sh_type": sh_type,
-                "sh_flags": sh_flags,
-                "sh_addr": sh_addr,
-                "sh_offset": sh_offset,
-                "sh_size": sh_size,
-                "sh_link": 0,
-                "sh_info": 0,
-                "sh_addralign": 0,
-                "sh_entsize": 0
+                "sh_name_off": 4,
+                "sh_type": 4,
+                "sh_flags": 8,
+                "sh_addr": 8,
+                "sh_offset": 8,
+                "sh_size": 8,
+                "sh_link": 4,
+                "sh_info": 4,
+                "sh_addralign": 8,
+                "sh_entsize": 8
             }
         )
         self.section_data = None
 
     def get_size(self):
-        return self.members["sh_size"]
+        return self.get_value("sh_size")
 
     def get_entry_size(self):
-        return self.members["sh_entsize"]
+        return self.get_value("sh_entsize")
 
     def get_offset(self):
-        return self.members["sh_offset"]
+        return self.get_value("sh_offset")
 
     def get_type(self):
-        return self.members["sh_type"]
+        return self.get_value("sh_type")
 
     def get_align(self):
-        return self.members["sh_addralign"]
+        return self.get_value("sh_addralign")
 
     def get_addr(self):
-        return self.members["sh_addr"]
+        return self.get_value("sh_addr")
 
     def get_link(self):
-        return self.members["sh_link"]
-    
+        return self.get_value("sh_link")
+
     def is_allocatable(self):
-        return self.members["sh_flags"] & SectionHeader.FLAGS_SHF_ALLOC
+        return self.get_value("sh_flags") & SectionHeader.FLAGS_SHF_ALLOC
 
     def set_offset(self, offset):
         self.members["sh_offset"] = offset
 
     def get_name_off(self):
-        return self.members["sh_name_off"]
+        return self.get_value("sh_name_off")
 
     def set_size(self, size):
         self.members["sh_size"] = size
@@ -178,6 +158,7 @@ class SectionHeader(Packer):
     def get_section_data(self):
         return self.section_data
 
+    @staticmethod
     def get_column_titles():
         out = ""
         out += utils.formatter2("%-10s", "[Offset]")
@@ -194,14 +175,14 @@ class SectionHeader(Packer):
 
     def __str__(self):
         out = ""
-        out += utils.formatter2("%-10s", self.members["sh_name_off"])
-        out += utils.formatter2("%-20x", self.members["sh_offset"])
-        out += utils.formatter2("%-20x", self.members["sh_size"])
-        out += utils.formatter2("%-20x", self.members["sh_addr"])
-        out += utils.formatter2("%-10x", self.members["sh_link"])
-        out += utils.formatter2("%-10x", self.members["sh_info"])
-        out += utils.formatter2("%-20x", self.members["sh_entsize"])
-        out += utils.formatter2("%-20x", self.members["sh_addralign"])
-        out += utils.formatter2("%-30s", self.members["sh_type"], table=SectionHeader.SH_TYPE_T)
-        out += utils.formatter2("%-30s", self.members["sh_flags"], table=SectionHeader.SH_FLAGS_T, mask=True)
+        out += utils.formatter2("%-10s", self.get_value("sh_name_off"))
+        out += utils.formatter2("%-20x", self.get_value("sh_offset"))
+        out += utils.formatter2("%-20x", self.get_value("sh_size"))
+        out += utils.formatter2("%-20x", self.get_value("sh_addr"))
+        out += utils.formatter2("%-10x", self.get_value("sh_link"))
+        out += utils.formatter2("%-10x", self.get_value("sh_info"))
+        out += utils.formatter2("%-20x", self.get_value("sh_entsize"))
+        out += utils.formatter2("%-20x", self.get_value("sh_addralign"))
+        out += utils.formatter2("%-30s", self.get_value("sh_type"), table=SectionHeader.SH_TYPE_T)
+        out += utils.formatter2("%-30s", self.get_value("sh_flags"), table=SectionHeader.SH_FLAGS_T, mask=True)
         return out

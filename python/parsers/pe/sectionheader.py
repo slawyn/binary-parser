@@ -39,59 +39,48 @@ class SectionHeader(Packer):
         0x10000000: "IMAGE_SCN_MEM_SHARED",
         0x20000000: "IMAGE_SCN_MEM_EXECUTE",
         0x40000000: "IMAGE_SCN_MEM_READ",
-        0x80000000: "IMAGE_SCN_MEM_WRITE"
+        0x80000000: "IMAGE_SCN_MEM_WRITE",
     }
 
-    # Define size constants
-    SH_NAME_SZ = 8
-    SH_VIRTUAL_SIZE_SZ = 4
-    SH_VIRTUAL_ADDRESS_SZ = 4
-    SH_SIZE_OF_RAW_DATA_SZ = 4
-    SH_POINTER_TO_RAW_DATA_SZ = 4
-    SH_POINTER_TO_RELOCATIONS_SZ = 4
-    SH_POINTER_TO_LINE_NUMBERS_SZ = 4
-    SH_NUMBER_OF_RELOCATIONS_SZ = 2
-    SH_NUMBER_OF_LINENUMBERS_SZ = 2
-    SH_CHARACTERISTICS_SZ = 4
-
-    def __init__(self, sh_name=0, sh_virtual_size=0, sh_virtual_address=0, sh_size_of_raw_data=0, sh_pointer_to_raw_data=0, sh_pointer_to_relocations=0, sh_pointer_to_line_numbers=0, sh_number_of_relocations=0, sh_number_of_linenumbers=0, sh_characteristics=0):
+    def __init__(self):
         super().__init__(
             {
-                "sh_name": sh_name,
-                "sh_virtual_size": sh_virtual_size,
-                "sh_virtual_address": sh_virtual_address,
-                "sh_size_of_raw_data": sh_size_of_raw_data,
-                "sh_pointer_to_raw_data": sh_pointer_to_raw_data,
-                "sh_pointer_to_relocations": sh_pointer_to_relocations,
-                "sh_pointer_to_line_numbers": sh_pointer_to_line_numbers,
-                "sh_number_of_relocations": sh_number_of_relocations,
-                "sh_number_of_linenumbers": sh_number_of_linenumbers,
-                "sh_characteristics": sh_characteristics,
+                "sh_name": 8,
+                "sh_virtual_size": 4,
+                "sh_virtual_address": 4,
+                "sh_size_of_raw_data": 4,
+                "sh_pointer_to_raw_data": 4,
+                "sh_pointer_to_relocations": 4,
+                "sh_pointer_to_line_numbers": 4,
+                "sh_number_of_relocations": 2,
+                "sh_number_of_linenumbers": 2,
+                "sh_characteristics": 4,
             },
-            always_32bit=True
+            always_32bit=True,
         )
 
     def is_code(self):
-        return self.members['sh_characteristics'] & SectionHeader.IMAGE_SCN_CNT_CODE
+        return self.get_value("sh_characteristics") & SectionHeader.IMAGE_SCN_CNT_CODE
 
     def get_virtual_address(self):
-        return self.members['sh_virtual_address']
+        return self.get_value("sh_virtual_address")
 
     def get_virtual_size(self):
-        return self.members['sh_virtual_size']
+        return self.get_value("sh_virtual_size")
 
     def get_pointer_to_raw_data(self):
-        return self.members['sh_pointer_to_raw_data']
+        return self.get_value("sh_pointer_to_raw_data")
 
     def get_size_of_raw_data(self):
-        return self.members['sh_size_of_raw_data']
+        return self.get_value("sh_size_of_raw_data")
 
     def get_name(self):
-        return self.members['sh_name']
+        return self.get_value("sh_name")
 
     def get_formatted_name(self):
-        return utils.convert_long_to_str(self.members['sh_name'])
+        return utils.convert_long_to_str(self.get_value("sh_name"))
 
+    @staticmethod
     def get_column_titles():
         out = ""
         out += utils.formatter2("%-20s", "[Name]")
@@ -108,16 +97,17 @@ class SectionHeader(Packer):
 
     def __str__(self):
         out = ""
-        out += utils.formatter2("%-20s",  self.get_formatted_name())
-        out += utils.formatter2("%-20x", self.members['sh_virtual_size'])
-        out += utils.formatter2("%-20x", self.members['sh_virtual_address'])
-        out += utils.formatter2("%-20x", self.members['sh_size_of_raw_data'])
-        out += utils.formatter2("%-20x", self.members['sh_pointer_to_raw_data'])
-        out += utils.formatter2("%-20x", self.members['sh_pointer_to_relocations'])
-        out += utils.formatter2("%-20x", self.members['sh_pointer_to_line_numbers'])
-        out += utils.formatter2("%-20x", self.members['sh_number_of_relocations'])
-        out += utils.formatter2("%-30x", self.members['sh_number_of_linenumbers'])
-        out += utils.formatter2("%-30s", self.members['sh_characteristics'], table=SectionHeader.SH_CHARACTERISTICS_T, mask=True)
+        out += utils.formatter2("%-20s", self.get_formatted_name())
+        out += utils.formatter2("%-20x", self.get_value("sh_virtual_size"))
+        out += utils.formatter2("%-20x", self.get_value("sh_virtual_address"))
+        out += utils.formatter2("%-20x", self.get_value("sh_size_of_raw_data"))
+        out += utils.formatter2("%-20x", self.get_value("sh_pointer_to_raw_data"))
+        out += utils.formatter2("%-20x", self.get_value("sh_pointer_to_relocations"))
+        out += utils.formatter2("%-20x", self.get_value("sh_pointer_to_line_numbers"))
+        out += utils.formatter2("%-20x", self.get_value("sh_number_of_relocations"))
+        out += utils.formatter2("%-30x", self.get_value("sh_number_of_linenumbers"))
+        out += utils.formatter2("%-30s", self.get_value("sh_characteristics"),
+                                table=SectionHeader.SH_CHARACTERISTICS_T, mask=True)
         return out
 
 

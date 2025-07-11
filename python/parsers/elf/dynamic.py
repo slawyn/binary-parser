@@ -1,16 +1,8 @@
 import utils
 from packer import Packer
 
+
 class DynamicEntry(Packer):
-    D_TAG_SZ = 4
-    D_VAL_SZ = 2
-    D_PTR_SZ = 4
-    D_OFF_SZ = 4
-
-    D_TAG_64SZ = 8
-    D_VAL_64SZ = 2
-    D_PTR_64SZ = 4
-
     D_TAG_T = {
         0: 'DT_NULL',
         1: 'DT_NEEDED',
@@ -20,28 +12,29 @@ class DynamicEntry(Packer):
         6: 'DT_SYMTAB',
     }
 
-    def __init__(self, d_tag=0, d_val=0, d_ptr=0, d_off=0):
+    def __init__(self):
         super().__init__(
             {
-                "d_tag": d_tag,
-                "d_val": d_val,
-                "d_ptr": d_ptr,
-                "d_off": d_off
+                "d_tag": 4,
+                "d_val": 2,
+                "d_ptr": 4,
+                "d_off": 4
             },
             {
-                "d_tag": d_tag,
-                "d_val": d_val,
-                "d_ptr": d_ptr
+                "d_tag": 8,
+                "d_val": 2,
+                "d_ptr": 4
             }
         )
 
     def __str__(self):
         out = ""
-        out += utils.formatter2("%-20s", self.members["d_tag"],  table=DynamicEntry.D_TAG_T)
-        out += utils.formatter2("%-10x", self.members["d_val"])
-        out += utils.formatter2("%-10x", self.members["d_ptr"])
-        out += utils.formatter2("%-20s", self.members.get("d_off", "NONE"))
+        out += utils.formatter2("%-20s", self.get_value("d_tag"), table=DynamicEntry.D_TAG_T)
+        out += utils.formatter2("%-10x", self.get_value("d_val"))
+        out += utils.formatter2("%-10x", self.get_value("d_ptr"))
+        out += utils.formatter2("%-20s", self.get_value("d_off") if self.key_exists("d_off") else "NONE")
         return out
+
 
 class Dynamic:
     def __init__(self, section_header, section_data):

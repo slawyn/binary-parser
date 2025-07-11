@@ -436,7 +436,7 @@ class ElfParser:
         out += f"\n[Program Headers] ({len(self.program_headers)})\n"
         out += name_fmt % ("[Segment Name]") + ProgramHeader.get_column_titles() + "\n"
         for idx, ph in enumerate(self.program_headers):
-            out += name_fmt % f"[{idx}][{ph.get_vaddr():x}-{ph.get_vaddr() +ph.get_memsz():x}]"
+            out += name_fmt % f"[{idx}][{ph.get_vaddr():x}-{ph.get_vaddr() + ph.get_memsz():x}]"
             out += str(ph)
             out += "\n"
 
