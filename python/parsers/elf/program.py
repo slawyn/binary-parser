@@ -74,10 +74,10 @@ class ProgramHeader(Packer):
         return self.get_value("ph_align")
 
     def set_filesize(self, size):
-        self.members["ph_filesz"] = size
+        self.members["ph_filesz"].set_value(size)
 
     def set_offset(self, offset):
-        self.members["ph_offset"] = offset
+        self.members["ph_offset"].set_value(offset)
 
     def set_included_sections(self, section_headers):
         self.section_headers = section_headers

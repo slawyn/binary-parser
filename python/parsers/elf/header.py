@@ -53,10 +53,10 @@ class ElfHeader(Packer):
         )
 
     def set_ph_offset(self, ph_offset):
-        self.members["e_ph_off"] = ph_offset
+        self.members["e_ph_off"].set_value(ph_offset)
 
     def set_sh_offset(self, sh_offset):
-        self.members["e_sh_off"] = sh_offset
+        self.members["e_sh_off"].set_value(sh_offset)
 
     def get_size(self):
         return self.get_value("e_eh_size")
@@ -68,10 +68,10 @@ class ElfHeader(Packer):
         return self.get_value("e_sh_count")
 
     def set_sh_count(self, sh_count):
-        self.members["e_sh_count"] = sh_count
+        self.members["e_sh_count"].set_value(sh_count)
 
     def set_ph_count(self, ph_count):
-        self.members["e_ph_count"] = ph_count
+        self.members["e_ph_count"].set_value(ph_count)
 
     def get_sh_ent_sz(self):
         return self.get_value("e_sh_ent_size")

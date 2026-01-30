@@ -138,13 +138,13 @@ class SectionHeader(Packer):
         return self.get_value("sh_flags") & SectionHeader.FLAGS_SHF_ALLOC
 
     def set_offset(self, offset):
-        self.members["sh_offset"] = offset
+        self.members["sh_offset"].set_value(offset)
 
     def get_name_off(self):
         return self.get_value("sh_name_off")
 
     def set_size(self, size):
-        self.members["sh_size"] = size
+        self.members["sh_size"].set_value(size)
 
     def resolve_name(self, name):
         self.name = name

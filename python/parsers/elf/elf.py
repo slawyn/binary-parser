@@ -159,12 +159,13 @@ class ElfParser:
             ph_start = ph.get_offset()
             ph_end = ph_start + ph.get_filesz()
 
-            if ph.get_type() not in [ProgramHeader.PT_PHDR]:
+            if ph.get_type() not in [ProgramHeader.PT_PHDR] and ph_start < ph_end:
                 sh_placed = []
                 for sh in self.section_headers:
                     sh_start = sh.get_offset()
                     sh_end = sh_start + sh.get_size()
                     if ph_start <= sh_start <= sh_end <= ph_end:
+                        print(f"INFO: Placing [{idx}] {ph.get_type()} {ph_start:x}-{ph_end:x} -> {sh.get_name()} {sh_start:x}-{sh_end:x}")
                         sh_placed.append(sh)
 
                 if len(sh_placed):
@@ -243,15 +244,14 @@ class ElfParser:
         sd_offset = ph_offset + ph_size
         sd_offset_end = sd_offset
 
-        first_section_found = False
-        diff_offset = 0
+        grow_offset = 0
         for sh in sorted(self.section_headers, key=lambda x: x.get_offset()):
             if sh.get_type() not in [SectionHeader.TYPE_SHT_NULL, SectionHeader.TYPE_SHT_NOBITS]:
-                if not first_section_found:
-                    first_section_found = True
-                    diff_offset = sd_offset - sh.get_offset()
+                grow_offset = sd_offset_end - sh.get_offset()
+                if grow_offset > 0:
+                    # Don't remove reserved space, only let the sections grow if need not shrink
+                    sh.set_offset(sh.get_offset() + grow_offset)
 
-                sh.set_offset(sh.get_offset() + diff_offset)
             sd_offset_end = sh.get_offset() + sh.get_size()
 
         return sd_offset_end
@@ -297,12 +297,18 @@ class ElfParser:
         ihex = IntelHex()
         for ph in sorted(self.program_headers, key=lambda x: x.get_vaddr()):
             if ph.get_type() not in [ProgramHeader.PT_PHDR, ProgramHeader.PT_INTERP]:
-                address = ph.get_vaddr()
+                paddress = ph.get_paddr()
+                fileoffset = ph.get_offset()
+
                 for sh in ph.get_included_sections():
-                    print("HEX", hex(address))
                     if sd := sh.get_section_data():
-                        ihex.frombytes(sd.get_data(), offset=address)
-                    address += sh.get_size()
+                        skip  = sh.get_offset() - fileoffset
+                        paddress +=  skip
+                        fileoffset +=  skip
+
+                        ihex.frombytes(sd.get_data(), offset=paddress)
+                        paddress += sd.get_size()
+                        fileoffset +=  sd.get_size()
 
         ihex.write_hex_file(hex_out)
 
@@ -465,13 +471,13 @@ class ElfParser:
                     out += str(symbol)
                     out += "\n"
 
-        if self.dwarf:
-            out += f"\n[Debug] ({len(self.dwarf.get_entries())})\n"
-            for idx, tab in enumerate(self.dwarf.get_entries()):
-                out += name_fmt % f"[{idx}]"
-                out += "\n"
-                out += str(tab)
-                out += "\n"
+        # if self.dwarf:
+        #     out += f"\n[Debug] ({len(self.dwarf.get_entries())})\n"
+        #     for idx, tab in enumerate(self.dwarf.get_entries()):
+        #         out += name_fmt % f"[{idx}]"
+        #         out += "\n"
+        #         out += str(tab)
+        #         out += "\n"
 
         return out
 
